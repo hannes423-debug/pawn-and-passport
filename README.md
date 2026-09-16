@@ -9,6 +9,8 @@ It is a separate project with its own entry point, data, save namespace (`PAP_`)
 and identity. Chess: World Tour (`~/Työpöytä/chess-world-tour`) was only read,
 never modified.
 
+**Play it:** https://hannes423-debug.github.io/pawn-and-passport/ (GitHub Pages, served from `main`).
+
 ## Run it
 
 ```bash
