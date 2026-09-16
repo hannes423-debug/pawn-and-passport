@@ -1,0 +1,565 @@
+/**
+ * scene.js - walking around a club, a venue or Madrid.
+ *
+ * The art is the room. The player sprite walks a waypoint graph from
+ * js/data/scenes.js, and reaching a hotspot runs its action: enter the club,
+ * play the tournament, talk to the Star Player, solve the venue puzzles.
+ * Every hotspot is also a button in the dock, so nothing needs precise
+ * clicking and the keyboard works (keys 1-9). On touch screens a joystick walks
+ * the same graph link by link and the A button uses whatever is nearest.
+ */
+
+import { h, button, wait, clear } from '../dom.js';
+import { sfx, stopMusic } from '../audio.js';
+import { drawCharacter, hasSheet, PLAYER_LOOKS, CELL } from '../sprites.js';
+import { sceneById, findPath } from '../../data/scenes.js';
+import { CLUBS, FINALE, clubById } from '../../data/clubs.js';
+import { STAR_PLAYERS, starById, starForClub } from '../../data/starPlayers.js';
+import { missionForClub } from '../../data/missions.js';
+import { openingById } from '../../data/openings.js';
+import { ELO, MASTERY } from '../../data/config.js';
+import {
+  travelTo, meetStar, enterTournament, currentRound, tier, regularElo, missionProgress,
+  hasAllTrophies, enterFinale, currentFinaleRound, trophyCount, masteryState
+} from '../../core/career.js';
+import { starLines, loungeLines } from '../../core/dialogue.js';
+import { createTouchpad, tapWord } from '../touch.js';
+
+const GUIDE_LOOK = { sprite: 'adult-navy', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
+const WALK_SPEED = 42;           // percent of the stage height per second
+
+export async function sceneScreen(app, params) {
+  const career = app.career;
+  const scene = sceneById(params.sceneId) || sceneById(clubById(career.location.clubId)?.scenes.exterior) || sceneById('nyc-ext');
+  const clubId = scene.id.slice(0, 3);
+  const club = clubById(clubId);
+  const isFinale = clubId === FINALE.id;
+  travelTo(career, clubId, scene.id);
+  app.save();
+  stopMusic();
+
+  const bg = h('img.pp-scene__bg', { src: scene.image, alt: '', draggable: 'false' });
+  const actors = h('div.pp-scene__actors');
+  const hotspotLayer = h('div', { style: { position: 'absolute', inset: '0' } });
+  const stage = h('div.pp-scene__stage', null, bg, actors, hotspotLayer);
+  const viewport = h('div.pp-scene__viewport', null, stage);
+  const dock = h('div.pp-scene__dock');
+  const el = h('div.pp-screen.pp-scene', null, app.hud({ where: app.locationName() }), viewport, dock);
+
+  /* The background must really arrive. A failed request (the dev server was
+     killed for memory once, mid-play) used to leave a dark, image-less stage
+     until the scene was re-entered, so retry with a cache-busting query. */
+  await new Promise((resolve) => {
+    let tries = 0;
+    const done = () => (bg.naturalWidth ? resolve() : retry());
+    const retry = () => {
+      tries += 1;
+      if (tries > 5) { resolve(); return; }
+      setTimeout(() => { bg.src = `${scene.image}?retry=${tries}`; }, 400 * tries);
+    };
+    bg.onload = done;
+    bg.onerror = retry;
+    if (bg.complete) done();
+  });
+  bg.onload = () => fit();
+  const aspect = (bg.naturalWidth || 16) / (bg.naturalHeight || 9);
+
+  /* ---------------------------------------------------------- layout -- */
+  let stageH = 600;
+  const hudBar = el.firstChild;
+  const fit = () => {
+    // The HUD is shorter on phones and wraps to two rows in portrait.
+    if (hudBar?.offsetHeight) { viewport.style.top = `${hudBar.offsetHeight}px`; el.style.setProperty('--hud-h', `${hudBar.offsetHeight}px`); }
+    const vw = viewport.clientWidth || window.innerWidth;
+    const vh = viewport.clientHeight || (window.innerHeight - 56);
+    const w = Math.min(vw, vh * aspect);
+    stageH = w / aspect;
+    stage.style.width = `${w}px`;
+    stage.style.height = `${stageH}px`;
+    for (const actor of actorList) actor.resize();
+  };
+
+  /* ---------------------------------------------------------- actors -- */
+  const actorList = [];
+  function makeActor(look, [x, y], { dir = 'down', player = false } = {}) {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'pp-actor';
+    const shadow = h('div.pp-actor__shadow');
+    actors.append(shadow, canvas);
+    const actor = {
+      look, x, y, dir, frame: Math.floor(Math.random() * 4), walking: false, canvas, shadow, player,
+      resize() {
+        // Characters stand about a tenth of the scene tall (bigger on the
+        // close-up city cards).
+        const height = Math.max(40, Math.round(stageH * (scene.placeholder ? 0.15 : 0.1)));
+        canvas.height = height;
+        canvas.width = Math.round(height * CELL.W / CELL.H);
+        shadow.style.width = `${canvas.width * 0.55}px`;
+        shadow.style.height = `${canvas.width * 0.16}px`;
+        this.height = height;
+        this.draw();
+      },
+      draw() {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawCharacter(ctx, look, { dir: this.dir, frame: this.frame, walking: this.walking, height: this.height || 60 });
+        canvas.style.left = `${this.x}%`; canvas.style.top = `${this.y}%`;
+        shadow.style.left = `${this.x}%`; shadow.style.top = `${this.y}%`;
+        canvas.style.zIndex = String(Math.round(this.y * 10));
+      }
+    };
+    actorList.push(actor);
+    return actor;
+  }
+
+  // NPCs attached to hotspots.
+  for (const spot of scene.hotspots) {
+    const npc = spot.npc;
+    if (!npc) continue;
+    if (npc.kind === 'rivals') {
+      STAR_PLAYERS.slice(0, 6).forEach((star, i) => {
+        const at = [npc.at[0] + (i % 3) * 5, npc.at[1] + Math.floor(i / 3) * 9];
+        makeActor(star.look, at, { dir: i % 2 ? 'right' : 'left' });
+      });
+      continue;
+    }
+    const look = npc.kind === 'star' ? starForClub(clubId)?.look
+      : npc.kind === 'host' ? missionForClub(clubId)?.host.look
+      : club?.regularOpponentPool[npc.index % club.regularOpponentPool.length].look;
+    if (look) makeActor(look, npc.at, { dir: 'down' });
+  }
+
+  const spawnNode = (params.node && scene.nodes[params.node] ? params.node : null) || scene.spawn[params.spawn] || scene.spawn.default;
+  let playerNode = spawnNode;
+  const player = makeActor(PLAYER_LOOKS[career.avatar], scene.nodes[spawnNode], { dir: 'up', player: true });
+
+  /* -------------------------------------------------------- walking -- */
+  let walking = null;
+  // The node the player is between playerNode and, while a walk is under way.
+  // A walk interrupted mid-link (a new tap, the joystick) must either carry on
+  // toward it or go back to playerNode: starting from path[1] regardless used
+  // to cut straight across the room, through whatever was painted there.
+  let headingNode = null;
+  function walkTo(target) {
+    const path = findPath(scene, playerNode, target);
+    if (!path) return Promise.resolve(false);
+    const token = {};
+    walking = token;
+    return new Promise((resolve) => {
+      const [sx, sy] = scene.nodes[playerNode];
+      const onNode = Math.abs(player.x - sx) < 0.01 && Math.abs(player.y - sy) < 0.01;
+      let segment = onNode || path[1] === headingNode ? 1 : 0;
+      let last = performance.now();
+      let stepClock = 0;
+      const tick = (now) => {
+        if (walking !== token) { player.walking = false; player.draw(); resolve(false); return; }
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        if (segment >= path.length) {
+          player.walking = false; player.frame = 0; player.draw();
+          playerNode = target; headingNode = null; walking = null; resolve(true); return;
+        }
+        headingNode = path[segment];
+        const [tx, ty] = scene.nodes[path[segment]];
+        // Move in screen space so a wide scene does not make sideways walking fast.
+        const dxPx = (tx - player.x) * aspect;
+        const dy = ty - player.y;
+        const dist = Math.hypot(dxPx, dy);
+        const step = WALK_SPEED * dt;
+        if (dist <= step) {
+          player.x = tx; player.y = ty; playerNode = path[segment]; segment += 1;
+        } else {
+          player.x += (dxPx / dist) * step / aspect;
+          player.y += (dy / dist) * step;
+        }
+        player.dir = Math.abs(dxPx) > Math.abs(dy) ? (dxPx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+        stepClock += dt;
+        if (!player.walking) { player.walking = true; player.frame = 0; }
+        if (stepClock > 0.09) {
+          stepClock = 0;
+          player.frame += 1;
+          if (player.frame % 4 === 0) sfx.step();
+        }
+        player.draw();
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+
+  /* -------------------------------------------------------- hotspots -- */
+  let busy = false;
+  async function use(spot) {
+    if (busy) return;
+    busy = true;
+    sfx.click();
+    try {
+      const arrived = await walkTo(spot.node);
+      if (arrived) await runAction(spot);
+    } finally {
+      busy = false;
+      paintPad();
+    }
+  }
+
+  function spotState(spot) {
+    const t = spot.action.type;
+    if (t === 'tournament' && club && career.trophies[clubId]) return 'is-done';
+    if (t === 'mission' && club && career.postcards[club.postcardId]) return 'is-done';
+    if (t === 'finale' && career.finale.won) return 'is-done';
+    return '';
+  }
+
+  function drawHotspots() {
+    clear(hotspotLayer);
+    const list = h('div.pp-row');
+    scene.hotspots.forEach((spot, i) => {
+      const [x, y] = scene.nodes[spot.node];
+      const labelY = spot.npc?.at ? Math.min(y, spot.npc.at[1]) - 9 : y - 7;
+      hotspotLayer.append(h('button.pp-hotspot', {
+        type: 'button', class: spotState(spot),
+        style: { left: `${spot.npc?.at ? spot.npc.at[0] : x}%`, top: `${Math.max(4, labelY)}%` },
+        'aria-label': `${spot.verb}: ${spot.label}`,
+        onclick: (e) => { e.stopPropagation(); use(spot); }
+      }, h('span.pp-hotspot__label', { text: `${i + 1}  ${spot.label}` }), h('span.pp-hotspot__arrow', { text: '▼' })));
+      list.append(button(`${i + 1}. ${spot.verb}`, () => use(spot), { cls: 'pp-btn--small', title: spot.label }));
+    });
+    dock.replaceChildren(h('div.pp-panel', null, h('div.pp-scene__title', { text: app.locationName() }), list));
+  }
+
+  // Clicking empty floor walks to the nearest waypoint.
+  stage.addEventListener('click', (e) => {
+    if (busy) return;
+    const rect = stage.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * 100;
+    const py = ((e.clientY - rect.top) / rect.height) * 100;
+    let best = null;
+    for (const [id, [x, y]] of Object.entries(scene.nodes)) {
+      const d = Math.hypot((x - px) * aspect, y - py);
+      if (!best || d < best.d) best = { id, d };
+    }
+    if (best) walkTo(best.id);
+  });
+
+  const onKey = (e) => {
+    if (document.querySelector('.pp-overlay, .pp-dialogue')) return;
+    const n = Number(e.key);
+    if (n >= 1 && n <= scene.hotspots.length) use(scene.hotspots[n - 1]);
+    if (e.key === 'm' || e.key === 'M') app.go('map');
+    if (e.key === 'j' || e.key === 'J') app.go('journal', { back: app.backParams() });
+  };
+  document.addEventListener('keydown', onKey);
+
+  /* ----------------------------------------------------- touch walking -- */
+  const adjacent = {};
+  for (const [a, b] of scene.links) {
+    (adjacent[a] = adjacent[a] || []).push(b);
+    (adjacent[b] = adjacent[b] || []).push(a);
+  }
+  const blocked = () => busy || !!document.querySelector('.pp-overlay, .pp-dialogue');
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+  /** The linked node that best matches the stick, measured in screen space from where the player stands now. */
+  function nodeToward(vec) {
+    const len = Math.hypot(vec.x, vec.y) || 1;
+    const ux = vec.x / len; const uy = vec.y / len;
+    const candidates = new Set(adjacent[playerNode] || []);
+    if (headingNode) { candidates.add(headingNode); candidates.add(playerNode); }
+    let best = null;
+    for (const id of candidates) {
+      const [x, y] = scene.nodes[id];
+      const dx = (x - player.x) * aspect; const dy = y - player.y;
+      const d = Math.hypot(dx, dy);
+      if (d < 0.5) continue;
+      const score = (dx * ux + dy * uy) / d;       // cosine: 1 = straight ahead
+      if (score > 0.5 && (!best || score > best.score)) best = { id, score };
+    }
+    return best?.id || null;
+  }
+
+  let stick = null;
+  let driving = false;
+  async function drive() {
+    if (driving) return;
+    driving = true;
+    try {
+      while (stick && !blocked()) {
+        const target = nodeToward(stick);
+        if (!target) {
+          // Nothing that way: face it, so the stick still feels alive.
+          const dir = Math.abs(stick.x * aspect) > Math.abs(stick.y) ? (stick.x < 0 ? 'left' : 'right') : (stick.y < 0 ? 'up' : 'down');
+          if (!walking && player.dir !== dir) { player.dir = dir; player.draw(); }
+          await nextFrame();
+          continue;
+        }
+        if (!(await walkTo(target))) break;
+        paintPad();
+      }
+    } finally {
+      driving = false;
+      paintPad();
+    }
+  }
+
+  /** What A does: the hotspot underfoot, otherwise the nearest one (walk there, then use it). */
+  function spotForAction() {
+    if (!walking) {
+      const here = scene.hotspots.find((spot) => spot.node === playerNode);
+      if (here) return { spot: here, ready: true };
+    }
+    let best = null;
+    for (const spot of scene.hotspots) {
+      const [x, y] = scene.nodes[spot.node];
+      const d = Math.hypot((x - player.x) * aspect, y - player.y);
+      if (!best || d < best.d) best = { spot, d };
+    }
+    return best ? { spot: best.spot, ready: false } : null;
+  }
+
+  const pad = createTouchpad({
+    onStick(vec) {
+      stick = vec;
+      if (vec && !blocked()) {
+        if (walking && !driving) walking = null;     // the stick overrides a tap-to-walk
+        drive();
+      }
+    },
+    onAction() {
+      if (blocked()) return;
+      const pick = spotForAction();
+      if (pick) use(pick.spot);
+    }
+  });
+  function paintPad() {
+    const pick = spotForAction();
+    pad.setAction(pick ? (pick.ready ? pick.spot.verb : `Go: ${pick.spot.label}`) : '', pick?.ready);
+  }
+  viewport.append(pad.el);
+
+  /* --------------------------------------------------------- actions -- */
+  async function runAction(spot) {
+    const a = spot.action;
+    switch (a.type) {
+      case 'scene': sfx.step(); return app.go('scene', { sceneId: a.to, spawn: a.spawn });
+      case 'leave': return leaveMenu();
+      case 'tournament': return tournamentDesk();
+      case 'star': return starOffice();
+      case 'friendly': return friendlyGame();
+      case 'trophies': return trophyHall();
+      case 'talk': return app.dialogue({ name: 'Club member', role: club.clubName, look: club.regularOpponentPool[2 % club.regularOpponentPool.length].look, lines: loungeLines(career, clubId) });
+      case 'mission': return venueMission();
+      case 'finale': return finaleStage();
+      case 'rivals': return rivalsLounge();
+      default: return null;
+    }
+  }
+
+  async function leaveMenu() {
+    const choice = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
+      h('h2.pp-h2', { text: 'Where to?' }),
+      h('div.pp-col', null,
+        button('World map', () => close('map'), { icon: '🗺', cls: 'pp-btn--gold' }),
+        club && scene.kind !== 'venue' ? button(`${club.casualLocationName}`, () => close('venue'), { icon: '☕' }) : null,
+        club && scene.kind === 'venue' ? button(`${club.clubName}`, () => close('club'), { icon: '♜' }) : null,
+        button('Stay here', () => close(null), { cls: 'pp-btn--small' }))));
+    if (choice === 'map') app.go('map');
+    if (choice === 'venue') app.go('scene', { sceneId: club.scenes.venue });
+    if (choice === 'club') app.go('scene', { sceneId: club.scenes.exterior, spawn: 'default' });
+  }
+
+  function playMatch({ kind, opponent, colour }) {
+    app.go('match', { kind, opponent, colour, clubId, returnScene: scene.id, returnSpawn: playerNode });
+  }
+
+  async function tournamentDesk() {
+    const star = starForClub(clubId);
+    const opening = openingById(club.openingId);
+    if (career.trophies[clubId]) {
+      await app.dialogue({ name: 'Tournament director', role: club.tournamentConfig.name, look: GUIDE_LOOK,
+        lines: [`The ${club.trophyName} is already yours, champion.`, 'The practice room is always open for a friendly game.'] });
+      return;
+    }
+    const run = enterTournament(career, clubId);
+    app.save();
+    const round = currentRound(career, clubId);
+    const choice = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
+      h('h2.pp-h2', { text: club.tournamentConfig.name }),
+      h('p.pp-small', { text: `Two rounds against club regulars (a win or a draw clears a round), then ${star.name}, who must be beaten. Everyone here leans toward the ${opening.name}. Lose a round and you can simply challenge it again.` }),
+      h('ol.pp-col', { style: { paddingLeft: '20px', margin: '8px 0' } },
+        run.rounds.map((r, i) => h('li', null,
+          h('b', { text: r.kind === 'star' ? `★ ${r.name}` : r.name }),
+          ` · ${r.elo} Elo · ${r.style}`,
+          i < run.round ? ' · ✔ cleared' : i === run.round ? ' · ◀ next' : ''))),
+      h('p.pp-small.pp-muted', { text: `Difficulty tier ${run.tier + 1}/6 (set by the trophies you had when you entered).` }),
+      h('div.pp-row', null,
+        button(`Play round ${round.index + 1} as ${round.colour === 'w' ? 'White' : 'Black'}`, () => close('play'), { cls: 'pp-btn--gold', icon: '♞' }),
+        button('Not yet', () => close(null), { cls: 'pp-btn--small' }))));
+    if (choice !== 'play') return;
+    if (round.kind === 'star') {
+      meetStar(career, star.id);
+      app.save();
+      await app.dialogue({ name: star.name, role: star.title, look: star.look, lines: starLines(career, star.id, 'challenge') });
+    }
+    playMatch({
+      kind: round.kind === 'star' ? 'star' : 'tournament',
+      colour: round.colour,
+      opponent: { id: round.opponentId, name: round.name, elo: round.elo, style: round.style, openingId: club.openingId,
+        look: round.kind === 'star' ? star.look : club.regularOpponentPool.find((p) => p.id === round.opponentId)?.look }
+    });
+  }
+
+  async function starOffice() {
+    const star = starForClub(clubId);
+    const first = meetStar(career, star.id);
+    app.save();
+    const lines = first ? star.lines.intro : starLines(career, star.id, 'office');
+    const round = currentRound(career, clubId);
+    const ready = round && round.kind === 'star';
+    const actions = ready
+      ? [{ id: 'play', label: `Challenge ${star.name.split(' ')[0]}`, cls: 'pp-btn--gold' }, { id: null, label: 'Later' }]
+      : null;
+    const choice = await app.dialogue({ name: star.name, role: star.title, look: star.look, lines, actions });
+    if (!ready && !career.trophies[clubId] && !first) {
+      app.toast(`Clear the ${club.tournamentConfig.name} regular rounds to face ${star.name}.`);
+    }
+    if (choice === 'play') {
+      playMatch({ kind: 'star', colour: round.colour,
+        opponent: { id: star.id, name: star.name, elo: round.elo, style: star.style, openingId: star.openingId, look: star.look } });
+    }
+  }
+
+  async function friendlyGame() {
+    const pool = club.regularOpponentPool;
+    const regular = pool[Math.floor(Math.random() * pool.length)];
+    const elo = regularElo(tier(career));
+    const choice = await app.dialogue({
+      name: regular.name, role: 'club regular', look: regular.look,
+      lines: [`Fancy a friendly? No trophy on the line, but you'll still learn something.`, `I'm about ${elo}. I play the ${openingById(club.openingId).name} whenever I can.`],
+      actions: [{ id: 'w', label: 'Play White', cls: 'pp-btn--gold' }, { id: 'b', label: 'Play Black', cls: 'pp-btn--gold' }, { id: null, label: 'No thanks' }]
+    });
+    if (!choice) return;
+    playMatch({ kind: 'friendly', colour: choice, opponent: { id: regular.id, name: regular.name, elo, style: regular.style, openingId: club.openingId, look: regular.look } });
+  }
+
+  async function trophyHall() {
+    await app.overlay((close) => h('div.pp-panel.pp-modal', null,
+      h('h2.pp-h2', { text: `${club.clubName}: trophy hall` }),
+      h('div.pp-tiles', null, CLUBS.map((c) => h('div.pp-tile', { class: career.trophies[c.clubId] ? 'pp-tile--epic' : '' },
+        h('b.pp-trophy', { class: career.trophies[c.clubId] ? '' : 'is-empty', text: '🏆' }),
+        h('span', { text: c.trophyName }), h('div.pp-small.pp-muted', { text: c.city })))),
+      h('p', { text: career.trophies[clubId] ? `Your name is engraved on the ${club.trophyName}.` : `The ${club.trophyName} is still waiting for a name.` }),
+      button('Close', () => close(), { cls: 'pp-btn--small' })));
+  }
+
+  async function venueMission() {
+    const mission = missionForClub(clubId);
+    const progress = missionProgress(career, mission.id);
+    if (progress.complete) {
+      await app.dialogue({ name: mission.host.name, role: club.casualLocationName, look: mission.host.look,
+        lines: ['You already solved my set. Come back any time to replay them.'],
+        actions: [{ id: 'replay', label: 'Replay puzzles' }, { id: null, label: 'Bye' }] })
+        .then((c) => { if (c === 'replay') app.go('puzzle', { missionId: mission.id, returnScene: scene.id }); });
+      return;
+    }
+    const choice = await app.dialogue({ name: mission.host.name, role: `${mission.title} · ${mission.theme}`, look: mission.host.look,
+      lines: progress.solved ? [`${progress.solved} of ${progress.total} done. Ready for the rest?`] : mission.intro,
+      actions: [{ id: 'go', label: 'Solve puzzles', cls: 'pp-btn--gold' }, { id: null, label: 'Later' }] });
+    if (choice === 'go') app.go('puzzle', { missionId: mission.id, returnScene: scene.id });
+  }
+
+  async function finaleStage() {
+    if (!hasAllTrophies(career)) {
+      await app.dialogue({ name: 'Steward', role: FINALE.venueName, look: GUIDE_LOOK, lines: [`The Grand Finale is invitation only: six Club Trophies (${trophyCount(career)}/6).`] });
+      return;
+    }
+    if (career.finale.won) return app.go('ending');
+    const f = enterFinale(career);
+    app.save();
+    const round = currentFinaleRound(career);
+    const star = starById(round.opponentId);
+    const choice = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
+      h('h2.pp-h2', { text: FINALE.eventName }),
+      h('p.pp-small', { text: `Three knockout rounds against returning Star Players at full strength (${ELO.finaleRounds.join(' / ')} Elo). Every round must be won; a lost round can be replayed. Win the final to qualify for the Big Leagues.` }),
+      h('ol.pp-col', { style: { paddingLeft: '20px' } }, f.opponents.map((id, i) => {
+        const s = starById(id);
+        return h('li', null, h('b', { text: FINALE.rounds[i].label }), `: ${s.name} (${openingById(s.openingId).name}) · ${ELO.finaleRounds[i]}`,
+          i < f.round ? ' · ✔' : i === f.round ? ' · ◀ next' : '');
+      })),
+      h('div.pp-row', null,
+        button(`${round.label} vs ${star.name}`, () => close('play'), { cls: 'pp-btn--gold', icon: '♛' }),
+        button('Not yet', () => close(null), { cls: 'pp-btn--small' }))));
+    if (choice !== 'play') return;
+    await app.dialogue({ name: star.name, role: `${round.label} · ${star.title}`, look: star.look, lines: starLines(career, star.id, 'finale') });
+    app.go('match', { kind: 'finale', colour: round.colour, clubId: FINALE.id, returnScene: scene.id, returnSpawn: playerNode,
+      opponent: { id: star.id, name: star.name, elo: round.elo, style: star.style, openingId: star.openingId, look: star.look } });
+  }
+
+  async function rivalsLounge() {
+    for (const star of STAR_PLAYERS) {
+      const again = await app.dialogue({ name: star.name, role: star.title, look: star.look, lines: starLines(career, star.id, 'finale'),
+        actions: [{ id: 'next', label: 'Next rival' }, { id: null, label: 'Done' }] });
+      if (again !== 'next') break;
+    }
+  }
+
+  /* --------------------------------------------------- idle animation -- */
+  const idleTimer = setInterval(() => {
+    for (const actor of actorList) {
+      if (actor.walking || !hasSheet(actor.look)) continue;
+      actor.frame += 1;
+      actor.draw();
+    }
+  }, 320);
+
+  /* ---------------------------------------------------------- arrival -- */
+  window.addEventListener('resize', fit);
+  const viewportObserver = new ResizeObserver(() => fit());
+  viewportObserver.observe(viewport);
+  if (hudBar) viewportObserver.observe(hudBar);
+  drawHotspots();
+  paintPad();
+  requestAnimationFrame(fit);
+
+  (async () => {
+    if (params.arrival) {
+      sfx.stamp();
+      await app.overlay((close) => {
+        const card = h('div.pp-arrival', { onclick: () => close() },
+          h('img', { src: `assets/cities/${clubId}.webp`, alt: isFinale ? 'Madrid' : club.city }),
+          h('div.pp-arrival__tap', { text: `${tapWord()} to step off the plane` }));
+        return card;
+      });
+    }
+    if (params.intro) {
+      const opening = openingById(club.openingId);
+      await app.dialogue({ name: 'Passport officer', role: 'Welcome desk', look: GUIDE_LOOK, lines: [
+        `Welcome to ${club.city}, ${career.name}. Your chess passport is issued.`,
+        `It has six empty pages for Club Trophies. Win a club's tournament and beat its Star Player to fill one.`,
+        `You already know a little of the ${opening.name}: ${MASTERY.starting}%. Win this club and you will master it.`,
+        'Every city also has a casual venue with a puzzle challenge. Solve it for a postcard. Collect all six... and read the backs.',
+        tapWord() === 'tap'
+          ? 'Tap anything with a label, or walk with the stick and press A. Good games!'
+          : 'Walk to anything with a label, or press its number. Good games!'
+      ] });
+    } else if (params.firstVisit && club) {
+      const opening = openingById(club.openingId);
+      const mastery = career.openings[club.openingId] ?? 0;
+      app.toast(`${club.city}: home of the ${opening.name} (${mastery}% ${masteryState(mastery).label.toLowerCase()})`, { ms: 4200 });
+    }
+  })();
+
+  return {
+    el,
+    destroy() {
+      walking = null;
+      stick = null;
+      pad.destroy();
+      clearInterval(idleTimer);
+      viewportObserver.disconnect();
+      window.removeEventListener('resize', fit);
+      document.removeEventListener('keydown', onKey);
+    }
+  };
+}
+
+export default sceneScreen;

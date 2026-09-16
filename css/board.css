@@ -1,0 +1,419 @@
+/* ==========================================================================
+   board.css — the 2D chessboard. Copied from Chess: World Tour (lines 1-372 of
+   its css/board.css) and re-skinned for Pawn & Passport at the bottom of this
+   file: the squares are transparent over the ornate pixel board art.
+
+   The board is a square CSS grid whose side is one variable (--board-size).
+   Squares and pieces are positioned from two custom properties (--f, --r),
+   so flipping the board is a single [data-orientation] rule and animating a
+   move is a transform transition on one element.
+
+   Nothing here knows about game rules. A 3D renderer would replace this file
+   and no other.
+   ========================================================================== */
+
+.cwt-board {
+  /* The board is sized from the space actually left in BOTH axes.
+     --board-chrome-x  everything beside it: the rail, the gaps, the eval bar,
+                       the stage padding.
+     --board-chrome-y  everything above and below: top bar, screen header,
+                       player strips, controls, hint bar.
+     A screen that carries less chrome overrides the y value rather than
+     inheriting the worst case — using one allowance for every board screen
+     capped the puzzle board at 470px while 440px of width sat unused. */
+  --board-chrome-x: 500px;
+  --board-chrome-y: 240px;
+  --board-max: 680px;
+  --board-floor: 360px;
+  /* The floor matters: on a 768px-tall laptop a pure height calculation
+     produced a 348px board while 860px of width sat unused. Below the floor
+     the page is allowed to scroll instead of shrinking the board further. */
+  --board-size: clamp(
+    var(--board-floor),
+    min(calc(100vw - var(--board-chrome-x)), calc(100vh - var(--board-chrome-y))),
+    var(--board-max)
+  );
+  --sq: calc(var(--board-size) / 8);
+  --light: #c9d3e0;
+  --dark: #5d6b80;
+  --board-border: #39445a;
+
+  position: relative;
+  width: var(--board-size);
+  height: var(--board-size);
+  flex: none;
+  border-radius: 0;
+  background: var(--board-border);
+  box-shadow: none;
+  touch-action: none;              /* drag-to-move must not scroll the page */
+  user-select: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.cwt-board[data-theme="slate"]  { --light: #c9d3e0; --dark: #5d6b80; --board-border: #39445a; }
+.cwt-board[data-theme="walnut"] { --light: #e8d7b8; --dark: #a37651; --board-border: #6f4f35; }
+.cwt-board[data-theme="ocean"]  { --light: #cfe4e8; --dark: #4d7f8c; --board-border: #2f5560; }
+.cwt-board[data-theme="mono"]   { --light: #e6e6e6; --dark: #8c8c8c; --board-border: #4a4a4a; }
+
+.cwt-board[data-interactive="false"] { cursor: default; }
+.cwt-board[data-interactive="true"]  { cursor: pointer; }
+
+/* Layers ---------------------------------------------------------------- */
+
+.cwt-board__squares,
+.cwt-board__verdicts,
+.cwt-board__markers,
+.cwt-board__pieces,
+.cwt-board__arrows,
+.cwt-board__coords {
+  position: absolute;
+  inset: 0;
+}
+.cwt-board__verdicts,
+.cwt-board__markers,
+.cwt-board__pieces,
+.cwt-board__coords { pointer-events: none; }
+.cwt-board__verdicts { z-index: 1; }
+.cwt-board__markers { z-index: 2; }
+.cwt-board__pieces  { z-index: 3; }
+/* Arrows sit ABOVE the pieces: a hint that a piece can hide is not a hint.
+   The layer MUST be positioned — z-index does nothing on a static element, and
+   a static SVG paints beneath its absolutely-positioned siblings, so the
+   arrows were drawn correctly and hidden behind the squares. */
+.cwt-board__arrows  { z-index: 4; width: 100%; height: 100%; }
+.cwt-board__coords  { z-index: 5; }
+
+/* Squares --------------------------------------------------------------- */
+/* --f 0..7 = a..h, --r 0..7 = rank 1..8. The orientation rule flips both. */
+
+.cwt-sq,
+.cwt-piece,
+.cwt-verdict,
+.cwt-marker {
+  position: absolute;
+  width: var(--sq);
+  height: var(--sq);
+  left: calc(var(--f) * var(--sq));
+  bottom: calc(var(--r) * var(--sq));
+}
+
+.cwt-board[data-orientation="b"] .cwt-sq,
+.cwt-board[data-orientation="b"] .cwt-piece,
+.cwt-board[data-orientation="b"] .cwt-verdict,
+.cwt-board[data-orientation="b"] .cwt-marker {
+  left: calc((7 - var(--f)) * var(--sq));
+  bottom: calc((7 - var(--r)) * var(--sq));
+}
+
+.cwt-sq[data-shade="light"] { background: var(--light); }
+.cwt-sq[data-shade="dark"]  { background: var(--dark); }
+
+/* Highlights. Overlays rather than background changes, so the square colour
+   underneath is never lost and two highlights can stack. */
+.cwt-sq::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  background: currentColor;
+}
+.cwt-sq.is-last-move { color: #f7d774; }
+.cwt-sq.is-last-move::after { opacity: 0.46; }
+/* An inset border as well as the wash: on a busy board a tint alone reads as
+   part of the square colour, and the last move is the one thing a returning
+   player looks for first. */
+.cwt-sq.is-last-move::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(247, 215, 116, 0.85);
+  pointer-events: none;
+}
+.cwt-sq.is-selected  { color: #5aa9ff; }
+.cwt-sq.is-selected::after { opacity: 0.45; }
+
+/* Assistance highlights BREATHE. A static wash competes with the last-move
+   tint and the square colours for attention and loses; a slow pulse is the one
+   thing on a chess board that is unambiguously the game talking to you. The
+   base opacity lives in --hl so the keyframes can be written once for all
+   three colours. */
+.cwt-sq.is-hint      { color: #a78bfa; --hl: 0.42; }
+.cwt-sq.is-threat    { color: #fb7185; --hl: 0.40; }
+.cwt-sq.is-best      { color: #4ade80; --hl: 0.40; }
+.cwt-sq.is-hint::after,
+.cwt-sq.is-threat::after,
+.cwt-sq.is-best::after { opacity: var(--hl); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .cwt-sq.is-hint::after,
+  .cwt-sq.is-threat::after,
+  .cwt-sq.is-best::after { animation: cwt-hl-pulse 1500ms ease-in-out infinite; }
+}
+/* No fill-mode and a 100% frame back at the base value: if the animation never
+   runs the square still shows at its normal strength. */
+@keyframes cwt-hl-pulse {
+  0%, 100% { opacity: calc(var(--hl) * 0.5); }
+  50%      { opacity: calc(var(--hl) * 1.3); }
+}
+.cwt-sq.is-check {
+  background-image: radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.95) 0%, rgba(239, 68, 68, 0.55) 45%, transparent 72%);
+}
+
+/* Hint arrows ------------------------------------------------------------
+   Drawn in an SVG whose viewBox is 0 0 8 8, so every measurement below is in
+   SQUARES and scales with the board automatically. */
+
+.cwt-arrow__line {
+  stroke: currentColor;
+  stroke-width: 0.14;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  stroke-width: 9px;
+}
+.cwt-arrow__head { fill: currentColor; }
+.cwt-arrow { opacity: 0.82; }
+/* Only arrows that carry an explanation accept the pointer; the rest of the
+   layer stays transparent to clicks so the board underneath still works. */
+.cwt-board__arrows { pointer-events: none; }
+.cwt-arrow--interactive { pointer-events: auto; cursor: help; }
+.cwt-arrow--interactive:hover { opacity: 1; }
+/* A separate transparent stroke is the hit target: a 9px line is not something
+   anyone can reliably hover, and widening the visible one would just make an
+   ugly arrow. */
+.cwt-arrow__hit {
+  stroke: transparent;
+  stroke-width: 26px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.cwt-arrow--hint    { color: #a78bfa; }
+.cwt-arrow--threat  { color: #fb7185; }
+.cwt-arrow--defence { color: #38bdf8; opacity: 0.62; }
+.cwt-arrow--best    { color: #4ade80; }
+/* Preparation is the player's own line, not advice: quieter than a hint. */
+.cwt-arrow--book    { color: #f5c451; opacity: 0.6; }
+.cwt-arrow--book .cwt-arrow__line { stroke-dasharray: 18 8; }
+/* An alternative the player also prepared: same colour, quieter. */
+.cwt-arrow--book-alt { color: #f5c451; opacity: 0.3; }
+.cwt-arrow--book-alt .cwt-arrow__line { stroke-dasharray: 8 10; }
+/* A move the engine also considered: the same green as its first choice, but
+   quiet enough that "the best one" is still readable at a glance. */
+.cwt-arrow--candidate { color: #4ade80; opacity: 0.32; }
+.cwt-arrow--candidate .cwt-arrow__line { stroke-dasharray: 10 9; }
+
+.cwt-arrow--defence .cwt-arrow__line { stroke-dasharray: 14 10; }
+
+/* The move that was just played: the same warm yellow as the last-move squares,
+   flat and quiet, so it is never mistaken for advice. It sits under every
+   assistance arrow (its own SVG, earlier in the stack). */
+.cwt-board__lastmove .cwt-arrow { animation: none; }
+.cwt-arrow--last-move { color: #f7d774; opacity: 0.6; }
+
+/* A verdict that stays on its square until the player's next move - see
+   markVerdict(). A tint plus an inset glow that breathes slowly: loud enough to
+   find again after the opponent's reply, quiet enough to live with. */
+.cwt-verdict {
+  background: color-mix(in srgb, var(--tone, #fff) 30%, transparent);
+  box-shadow: inset 0 0 0 calc(var(--sq) * 0.05) var(--tone, #fff),
+              inset 0 0 calc(var(--sq) * 0.35) color-mix(in srgb, var(--tone, #fff) 70%, transparent);
+  transition: opacity 240ms ease;
+}
+.cwt-verdict.is-leaving { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .cwt-verdict { animation: cwt-verdict-in 380ms cubic-bezier(0.16, 1, 0.3, 1),
+                            cwt-verdict-breathe 2.4s ease-in-out 380ms infinite alternate; }
+  .cwt-verdict--mistake, .cwt-verdict--blunder { animation-duration: 380ms, 1.6s; }
+}
+@keyframes cwt-verdict-in {
+  from { opacity: 0; scale: 1.35; }
+}
+@keyframes cwt-verdict-breathe {
+  from { filter: brightness(1); }
+  to   { filter: brightness(1.35); }
+}
+
+/* No fill-mode: if the animation never runs (a throttled background tab, a
+   headless capture) the arrow still shows at its normal opacity rather than
+   being frozen at the zero-opacity first keyframe. */
+@media (prefers-reduced-motion: no-preference) {
+  .cwt-arrow { animation: cwt-arrow-in 200ms ease; }
+}
+@keyframes cwt-arrow-in {
+  from { opacity: 0; }
+  to   { opacity: 0.82; }
+}
+
+/* Legal-move markers ----------------------------------------------------- */
+
+.cwt-marker {
+  display: grid;
+  place-items: center;
+}
+.cwt-marker--legal::before {
+  content: "";
+  width: 30%;
+  height: 30%;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.35);
+}
+.cwt-marker--legal-capture::before {
+  content: "";
+  width: 88%;
+  height: 88%;
+  border-radius: 50%;
+  border: calc(var(--sq) * 0.09) solid rgba(15, 23, 42, 0.35);
+}
+
+/* Pieces ----------------------------------------------------------------- */
+
+.cwt-piece {
+  background-size: 86% 86%;
+  background-position: center;
+  background-repeat: no-repeat;
+  will-change: transform;
+  transform: translate3d(calc(var(--drag-x, 0) * var(--sq)), calc(var(--drag-y, 0) * var(--sq)), 0);
+}
+.cwt-piece.is-moving {
+  /* Duration comes from --piece-anim, set by the renderer from the player's
+     setting, so the CSS transition and the JS timeout can never disagree. */
+  transition: left var(--piece-anim, 280ms) cubic-bezier(0.33, 0.05, 0.2, 1),
+              bottom var(--piece-anim, 280ms) cubic-bezier(0.33, 0.05, 0.2, 1);
+  z-index: 5;
+}
+.cwt-piece.is-grabbed {
+  z-index: 6;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
+  transform: translate3d(calc(var(--drag-x, 0) * var(--sq)), calc(var(--drag-y, 0) * var(--sq)), 0) scale(1.08);
+}
+.cwt-piece.is-captured {
+  /* Held until the mover is most of the way there, then knocked out: a piece
+     that vanishes the instant the other one sets off reads as a deletion. */
+  opacity: 0;
+  scale: 0.72;
+  rotate: 18deg;
+  transition: opacity 180ms ease-in calc(var(--piece-anim, 280ms) * 0.7),
+              scale 220ms cubic-bezier(0.5, 0, 0.75, 0) calc(var(--piece-anim, 280ms) * 0.7),
+              rotate 220ms ease-in calc(var(--piece-anim, 280ms) * 0.7);
+}
+
+/* The PICK-UP. A slide alone is a sprite on ice; lifting the piece (bigger,
+   with a shadow that grows under it) and setting it back down is what makes it
+   read as a hand moving a piece. `scale` and `filter` are their own properties,
+   so this never fights the drag transform. The landing bump is a second,
+   short animation that starts as the slide ends. */
+@media (prefers-reduced-motion: no-preference) {
+  .cwt-piece.is-moving {
+    animation: cwt-piece-lift var(--piece-anim, 280ms) cubic-bezier(0.33, 0.05, 0.2, 1),
+               cwt-piece-land 170ms ease-out var(--piece-anim, 280ms);
+  }
+}
+@keyframes cwt-piece-lift {
+  0%   { scale: 1;    filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0)); }
+  35%  { scale: 1.14; filter: drop-shadow(0 calc(var(--sq) * 0.12) calc(var(--sq) * 0.10) rgba(0, 0, 0, 0.45)); }
+  75%  { scale: 1.1;  filter: drop-shadow(0 calc(var(--sq) * 0.09) calc(var(--sq) * 0.08) rgba(0, 0, 0, 0.4)); }
+  100% { scale: 1;    filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0)); }
+}
+@keyframes cwt-piece-land {
+  0%   { scale: 1; }
+  45%  { scale: 0.94; }
+  100% { scale: 1; }
+}
+
+/* The PIECE an ability is talking about, not just the square under it. On a
+   busy board the square wash disappears behind the piece that is standing on
+   it, which is exactly the piece the player is being told to look at. */
+.cwt-piece.is-hint   { --glow: #a78bfa; }
+.cwt-piece.is-threat { --glow: #fb7185; }
+.cwt-piece.is-best   { --glow: #4ade80; }
+.cwt-piece.is-hint,
+.cwt-piece.is-threat,
+.cwt-piece.is-best {
+  filter: drop-shadow(0 0 calc(var(--sq) * 0.07) var(--glow))
+          drop-shadow(0 0 calc(var(--sq) * 0.16) var(--glow));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cwt-piece.is-hint,
+  .cwt-piece.is-threat,
+  .cwt-piece.is-best { animation: cwt-piece-pulse 1500ms ease-in-out infinite; }
+}
+@keyframes cwt-piece-pulse {
+  0%, 100% { filter: drop-shadow(0 0 calc(var(--sq) * 0.04) var(--glow)); }
+  50%      { filter: drop-shadow(0 0 calc(var(--sq) * 0.10) var(--glow))
+                     drop-shadow(0 0 calc(var(--sq) * 0.22) var(--glow)); }
+}
+
+/* Coordinates ------------------------------------------------------------ */
+
+.cwt-coord {
+  position: absolute;
+  font: 600 clamp(8px, calc(var(--sq) * 0.2), 13px)/1 var(--font-body);
+  color: rgba(15, 23, 42, 0.62);
+  opacity: 0.9;
+}
+.cwt-coord--file {
+  left: calc(var(--f) * var(--sq) + var(--sq) * 0.08);
+  bottom: 3px;
+}
+.cwt-coord--rank {
+  bottom: calc(var(--r) * var(--sq) + var(--sq) * 0.08);
+  right: 4px;
+}
+.cwt-board[data-orientation="b"] .cwt-coord--file { left: calc((7 - var(--f)) * var(--sq) + var(--sq) * 0.08); }
+.cwt-board[data-orientation="b"] .cwt-coord--rank { bottom: calc((7 - var(--r)) * var(--sq) + var(--sq) * 0.08); }
+
+/* ==========================================================================
+   Match layout — board + side rail
+   ========================================================================== */
+
+/* Two layouts share these rules. A plain .match is board + one rail (the puzzle
+   and analysis boards). A .match--three adds a left rail; the extra column is
+   opted INTO rather than declared globally, because an empty named area still
+   reserves its track and that silently cost the puzzle board 264px. */
+
+
+/* ==========================================================================
+   Pawn & Passport skin
+   ========================================================================== */
+
+.pp-boardframe {
+  position: relative;
+  width: var(--frame-w);
+  aspect-ratio: 1040 / 1022;
+  background: url('../assets/board/board.webp') center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.5));
+}
+.pp-boardframe .cwt-board {
+  position: absolute;
+  left: 11.538%;
+  top: 10.665%;
+  width: 76.923%;
+  height: 78.278%;
+  /* --sq is published in px by the match screen (ResizeObserver): several of
+     the inherited rules multiply it inside filters, where a percentage is
+     invalid and would silently drop the whole declaration. */
+  background: transparent;
+  overflow: visible;
+}
+.pp-boardframe .cwt-sq[data-shade] { background: transparent; }
+.pp-boardframe .cwt-piece {
+  background-size: 96% 96%;
+  background-position: 50% 70%;
+  image-rendering: auto;
+  filter: drop-shadow(0 2px 0 rgba(20, 10, 5, 0.55));
+}
+.pp-boardframe .cwt-coord { color: rgba(60, 35, 15, 0.7); font-family: var(--font-pixel); font-size: 9px; }
+.pp-boardframe .cwt-coord--file { bottom: 2px; }
+.cwt-arrow--hint    { color: #45e0ff; }
+.cwt-arrow--hint .cwt-arrow__line { stroke-width: 11px; }
+.cwt-arrow--hint-reply { color: #ff7a59; opacity: 0.75; }
+.cwt-arrow--hint-reply .cwt-arrow__line { stroke-dasharray: 14 9; }
+.cwt-arrow__badge circle { fill: #1b1420; stroke: currentColor; stroke-width: 0.04; }
+.cwt-arrow__badge text { fill: #fff6dc; font-family: var(--font-pixel); font-weight: 700; }
+.cwt-arrow--book { color: #ffd34d; opacity: 0.78; }
+.cwt-arrow--book-alt { color: #ffd34d; opacity: 0.45; }
+.cwt-marker--legal::before { background: rgba(40, 20, 8, 0.38); }
+.cwt-marker--legal-capture::before { border-color: rgba(40, 20, 8, 0.4); }

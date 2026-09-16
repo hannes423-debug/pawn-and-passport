@@ -1,0 +1,105 @@
+{
+  "cell": [
+    72,
+    108
+  ],
+  "baseline": 102,
+  "columns": {
+    "idle": [
+      0,
+      4
+    ],
+    "walk": [
+      4,
+      12
+    ]
+  },
+  "rows": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "sprites": {
+    "boy": {
+      "src": "assets/characters/boy.png",
+      "from": "Shakkipojan pikselitaidean spritesheet.png"
+    },
+    "girl": {
+      "src": "assets/characters/girl.png",
+      "from": "Shakkia opiskeleva tytt\u00f6 \u2013 spritesheet.png"
+    },
+    "young-blue": {
+      "src": "assets/characters/young-blue.png",
+      "from": "Nuoren shakinpelaajan pikselianimaatiot.png"
+    },
+    "young-red": {
+      "src": "assets/characters/young-red.png",
+      "from": "Nuoren shakinpelaajan pikselisprite-sheet.png"
+    },
+    "old-green": {
+      "src": "assets/characters/old-green.png",
+      "from": "Vanhan shakinpelaajan pikselihahmolevy.png"
+    },
+    "old-scarf": {
+      "src": "assets/characters/old-scarf.png",
+      "from": "Vanhan shakinpelaajan pikselisprite-sheet.png"
+    },
+    "student-board": {
+      "src": "assets/characters/student-board.png",
+      "from": "Shakkipojan pikselihahmosprite Sheet.png"
+    },
+    "girl-red": {
+      "src": "assets/characters/girl-red.png",
+      "from": "Pikselitaidehahmojen animaatiotaulukko.png"
+    },
+    "older-brown": {
+      "src": "assets/characters/older-brown.png",
+      "from": "Pikselitaidehahmojen animaatiotaulukko.png"
+    },
+    "adult-navy": {
+      "src": "assets/characters/adult-navy.png",
+      "from": "Pikselitaidehahmojen animaatiotaulukko.png"
+    },
+    "girl-teal": {
+      "src": "assets/characters/girl-teal.png",
+      "from": "recolour of girl-red"
+    },
+    "girl-purple": {
+      "src": "assets/characters/girl-purple.png",
+      "from": "recolour of girl-red"
+    },
+    "girl-green": {
+      "src": "assets/characters/girl-green.png",
+      "from": "recolour of girl-red"
+    },
+    "girl-gold": {
+      "src": "assets/characters/girl-gold.png",
+      "from": "recolour of girl-red"
+    },
+    "girl-plum": {
+      "src": "assets/characters/girl-plum.png",
+      "from": "recolour of girl"
+    },
+    "young-green": {
+      "src": "assets/characters/young-green.png",
+      "from": "recolour of young-blue"
+    },
+    "young-purple": {
+      "src": "assets/characters/young-purple.png",
+      "from": "recolour of young-red"
+    },
+    "adult-brown": {
+      "src": "assets/characters/adult-brown.png",
+      "from": "recolour of adult-navy"
+    },
+    "old-bluescarf": {
+      "src": "assets/characters/old-bluescarf.png",
+      "from": "recolour of old-scarf"
+    },
+    "old-plum": {
+      "src": "assets/characters/old-plum.png",
+      "from": "recolour of old-green"
+    }
+  }
+}

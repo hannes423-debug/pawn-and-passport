@@ -1,0 +1,6 @@
+{
+  "name": "chess-world-tour-vendored-stockfish",
+  "private": true,
+  "type": "commonjs",
+  "_comment": "Node-only scoping file. The vendored stockfish.js build is CommonJS, while the project root declares type:module. Without this, Node's ESM loader refuses to require() the engine and tests/nodeTransport.js cannot boot it. The browser ignores this file entirely — it loads the engine as a Web Worker script."
+}

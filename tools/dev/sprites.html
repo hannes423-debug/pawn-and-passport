@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><title>sprite sheet check</title>
+<body style="background:#6b4a33;margin:0;padding:10px">
+<div id="out" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+<script type="module">
+import { spriteCanvas, portraitUrl, PLAYER_LOOKS } from '../../js/ui/sprites.js';
+import { STAR_PLAYERS } from '../../js/data/starPlayers.js';
+import { CLUBS } from '../../js/data/clubs.js';
+const out = document.getElementById('out');
+const looks = [PLAYER_LOOKS.boy, PLAYER_LOOKS.girl, ...STAR_PLAYERS.map(s=>s.look), ...CLUBS[0].regularOpponentPool.map(r=>r.look)];
+for (const look of looks) {
+  const box = document.createElement('div'); box.style.cssText='background:#f3e3bf;padding:4px';
+  for (const dir of ['down','left','right','up']) for (const f of [0,1,2]) box.append(spriteCanvas(look,{dir,frame:f,scale:3}));
+  const img = new Image(); img.src = portraitUrl(look); box.append(img);
+  out.append(box);
+}
+</script>

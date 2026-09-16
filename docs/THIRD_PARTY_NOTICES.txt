@@ -1,0 +1,182 @@
+================================================================================
+CHESS: WORLD TOUR — THIRD-PARTY NOTICES
+Generated for the build of 2026-08-23
+================================================================================
+
+This file lists every third-party component distributed with Chess: World Tour
+and reproduces the notices those components require. It is maintained alongside
+docs/LICENSE_TRACKER.md (prose) and docs/licenses.json (machine-readable).
+
+Keep this file with the distributed build. Do not prune vendor/ or assets/
+licence files in a deploy step.
+
+--------------------------------------------------------------------------------
+1. STOCKFISH  —  GNU GENERAL PUBLIC LICENSE VERSION 3
+--------------------------------------------------------------------------------
+
+Component:  Stockfish.js (WebAssembly build of the Stockfish chess engine)
+Version:    npm package stockfish@18.0.8; engine build 18
+Files:      vendor/stockfish/stockfish-18-lite-single.js
+            vendor/stockfish/stockfish-18-lite-single.wasm
+Licence:    GNU General Public License, version 3 or later
+Full text:  vendor/stockfish/COPYING-GPLv3.txt
+
+Copyright notices, reproduced from the distributed artefact:
+
+    Stockfish.js 18 (c) 2026, Chess.com, LLC
+    https://github.com/nmrugg/stockfish.js
+    License: GPLv3
+
+    Based on Stockfish (c) T. Romstad, M. Costalba, J. Kiiski, G. Linscott
+    and other contributors.
+    https://github.com/official-stockfish/Stockfish
+
+    Nets by Linmiao Xu (linrock)
+    https://tests.stockfishchess.org/nns?network_name=nn-9067e33176e
+
+CORRESPONDING SOURCE
+    Stockfish is free software: you may redistribute it and/or modify it under
+    the terms of the GNU General Public License as published by the Free
+    Software Foundation, either version 3 of the License, or (at your option)
+    any later version. It is distributed WITHOUT ANY WARRANTY; without even
+    the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+    PURPOSE. See the GNU General Public License for more details.
+
+    The binaries shipped here are UNMODIFIED upstream release artefacts. The
+    complete corresponding source for them is available at:
+
+        WebAssembly port:  https://github.com/nmrugg/stockfish.js
+        Engine:            https://github.com/official-stockfish/Stockfish
+        NNUE network:      https://tests.stockfishchess.org/nns?network_name=nn-9067e33176e
+
+    >>> WHEN CUTTING A PUBLIC BUILD, replace the two repository URLs above with
+    >>> the exact release tag or commit the shipped artefacts were taken from,
+    >>> and keep a copy of that source archive for as long as the build is
+    >>> distributed.
+
+    Integration point in this project: js/chess/engine/stockfishEngine.js.
+    The engine runs in a separate Web Worker and is reached only through the
+    abstract ChessEngine interface (js/chess/engine/chessEngine.js).
+
+--------------------------------------------------------------------------------
+2. CHESS.JS  —  BSD 2-CLAUSE LICENSE
+--------------------------------------------------------------------------------
+
+Component:  chess.js
+Version:    1.4.0
+File:       vendor/chessjs/chess.js
+Full text:  vendor/chessjs/LICENSE
+
+    Copyright (c) 2025, Jeff Hlywa (jhlywa@gmail.com)
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    1. Redistributions of source code must retain the above copyright notice,
+       this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+    CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+    SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+    INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+    CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+
+--------------------------------------------------------------------------------
+3. CHESSNUT PIECE SET  —  APACHE LICENSE 2.0
+--------------------------------------------------------------------------------
+
+Component:  Chessnut chess piece set (12 SVG files)
+Author:     Alexis Luengas
+Source:     https://github.com/LexLuengas/chessnut-pieces
+Files:      assets/pieces/chessnut/*.svg
+Full text:  assets/pieces/chessnut/LICENSE-Apache-2.0.txt
+
+    Copyright 2015 Alexis Luengas
+
+    Licensed under the Apache License, Version 2.0 (the "License"); you may not
+    use these files except in compliance with the License. You may obtain a
+    copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+    License for the specific language governing permissions and limitations
+    under the License.
+
+    NOTICE: the files distributed here are UNMODIFIED.
+
+--------------------------------------------------------------------------------
+4. RHOSGFX PIECE SET  —  CC0 1.0 UNIVERSAL (PUBLIC DOMAIN DEDICATION)
+--------------------------------------------------------------------------------
+
+Component:  RhosGFX chess piece set (12 SVG files)
+Author:     RhosGFX  —  https://rhosgfx.itch.io/
+Files:      assets/pieces/rhosgfx/*.svg
+Licence:    CC0 1.0 Universal
+            https://creativecommons.org/publicdomain/zero/1.0/
+
+    The author has dedicated this work to the public domain by waiving all
+    rights to the work worldwide under copyright law. No attribution is
+    required. This notice is included as a courtesy, not as an obligation.
+
+--------------------------------------------------------------------------------
+5. DEVELOPMENT TOOLING (NOT DISTRIBUTED WITH THE GAME)
+--------------------------------------------------------------------------------
+
+python-chess 1.11.2, (C) Niklas Fiekas, GPL-3.0-or-later
+    https://github.com/niklasf/python-chess
+    Used by tools/analysis_pipeline/*.py, which run offline and are not part of
+    the distributed game.
+
+--------------------------------------------------------------------------------
+6. CONTENT ORIGINATED BY THIS PROJECT
+--------------------------------------------------------------------------------
+
+The following contain no third-party material:
+
+    data/openings/dev-openings.json   opening names and ECO codes in general
+                                      use, hand-entered; no database copied
+    data/puzzles/dev-puzzles.json     original positions; solutions generated
+                                      with the vendored Stockfish; themes from
+                                      this project's own motif detector
+    js/chess/**                       all analysis, explanation, bot, RPG and
+                                      renderer code
+    All player, coach, organisation, federation and event names are FICTIONAL.
+    No real person's name, likeness, rating or title is used, and no chess
+    federation, tournament or broadcast branding appears anywhere.
+
+--------------------------------------------------------------------------------
+7. UNRESOLVED
+--------------------------------------------------------------------------------
+
+    assets/bg/title-hall.jpg / .webp (and the -small variants)
+        Provenance NOT RECORDED. Predates this milestone. Must be traced or
+        replaced before any public release. Tracked in LICENSE_TRACKER.md § 7.
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+3D CHESS SET  (assets/board3d/)
+--------------------------------------------------------------------------------
+
+"Chess-4K-MaterialTest" (https://skfb.ly/oBRqS) by chiwei is licensed under
+Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+The model and its textures have been modified for real-time web use: the pieces
+were reduced to one canonical mesh per type and decimated from 774,000 to about
+13,000 triangles, and the 4K textures were resized to 1K WebP with occlusion,
+roughness and metalness packed into a single image. The normal maps were
+dropped, having been measured as flat. See docs/LICENSE_TRACKER.md.
