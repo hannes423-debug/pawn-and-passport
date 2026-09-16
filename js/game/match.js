@@ -98,7 +98,7 @@ export class PapMatch {
   async start() {
     if (this.status !== 'idle') return;
     this.status = 'active';
-    await this.service.ready().catch(() => {});
+    await (this.service.retryIfUnavailable ? this.service.retryIfUnavailable() : this.service.ready()).catch(() => {});
     await this.service.newGame?.().catch(() => {});
     this.game.start();
     this.emit('ready');
@@ -184,13 +184,15 @@ export class PapMatch {
     if (!this.isPlayersTurn || this.hintBusy) return { ok: false, reason: 'not-now' };
     const quote = this.quoteHint();
     if (this.focus < quote.cost) return { ok: false, reason: 'focus', quote };
+    if (this.service.available === false) return { ok: false, reason: 'engine', quote };
     this.hintBusy = true;
     const fen = this.game.fen;
     const ply = this.game.ply;
     try {
       const result = await this.service.analyze(fen, { ...quote.search, multiPv: 1, useCache: true });
       const line = result.lines?.[0];
-      if (!line?.pv?.length || this.game.ply !== ply) return { ok: false, reason: 'no-line' };
+      if (!line?.pv?.length) return { ok: false, reason: this.service.available === false ? 'engine' : 'no-line' };
+      if (this.game.ply !== ply) return { ok: false, reason: 'stale' };
       this.focus -= quote.cost;
       this.hintsUsed += 1;
       const pv = line.pv.slice(0, quote.plies);

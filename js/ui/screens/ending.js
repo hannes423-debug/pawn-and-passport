@@ -39,12 +39,14 @@ export function endingScreen(app, params) {
     h('div', { text: 'chess.js (BSD-2-Clause), Jeff Hlywa' }),
     h('h3', { text: 'Fonts' }), h('div', { text: 'Jersey 15 and Press Start 2P (SIL Open Font License)' }),
     h('h3', { text: 'Sound' }), h('div', { text: 'Synthesised live in your browser' }),
-    h('h3', { text: 'Thanks for playing' }),
-    h('div.pp-row', { style: { justifyContent: 'center', marginTop: '20px' } },
-      button(creditsOnly ? 'Back' : 'Back to the title', () => app.go('title'), { cls: 'pp-btn--gold' }),
-      !creditsOnly ? button('Open the journal', () => app.go('journal', { back: { screen: 'ending', params: {} } })) : null));
+    h('h3', { text: 'Thanks for playing' }));
 
-  const el = h('div.pp-screen.pp-ending', null, hero, credits);
+  // The buttons sit outside the rolling text so they are always on screen.
+  const bar = h('div.pp-row.pp-ending__bar', null,
+    button(creditsOnly ? 'Back' : 'Back to the title', () => app.go('title'), { cls: 'pp-btn--gold' }),
+    !creditsOnly ? button('Open the journal', () => app.go('journal', { back: { screen: 'ending', params: {} } })) : null);
+
+  const el = h('div.pp-screen.pp-ending', null, h('div.pp-ending__scroll', null, hero, credits), bar);
   return { el };
 }
 

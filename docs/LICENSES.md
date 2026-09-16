@@ -2,7 +2,7 @@
 
 | What | Where | Licence | Notes |
 |------|-------|---------|-------|
-| Stockfish 18 lite (single-threaded WASM) | `vendor/stockfish/` | GPLv3 | `COPYING-GPLv3.txt` ships with every build. Reached only through a Web Worker (`js/chess/engine/stockfishEngine.js`). |
+| Stockfish 18 lite (single-threaded WASM) and Stockfish 18 ASM.js (compatibility fallback) | `vendor/stockfish/` | GPLv3 | `COPYING-GPLv3.txt` ships with every build. Reached only through a Web Worker (`js/chess/engine/stockfishEngine.js`). |
 | chess.js 1.4.0 | `vendor/chessjs/` | BSD-2-Clause | Licence file alongside. |
 | Chess core (rules, engine service, bots, analysis, board renderer) | `js/chess/` | same as Chess: World Tour | Copied from Chess: World Tour on 2026-09-15; the DNA bot was removed, and a Clutch tier and numbered arrows were added. |
 | Jersey 15, Press Start 2P | `assets/fonts/` | SIL Open Font License 1.1 | Downloaded from Google Fonts. |

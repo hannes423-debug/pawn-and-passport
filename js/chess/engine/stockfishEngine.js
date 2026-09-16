@@ -21,6 +21,18 @@ import { levelById } from './analysisLevels.js';
 export const DEFAULT_ENGINE_URL = new URL('../../../vendor/stockfish/stockfish-18-lite-single.js', import.meta.url).href;
 
 /**
+ * Pawn & Passport: the builds tried in order. The WASM build is fast but needs
+ * a 128 MB WebAssembly heap up front, which some phones refuse; the ASM.js
+ * build is plain JavaScript (slower, weaker, but still far above the game's
+ * opponents) and runs anywhere a Worker does. `bootMs` is generous because a
+ * phone on mobile data downloads and compiles 7-10 MB before it says "uciok".
+ */
+export const ENGINE_BUILDS = Object.freeze([
+  { id: 'wasm', label: 'Stockfish 18 lite (WASM)', url: DEFAULT_ENGINE_URL, needsWasm: true, bootMs: 90000 },
+  { id: 'asm', label: 'Stockfish 18 (ASM.js, compatibility)', url: new URL('../../../vendor/stockfish/stockfish-18-asm.js', import.meta.url).href, needsWasm: false, bootMs: 150000 }
+]);
+
+/**
  * A transport is anything that can carry UCI text both ways.
  * @typedef {Object} EngineTransport
  * @property {(command:string)=>void} post
@@ -38,7 +50,7 @@ export function createWorkerTransport(url = DEFAULT_ENGINE_URL) {
         const data = typeof event.data === 'string' ? event.data : event.data?.data;
         if (typeof data === 'string') handler(data);
       };
-      worker.onerror = (event) => handler(`info string worker-error ${event.message || event}`);
+      worker.onerror = (event) => { event.preventDefault?.(); handler(`info string worker-error ${event.message || 'the engine worker crashed'}`); };
     },
     terminate: () => worker.terminate()
   };
@@ -51,7 +63,7 @@ export class StockfishEngine extends ChessEngine {
    * @param {number} [options.hashMb]
    * @param {number} [options.threads]
    */
-  constructor({ createTransport = () => createWorkerTransport(), hashMb = 32, threads = 1 } = {}) {
+  constructor({ createTransport = () => createWorkerTransport(), hashMb = 32, threads = 1, bootMs = 30000 } = {}) {
     super({ name: 'stockfish' });
     this._createTransport = createTransport;
     this._transport = null;
@@ -64,6 +76,11 @@ export class StockfishEngine extends ChessEngine {
     this._identity = { name: 'Stockfish', author: '' };
     this._options = new Map();
     this._lastLevelId = null;
+    this._bootMs = bootMs;
+    /** Set when the worker crashed or stopped answering; the service replaces the engine. */
+    this.dead = false;
+    this.deathReason = null;
+    this._onFatal = null;
   }
 
   get identity() { return { ...this._identity }; }
@@ -75,7 +92,12 @@ export class StockfishEngine extends ChessEngine {
     this._initPromise = (async () => {
       this._transport = this._createTransport();
       this._transport.onMessage((line) => this._onLine(line));
-      await this._await('uci', (line) => line.trim() === 'uciok', 30000);
+      // A worker that fails to load or compile reports it once and then goes
+      // silent. Waiting out the whole boot timeout for that left phones with no
+      // engine for 30 s and then, silently, for the rest of the session.
+      const fatal = new Promise((_, reject) => { this._onFatal = (reason) => reject(new Error(reason)); });
+      fatal.catch(() => {});
+      await Promise.race([this._await('uci', (line) => line.trim() === 'uciok', this._bootMs), fatal]);
       this._setOption('Hash', this._hashMb);
       if (this._threads > 1) this._setOption('Threads', this._threads);
       this._setOption('MultiPV', 1);
@@ -87,7 +109,18 @@ export class StockfishEngine extends ChessEngine {
   }
 
   async _isReady() {
-    return this._await('isready', (line) => line.trim() === 'readyok', 30000);
+    return this._await('isready', (line) => line.trim() === 'readyok', this._bootMs);
+  }
+
+  /** The worker is gone: fail the boot, release any search, and let the service replace us. */
+  _die(reason) {
+    if (this.dead) return;
+    this.dead = true;
+    this.deathReason = reason;
+    this._onFatal?.(reason);
+    const active = this._active;
+    this._active = null;
+    active?.abandon?.();
   }
 
   _setOption(name, value) {
@@ -104,6 +137,10 @@ export class StockfishEngine extends ChessEngine {
   /* ---------------------------------------------------------- messaging */
 
   _onLine(line) {
+    if (line.startsWith('info string worker-error') || line.startsWith('Aborted(') || /RuntimeError|out of memory/i.test(line)) {
+      this._die(line.replace('info string worker-error', '').trim() || 'engine worker error');
+      return;
+    }
     if (line.startsWith('id name ')) this._identity.name = line.slice(8).trim();
     if (line.startsWith('id author ')) this._identity.author = line.slice(10).trim();
     if (this._collector) this._collector(line);
@@ -195,14 +232,22 @@ export class StockfishEngine extends ChessEngine {
         this._active = null;
         resolve(buildResult(state, { timeMs: Date.now() - started, engine: this.name }));
       };
-      const timer = setTimeout(() => { this._send('stop'); }, Math.max(20000, (movetime || 0) + 15000));
+      let watchdog = null;
+      const timer = setTimeout(() => {
+        try { this._send('stop'); } catch { /* transport gone */ }
+        // A live engine answers "stop" with bestmove at once. Silence means the
+        // worker is dead (a phone can kill it for memory), and without this the
+        // search queue waited forever: no grade, no hint, ever again.
+        watchdog = setTimeout(() => this._die('the engine stopped responding'), 5000);
+      }, Math.max(20000, (movetime || 0) + 15000));
 
       this._active = {
         cancel: () => { state.cancelled = true; this._send('stop'); },
+        abandon: () => { clearTimeout(timer); clearTimeout(watchdog); state.cancelled = true; finish(); },
         consume: (line) => {
           if (line.startsWith('info ')) { parseInfo(line, state); return; }
           if (line.startsWith('bestmove')) {
-            clearTimeout(timer);
+            clearTimeout(timer); clearTimeout(watchdog);
             const parts = line.split(/\s+/);
             state.bestMove = parts[1] && parts[1] !== '(none)' ? parts[1] : null;
             state.ponder = parts[3] || null;
@@ -215,6 +260,7 @@ export class StockfishEngine extends ChessEngine {
         options.signal.addEventListener('abort', () => this.stop(), { once: true });
       }
 
+      if (this.dead) { this._active.abandon(); return; }
       this._send(`position fen ${fen}`);
       this._send(goParts.join(' '));
     });

@@ -36,7 +36,8 @@ export const XP = Object.freeze({
 export const ELO = Object.freeze({
   start: 600,
   floor: 100,
-  k: { friendly: 16, tournament: 32, star: 32, finale: 32 },
+  /* Friendlies are practice: unrated (K = 0). */
+  k: { friendly: 0, tournament: 32, star: 32, finale: 32 },
   /* Regular opponents by campaign TIER (trophies already won, 0..5), not by
      club: the player picks the order, so the sixth club visited is the hard one. */
   regularBands: [[500, 700], [600, 800], [700, 900], [800, 1050], [900, 1150], [1000, 1250]],
@@ -86,6 +87,12 @@ export const MASTERY = Object.freeze({
   playCap: 90,             // ...but only a trophy makes it 100
   trophy: 100,
   allBranchesAt: 100,      // mastered: every prepared branch, not just the current line
+  /* The practice room. The tutorial unlocks an opening you have never met;
+     a passed drill set teaches like a game does, under the same playCap. */
+  tutorialGrant: 25,       // the tutorial raises mastery to at least this
+  drillSetSize: 8,         // positions per drill set
+  drillPassShare: 0.75,    // share of first-try answers that passes a set
+  drillGain: 3,            // mastery per passed set, never past playCap
   states: [
     { from: 0, id: 'unknown', label: 'Unknown' },
     { from: 1, id: 'glimpsed', label: 'Glimpsed' },

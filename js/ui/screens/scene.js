@@ -24,6 +24,8 @@ import {
 } from '../../core/career.js';
 import { starLines, loungeLines } from '../../core/dialogue.js';
 import { createTouchpad, tapWord } from '../touch.js';
+import { openOpeningStudy } from '../openingStudy.js';
+import { learnFromTutorial } from '../../core/career.js';
 
 const GUIDE_LOOK = { sprite: 'adult-navy', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
 const WALK_SPEED = 42;           // percent of the stage height per second
@@ -77,7 +79,23 @@ export async function sceneScreen(app, params) {
     stage.style.width = `${w}px`;
     stage.style.height = `${stageH}px`;
     for (const actor of actorList) actor.resize();
+    requestAnimationFrame(nudgeLabels);
   };
+
+  /* A label centred on a spot near the edge of a narrow (portrait) stage
+     hangs off the screen: slide the label, not the arrow, back inside. */
+  function nudgeLabels() {
+    const limit = el.getBoundingClientRect();
+    for (const spot of hotspotLayer.querySelectorAll('.pp-hotspot')) {
+      spot.style.setProperty('--nudge', '0px');
+      const r = spot.getBoundingClientRect();
+      const pad = 2;
+      let dx = 0;
+      if (r.left < limit.left + pad) dx = limit.left + pad - r.left;
+      else if (r.right > limit.right - pad) dx = limit.right - pad - r.right;
+      spot.style.setProperty('--nudge', `${Math.round(dx)}px`);
+    }
+  }
 
   /* ---------------------------------------------------------- actors -- */
   const actorList = [];
@@ -344,7 +362,7 @@ export async function sceneScreen(app, params) {
       case 'leave': return leaveMenu();
       case 'tournament': return tournamentDesk();
       case 'star': return starOffice();
-      case 'friendly': return friendlyGame();
+      case 'friendly': return practiceRoom();
       case 'trophies': return trophyHall();
       case 'talk': return app.dialogue({ name: 'Club member', role: club.clubName, look: club.regularOpponentPool[2 % club.regularOpponentPool.length].look, lines: loungeLines(career, clubId) });
       case 'mission': return venueMission();
@@ -428,13 +446,55 @@ export async function sceneScreen(app, params) {
     }
   }
 
+  /* The practice room: nothing here is rated. A friendly against a member, the
+     puzzle collection, and the club opening's tutorial and drills. */
+  async function practiceRoom() {
+    const opening = openingById(club.openingId);
+    const mastery = career.openings[club.openingId] ?? 0;
+    const tutored = !!career.tutorialsDone?.[club.openingId];
+    const host = club.regularOpponentPool[1 % club.regularOpponentPool.length];
+    const option = (id, icon, label, sub, cls = '') => h('button.pp-practice__option', { type: 'button', class: cls, onclick: () => close(id) },
+      h('span.pp-practice__icon', { text: icon }), h('span', null, h('b', { text: label }), h('span.pp-small.pp-muted', { text: sub })));
+    let close;
+    const choice = await app.overlay((c) => {
+      close = c;
+      return h('div.pp-panel.pp-modal.pp-practice', null,
+        h('h2.pp-h2', { text: `${club.clubName}: practice room` }),
+        h('p.pp-small', { text: `${host.name} runs the practice room. Nothing here changes your rating.` }),
+        h('div.pp-col', null,
+          option('friendly', '♞', 'Friendly game', 'Unrated. Play a club member as White or Black.'),
+          option('puzzles', '🧩', 'Puzzles', 'Tactics from all six cities. Practice only: postcards are won at the venues.'),
+          option('tutorial', '📖', `Tutorial: ${opening.name}`, tutored ? 'Walk through every line again.' : mastery > 0 ? 'Every line with notes.' : `Every line with notes. Finishing it unlocks the opening (${MASTERY.tutorialGrant}%).`, tutored ? '' : 'is-new'),
+          option('drill', '🎯', `Drills: ${opening.name}`, mastery > 0 ? `Find the book move. Passing a set: +${MASTERY.drillGain}% (you know ${mastery}%).` : 'Do the tutorial first.')),
+        h('div.pp-row', { style: { justifyContent: 'flex-end' } }, button('Leave', () => c(null), { cls: 'pp-btn--small' })));
+    });
+    if (choice === 'friendly') return friendlyGame();
+    if (choice === 'puzzles') return app.go('puzzle', { practice: true, clubId, returnScene: scene.id });
+    if (choice === 'tutorial') {
+      const result = await openOpeningStudy(app, club.openingId, { mode: 'tutorial' });
+      if (result.finishedMain) {
+        const gained = learnFromTutorial(career, club.openingId);
+        app.save();
+        app.toast(gained ? `${opening.name} unlocked: ${career.openings[club.openingId]}%. Equip it in the Journal.` : `${opening.name} tutorial complete.`, { ms: 4200 });
+      } else {
+        app.toast('Step through the first line to the end to complete the tutorial.', { ms: 3200 });
+      }
+      return null;
+    }
+    if (choice === 'drill') {
+      if (!(career.openings[club.openingId] > 0)) { app.toast('Do the tutorial first: it teaches the lines the drills ask about.'); return null; }
+      return app.go('drill', { openingId: club.openingId, clubId, returnScene: scene.id });
+    }
+    return null;
+  }
+
   async function friendlyGame() {
     const pool = club.regularOpponentPool;
     const regular = pool[Math.floor(Math.random() * pool.length)];
     const elo = regularElo(tier(career));
     const choice = await app.dialogue({
       name: regular.name, role: 'club regular', look: regular.look,
-      lines: [`Fancy a friendly? No trophy on the line, but you'll still learn something.`, `I'm about ${elo}. I play the ${openingById(club.openingId).name} whenever I can.`],
+      lines: [`Fancy a friendly? It's unrated: no trophy and no rating on the line, but you'll still learn something.`, `I'm about ${elo}. I play the ${openingById(club.openingId).name} whenever I can.`],
       actions: [{ id: 'w', label: 'Play White', cls: 'pp-btn--gold' }, { id: 'b', label: 'Play Black', cls: 'pp-btn--gold' }, { id: null, label: 'No thanks' }]
     });
     if (!choice) return;
@@ -517,6 +577,7 @@ export async function sceneScreen(app, params) {
   viewportObserver.observe(viewport);
   if (hudBar) viewportObserver.observe(hudBar);
   drawHotspots();
+  document.fonts?.ready.then(() => nudgeLabels());
   paintPad();
   requestAnimationFrame(fit);
 

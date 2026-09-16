@@ -14,7 +14,7 @@
  *   leave      open the travel menu (world map / venue / club)
  *   tournament enter or continue the club tournament
  *   star       talk to the Star Player
- *   friendly   an unrated-for-trophies practice game
+ *   friendly   the practice room: unrated friendly, puzzles, opening tutorial and drills
  *   trophies   the club trophy cabinet
  *   mission    the venue's puzzle mission
  *   finale     the Grand Finale
@@ -70,7 +70,7 @@ function hallA(id, image, p, { upstairs = true } = {}) {
       npc: { kind: 'regular', index: 0, at: p.hallNpc } },
     { id: 'star', node: 'director', label: "Director's office", verb: 'Talk', action: { type: 'star' },
       npc: { kind: 'star', at: p.starNpc } },
-    { id: 'friendly', node: 'practice', label: 'Practice room', verb: 'Friendly', action: { type: 'friendly' },
+    { id: 'friendly', node: 'practice', label: 'Practice room', verb: 'Practice', action: { type: 'friendly' },
       npc: { kind: 'regular', index: 1, at: p.practiceNpc } },
     { id: 'exit', node: 'entrance', label: 'Garden', verb: 'Exit', action: { type: 'scene', to: `${club}-ext`, spawn: 'door' } }
   ];
@@ -149,7 +149,7 @@ add({
   hotspots: [
     { id: 'tournament', node: 'hall', label: 'Tournament hall', verb: 'Play', action: { type: 'tournament' }, npc: { kind: 'regular', index: 0, at: [60, 22] } },
     { id: 'star', node: 'director', label: "Director's office", verb: 'Talk', action: { type: 'star' }, npc: { kind: 'star', at: [20, 53] } },
-    { id: 'friendly', node: 'study', label: 'Study and practice', verb: 'Friendly', action: { type: 'friendly' }, npc: { kind: 'regular', index: 1, at: [84, 58] } },
+    { id: 'friendly', node: 'study', label: 'Study and practice', verb: 'Practice', action: { type: 'friendly' }, npc: { kind: 'regular', index: 1, at: [84, 58] } },
     { id: 'exit', node: 'entrance', label: 'Garden', verb: 'Exit', action: { type: 'scene', to: 'lon-ext', spawn: 'door' } }
   ]
 });
@@ -197,7 +197,7 @@ add({
   hotspots: [
     { id: 'tournament', node: 'hall', label: 'Tournament hall', verb: 'Play', action: { type: 'tournament' }, npc: { kind: 'regular', index: 0, at: [38, 26] } },
     { id: 'star', node: 'director', label: "Director's office", verb: 'Talk', action: { type: 'star' }, npc: { kind: 'star', at: [20, 55] } },
-    { id: 'friendly', node: 'study', label: 'Study and practice', verb: 'Friendly', action: { type: 'friendly' }, npc: { kind: 'regular', index: 1, at: [86, 58] } },
+    { id: 'friendly', node: 'study', label: 'Study and practice', verb: 'Practice', action: { type: 'friendly' }, npc: { kind: 'regular', index: 1, at: [86, 58] } },
     { id: 'exit', node: 'entrance', label: 'Temple garden', verb: 'Exit', action: { type: 'scene', to: 'che-ext', spawn: 'door' } }
   ]
 });

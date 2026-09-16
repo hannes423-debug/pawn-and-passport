@@ -70,7 +70,7 @@ export function createScreen(app) {
       h('img.pp-create__logo', { src: 'assets/ui/logo.webp', alt: 'Pawn & Passport' }),
       h('img.pp-create__sub', { src: 'assets/ui/logo-sub.webp', alt: 'A Chess Career RPG' }),
       h('div.pp-create__grid', null,
-        h('section.pp-panel.pp-col', null,
+        h('section.pp-panel.pp-col.pp-create__who', null,
           h('h2.pp-h2', { text: '1. Who are you?' }),
           h('div.pp-avatar-pick', null, avatarButtons),
           h('h2.pp-h2', { text: '2. Your name' }),
@@ -78,7 +78,7 @@ export function createScreen(app) {
           h('div.pp-spacer'),
           summary,
           h('div.pp-row', null, start, button('Back', () => app.go('title'), { cls: 'pp-btn--small' }))),
-        h('section.pp-panel', null,
+        h('section.pp-panel.pp-create__cities', null,
           h('h2.pp-h2', { text: '3. Starting city' }),
           h('p.pp-small.pp-muted', { text: 'Your home club. You can travel to every other city later, in any order.' }),
           h('div.pp-cities', null, cityButtons)))));

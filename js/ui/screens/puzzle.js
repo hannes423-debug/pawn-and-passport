@@ -22,10 +22,19 @@ import { tapWord } from '../touch.js';
 
 export function puzzleScreen(app, params) {
   const career = app.career;
-  const mission = missionById(params.missionId);
-  const club = clubById(mission.clubId);
-  const puzzles = PUZZLES.filter((p) => p.mission === mission.clubId);
-  let index = Math.max(0, puzzles.findIndex((p) => !career.puzzlesSolved[p.id]));
+  /* Practice mode (a club's practice room): every puzzle from every city, no
+     XP and no postcard, so the venues keep their reward. */
+  const practice = !!params.practice;
+  const mission = practice ? null : missionById(params.missionId);
+  const club = clubById(practice ? params.clubId : mission.clubId);
+  const puzzles = practice
+    ? [...PUZZLES].sort((a, b) => Number(!!career.puzzlesSolved[a.id]) - Number(!!career.puzzlesSolved[b.id]))
+    : PUZZLES.filter((p) => p.mission === mission.clubId);
+  const host = practice
+    ? { name: 'Practice room', look: club.regularOpponentPool[1 % club.regularOpponentPool.length].look, place: club.clubName }
+    : { name: mission.host.name, look: mission.host.look, place: club.casualLocationName };
+  let index = practice ? 0 : Math.max(0, puzzles.findIndex((p) => !career.puzzlesSolved[p.id]));
+  const practiceDone = new Set();
   let rules = null;
   let step = 0;
   let locked = false;
@@ -47,21 +56,22 @@ export function puzzleScreen(app, params) {
   const nextBtn = button('Next puzzle', () => load(index + 1), { cls: 'pp-btn--gold', icon: '▶' });
   const panel = h('aside.pp-match__left', null,
     h('div.pp-panel.pp-player.pp-match__opp', null,
-      h('img', { alt: '', src: portraitUrl(mission.host.look) }),
-      h('div', null, h('div.pp-player__name', { text: mission.host.name }), h('div.pp-small', { text: club.casualLocationName }))),
+      h('img', { alt: '', src: portraitUrl(host.look) }),
+      h('div', null, h('div.pp-player__name', { text: host.name }), h('div.pp-small', { text: host.place }))),
     h('div.pp-panel.pp-col.pp-match__focus', null,
-      h('div.pp-h3', { text: `${mission.title} · ${mission.theme}` }),
+      h('div.pp-h3', { text: practice ? `Puzzle practice · ${puzzles.length} puzzles` : `${mission.title} · ${mission.theme}` }),
       dots, title, status, hintText,
       h('div.pp-row', null,
         button('Hint (free)', () => giveHint(), { cls: 'pp-btn--small pp-btn--blue', icon: '💡' }),
         button('Retry', () => load(index), { cls: 'pp-btn--small' })),
       nextBtn,
       button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small' })));
-  const el = h('div.pp-screen.pp-match', null, panel, h('main.pp-match__board', null, board.frame), h('aside.pp-match__right'));
+  if (practice) dots.classList.add('pp-dots--many');
+  const el = h('div.pp-screen.pp-match.pp-match--puzzle', null, panel, h('main.pp-match__board', null, board.frame), h('aside.pp-match__right'));
 
   function paintDots() {
     dots.replaceChildren(...puzzles.map((p, i) => h('span.pp-dot', {
-      class: `${career.puzzlesSolved[p.id] ? 'is-done' : ''} ${i === index ? 'is-current' : ''}`, title: p.title
+      class: `${(practice ? practiceDone.has(p.id) : career.puzzlesSolved[p.id]) ? 'is-done' : ''} ${i === index ? 'is-current' : ''}`, title: p.title
     })));
   }
 
@@ -128,6 +138,16 @@ export function puzzleScreen(app, params) {
     board.fx.burst(move.to, 'brilliant', 40);
     board.fx.word('SOLVED!', '#ffc341', mates ? 'Checkmate' : p.solutionSan.join(' '));
     sfx.brilliant();
+    if (practice) {
+      practiceDone.add(p.id);
+      career.stats.practicePuzzles = (career.stats.practicePuzzles || 0) + 1;
+      app.save();
+      paintDots();
+      status.textContent = 'Solved!';
+      nextBtn.hidden = false;
+      nextBtn.querySelector('span:last-child').textContent = index >= puzzles.length - 1 ? 'Finish' : 'Next puzzle';
+      return;
+    }
     const result = recordPuzzleSolved(career, p.id);
     app.save();
     paintDots();
@@ -169,6 +189,7 @@ export function puzzleScreen(app, params) {
   }
 
   function finishMission(justCompleted = false) {
+    if (practice) { app.go('scene', { sceneId: params.returnScene }); return; }
     if (!justCompleted && !missionProgress(career, mission.id).complete) {
       load(Math.max(0, puzzles.findIndex((p) => !career.puzzlesSolved[p.id])));
       return;

@@ -20,6 +20,7 @@ import { puzzleScreen } from './ui/screens/puzzle.js';
 import { journalScreen } from './ui/screens/journal.js';
 import { settingsScreen } from './ui/screens/settings.js';
 import { endingScreen } from './ui/screens/ending.js';
+import { drillScreen } from './ui/screens/drill.js';
 import { engineService } from './chess/engine/engineService.js';
 import { loadCharacterSprites } from './ui/sprites.js';
 
@@ -32,7 +33,8 @@ const screens = {
   puzzle: puzzleScreen,
   journal: journalScreen,
   settings: settingsScreen,
-  ending: endingScreen
+  ending: endingScreen,
+  drill: drillScreen
 };
 
 const app = createApp(document.getElementById('app'), screens);

@@ -57,10 +57,16 @@ test('three White and three Black openings, one per club', () => {
   eq(new Set(CLUBS.map((c) => c.openingId)).size, 6);
 });
 
-test('every opening line is legal chess', () => {
-  for (const o of OPENINGS) for (const line of o.lines) {
-    const r = createRules();
-    for (const san of line) assert(r.move(san), `${o.id}: ${san}`);
+test('every opening line is legal chess, spelled as chess.js spells it, with matching metadata', () => {
+  for (const o of OPENINGS) {
+    eq(o.lineNames.length, o.lines.length, `${o.id} lineNames`);
+    eq(o.lineIntro.length, o.lines.length, `${o.id} lineIntro`);
+    eq(o.lineNotes.length, o.lines.length, `${o.id} lineNotes`);
+    o.lines.forEach((line, i) => {
+      const r = createRules();
+      for (const san of line) { const m = r.move(san); assert(m && m.san === san, `${o.id} line ${i}: ${san}`); }
+      for (const k of Object.keys(o.lineNotes[i])) assert(Number(k) < line.length, `${o.id} line ${i}: note ${k} past the end`);
+    });
   }
 });
 
@@ -197,9 +203,10 @@ test('guide arrows only from equipped openings, as deep as their mastery', () =>
   eq(fullBook.guide(afterE4, { sicilian: 0 }).length, 0);
   const g = fullBook.guide(afterE4, { sicilian: 40 });
   eq(g.length, 1); eq(g[0].san, 'c5');
-  // 10% of a 14-ply line is 2 plies: e4 c5 is known, the third move is not.
+  // 5% of the 26-ply longest line rounds up to 2 plies: e4 c5 is known, the third move is not.
   const rules = createRules(); for (const m of ['e4', 'c5']) rules.move(m);
-  eq(fullBook.guide(rules.fen(), { sicilian: 10 }).length, 0);
+  eq(fullBook.knownPlies('sicilian', 5), 2);
+  eq(fullBook.guide(rules.fen(), { sicilian: 5 }).length, 0);
   // Below 100% only the line being followed is shown; mastered shows all branches.
   const mainOnly = fullBook.guide(rules.fen(), { sicilian: 90 });
   assert(mainOnly.length === 1 && mainOnly[0].san === 'Nf3', JSON.stringify(mainOnly));

@@ -36,6 +36,8 @@ python3 tools/cdp.py match             # a real game through the board: hint, li
 python3 tools/cdp.py puzzle            # solves the London mission by clicking, collects the postcard
 python3 tools/cdp.py trophy            # Epic/Brilliant/Clutch effects, Star Player win, trophy ceremony
 python3 tools/cdp_touch.py             # phone: joystick walk + A button (landscape), tap-for-tip (portrait)
+python3 tools/cdp_layout.py            # 8 viewports x every screen: no page scroll, no unreachable button, board stays still
+python3 tools/cdp_practice.py [WxH]    # practice room, tutorial unlock, journal study depth, drills, puzzle practice, ASM.js engine
 ```
 
 Screenshots go to `tools/shots/`.
@@ -48,6 +50,42 @@ or walks to the nearest one. Hotspot labels are tappable too. Matches and puzzle
 switch to a one-column layout in portrait and board-between-rails in landscape;
 a tap on a guide-arrow square shows its opening card. The HUD gets a fullscreen
 button where the browser supports it. Code: `js/ui/touch.js`, `css/touch.css`.
+
+## The window never scrolls
+
+On every device the page is pinned to the viewport (`css/layout.css`); screens
+are laid out to fit, and only inner panels (move list, modals, journal pages,
+the city list) scroll inside their own box. The match board sits in a
+fixed-size grid cell in every layout, so nothing that changes during a game can
+move it. `tools/cdp_layout.py` enforces all three rules.
+
+## Chess engine
+
+`js/chess/engine/engineService.js` tries Stockfish 18 lite (WASM) and falls
+back to the ASM.js build if the phone refuses the WASM heap; a worker that
+crashes or stops answering is restarted. The match screen shows the engine's
+status, so "grades don't work" always comes with a reason. `?engine=asm`
+forces the fallback for testing on a device.
+
+## Practice room and openings
+
+Every club's practice room (the Practice hotspot) offers an unrated friendly,
+puzzle practice (all 24 puzzles, no postcard), the club opening's tutorial
+(every line with notes; finishing it unlocks an unknown opening at 25%) and
+drills (find the book move; a passed set teaches +3%, capped at 90%). The
+journal's Openings page has a Study button that replays the lines as deep as
+the player knows them.
+
+The opening lines are data-driven: `tools/opening-research/` counted 135,928
+games between 2200+ players (Lichess broadcast database, 2024-09..2026-08).
+To refresh: download months into `~/.cache/pap-broadcast/`, then
+
+```bash
+python3 tools/opening-research/analyze.py      # -> tree.json
+python3 tools/opening-research/report.py       # -> report.md (frequency tree)
+node tools/opening-research/check-lines.mjs    # every line move vs. what strong players play (exit 1 on a flag)
+node tools/opening-research/stats.mjs          # -> js/data/openingStats.js (game counts shown in Study)
+```
 
 ## Build for itch.io
 

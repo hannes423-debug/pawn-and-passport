@@ -13,6 +13,7 @@
  */
 
 import { h, button } from '../dom.js';
+import { openOpeningStudy } from '../openingStudy.js';
 import { tapWord } from '../touch.js';
 import { sfx } from '../audio.js';
 import { portraitUrl, PLAYER_LOOKS } from '../sprites.js';
@@ -76,9 +77,17 @@ export function journalScreen(app, params) {
     }, label)), button('Close', () => app.go(back.screen, back.params), { cls: 'pp-btn--small pp-btn--ghost', icon: '✕' }));
   }
 
+  /* The book art is a landscape spread: on a phone held upright it would be
+     too small to read, so those pages switch to a plain list. */
+  const compact = () => body.clientWidth > 0 && body.clientWidth < 640 && body.clientHeight > body.clientWidth;
+  let wasCompact = null;
+  const onResize = () => { if (compact() !== wasCompact && (tab === 'passport' || tab === 'openings')) paint(); };
+
   function paint() {
     paintTabs();
-    body.replaceChildren(({ passport, openings, postcards, career: careerTab, beyond })[tab]());
+    wasCompact = compact();
+    const pages = wasCompact ? { passport: passportList, openings: openingsList } : { passport, openings };
+    body.replaceChildren(({ ...pages, postcards, career: careerTab, beyond })[tab]());
     if (tab === 'beyond' && !career.secretRevealSeen) { career.secretRevealSeen = true; app.save(); sfx.trophy(); }
   }
 
@@ -125,18 +134,19 @@ export function journalScreen(app, params) {
         type: 'button', class: on ? 'pp-btn--gold' : '', disabled: !unlocked,
         style: { minHeight: '0', padding: '0.2cqw 0.7cqw', fontSize: 'max(10px, 0.95cqw)' },
         title: unlocked ? '' : 'Play this opening or win its club to unlock it',
-        onclick: () => {
-          const r = on ? unequipOpening(career, o.id) : equipOpening(career, o.id);
-          if (!r.ok) { app.toast(r.reason === 'full' ? `Repertoire full (${slots} slot${slots > 1 ? 's' : ''} at level ${career.level}). Unequip one first.` : 'Locked'); return; }
-          sfx.stamp(); app.save(); paint();
-        }
+        onclick: () => toggleEquip(o, on, slots)
       }, unlocked ? (on ? '✔ Equipped' : 'Equip') : '🔒');
+      const studyBtn = unlocked ? h('button.pp-btn.pp-btn--small.pp-btn--blue', {
+        type: 'button', title: 'Review the lines you know',
+        style: { minHeight: '0', padding: '0.2cqw 0.7cqw', fontSize: 'max(10px, 0.95cqw)' },
+        onclick: () => study(o.id)
+      }, '📖 Study') : null;
       book.append(h('div.pp-slot', { class: m > 0 ? 'pp-slot--known' : '', style: { ...rect, fontSize: 'max(9px, 0.95cqw)', padding: '2%', gap: '3%', outline: on ? '3px solid #e8b04a' : '' }, title: `${o.description}\n\nIdea: ${o.idea}` },
         h('div.pp-slot__name', { text: m > 0 ? o.name : '???' }),
         h('div.pp-muted', { text: home.city }),
         h('div.pp-meter.pp-meter--mastery', { style: { width: '90%', height: '0.7cqw', minHeight: '6px' } }, h('div.pp-meter__fill', { style: { width: `${m}%` } })),
         h('div', null, h('b', { text: `${m}%` }), ` ${masteryState(m).label}`),
-        toggle));
+        h('div', { style: { display: 'flex', gap: '4%', justifyContent: 'center', flexWrap: 'wrap' } }, toggle, studyBtn)));
     }
     book.append(h('div.pp-slot', { style: { left: '12%', top: '84%', width: '30%', height: '5%', fontSize: 'max(10px, 1.05cqw)', background: 'rgba(255,248,230,0.92)', borderRadius: '4px' } },
       h('b', { text: `Repertoire ${equipped.length}/${slots}` }), h('span.pp-muted', { text: slots < 6 ? `more slots at higher levels` : 'all six can be equipped' })));
@@ -146,6 +156,63 @@ export function journalScreen(app, params) {
       p.seen ? h('img', { src: p.img, alt: '', style: { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'cover', imageRendering: 'auto' } }) : null,
       h('span.pp-badge', { style: { position: 'relative', fontSize: 'max(8px, 0.94cqw)', marginBottom: '3%' }, text: `${p.seen ? p.city : '???'} ${p.extra}` }))));
     return book;
+  };
+
+  function toggleEquip(o, on, slots) {
+    const r = on ? unequipOpening(career, o.id) : equipOpening(career, o.id);
+    if (!r.ok) { app.toast(r.reason === 'full' ? `Repertoire full (${slots} slot${slots > 1 ? 's' : ''} at level ${career.level}). Unequip one first.` : 'Locked'); return; }
+    sfx.stamp(); app.save(); paint();
+  }
+
+  async function study(openingId) {
+    sfx.click();
+    await openOpeningStudy(app, openingId, { mode: 'review' });
+  }
+
+  /* ---- phone (portrait) versions of the two book pages ---- */
+  const openingsList = () => {
+    const slots = repertoireSlots(career.level);
+    const equipped = career.equipped || [];
+    const card = (o) => {
+      const m = career.openings[o.id] ?? 0;
+      const home = CLUBS.find((c) => c.openingId === o.id);
+      const on = equipped.includes(o.id);
+      const unlocked = isUnlocked(career, o.id);
+      return h('div.pp-panel.pp-openingcard', { class: on ? 'is-equipped' : '' },
+        h('div.pp-openingcard__head', null,
+          h('b', { text: m > 0 ? o.name : '???' }),
+          h('span.pp-small.pp-muted', { text: `${o.side === 'w' ? '♔' : '♚'} ${home.city}` })),
+        h('div.pp-meter.pp-meter--mastery', null, h('div.pp-meter__fill', { style: { width: `${m}%` } })),
+        h('div.pp-small', null, h('b', { text: `${m}%` }), ` ${masteryState(m).label}`, m > 0 ? h('span.pp-muted', { text: ` · ${o.idea}` }) : null),
+        h('div.pp-row', null,
+          h('button.pp-btn.pp-btn--small', { type: 'button', class: on ? 'pp-btn--gold' : '', disabled: !unlocked, onclick: () => toggleEquip(o, on, slots) },
+            unlocked ? (on ? '✔ Equipped' : 'Equip') : '🔒 Locked'),
+          unlocked ? h('button.pp-btn.pp-btn--small.pp-btn--blue', { type: 'button', onclick: () => study(o.id) }, '📖 Study') : null));
+    };
+    return h('div.pp-journal__list', null,
+      h('div.pp-panel.pp-small', null, h('b', { text: `Repertoire ${equipped.length}/${slots}` }),
+        ' · Equipped openings draw guide arrows in games. Study shows the lines you know.'),
+      h('h3.pp-h3.pp-journal__shelf', { text: '♔ White' }), OPENINGS.filter((o) => o.side === 'w').map(card),
+      h('h3.pp-h3.pp-journal__shelf', { text: '♚ Black' }), OPENINGS.filter((o) => o.side === 'b').map(card));
+  };
+
+  const passportList = () => {
+    const xp = xpProgress(career);
+    const home = clubById(career.startClubId);
+    const shelf = [...CLUBS.map((c) => ({ label: c.trophyName, sub: c.city, won: !!career.trophies[c.clubId] })),
+      { label: FINALE.trophyName, sub: 'Madrid', won: career.finale.won }];
+    return h('div.pp-journal__list', null,
+      h('div.pp-panel.pp-passportcard', null,
+        h('img', { src: portraitUrl(PLAYER_LOOKS[career.avatar], { size: 128, ring: '#e8b04a' }), alt: '' }),
+        h('div', null,
+          h('div.pp-player__name', { text: career.name }),
+          h('div.pp-small', { text: `Level ${career.level}${xp.max ? ' (max)' : ` · ${xp.into}/${xp.needed} XP`} · ${career.elo} Elo` }),
+          h('div.pp-small', { text: `Home: ${home.city} · since ${new Date(career.createdAt).toLocaleDateString('en-GB')}` }),
+          h('div.pp-small', { text: `🏆 ${trophyCount(career)}/6 · ✉ ${postcardCount(career)}/6 · score ${career.stats.careerScore.toLocaleString('en')}` }),
+          h('div.pp-small.pp-muted', { text: `Focus ${maxFocus(career.level)} max · hint: ${hintPlies(career.level).label.toLowerCase()}` }))),
+      h('h3.pp-h3.pp-journal__shelf', { text: 'Trophies' }),
+      h('div.pp-tiles', null, shelf.map((t) => h('div.pp-tile', { class: t.won ? 'pp-tile--epic' : '' },
+        h('b.pp-trophy', { class: t.won ? '' : 'is-empty', text: '🏆' }), h('span', { text: t.label }), h('div.pp-small.pp-muted', { text: t.sub })))));
   };
 
   const postcards = () => h('div.pp-postcards', null,
@@ -204,8 +271,11 @@ export function journalScreen(app, params) {
     h('p.pp-small', { style: { opacity: 0.7 }, text: 'Nothing on this page is a promise. It is where the road might go.' }));
 
   const el = h('div.pp-screen.pp-journal', null, app.career ? app.hud({ where: 'Journal' }) : null, tabBar, body);
+  requestAnimationFrame(paint);
   paint();
-  return { el };
+  const ro = new ResizeObserver(onResize);
+  ro.observe(body);
+  return { el, destroy() { ro.disconnect(); } };
 }
 
 export default journalScreen;

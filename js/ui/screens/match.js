@@ -16,6 +16,7 @@ import { sfx } from '../audio.js';
 import { portraitUrl, PLAYER_LOOKS } from '../sprites.js';
 import { createBoard } from '../board.js';
 import { PapMatch } from '../../game/match.js';
+import { engineService } from '../../chess/engine/engineService.js';
 import { HIGHLIGHT, ARROW } from '../../chess/render/boardRenderer.js';
 import { hex } from '../../chess/render/feedback.js';
 import { GRADE_META, GRADE_ORDER } from '../../core/grading.js';
@@ -62,7 +63,8 @@ export function matchScreen(app, params) {
       h('div.pp-player__name', { text: opponent.name }),
       h('div.pp-small', { text: `${opponent.elo} Elo · ${opponent.style}` }),
       opening ? h('div.pp-small.pp-muted', { text: `Plays the ${opening.name}` }) : null,
-      h('div.pp-thinking', { hidden: true, text: 'thinking...' })));
+      // visibility, not display: the card must not change height while the bot thinks.
+      h('div.pp-thinking', { style: { visibility: 'hidden' }, text: 'thinking...' })));
   const thinking = oppCard.querySelector('.pp-thinking');
   const meCard = h('div.pp-panel.pp-player.pp-match__me', null,
     h('img', { alt: '', src: portraitUrl(PLAYER_LOOKS[career.avatar], { ring: '#3d7fd9' }) }),
@@ -80,7 +82,8 @@ export function matchScreen(app, params) {
   const band = hintPlies(career.level);
 
   const left = h('aside.pp-match__left', null,
-    h('div.pp-panel.pp-small.pp-match__kind', null, h('b', { text: KIND_LABEL[kind] }), club ? ` · ${club.clubName}` : kind === 'finale' ? ` · ${FINALE.venueName}` : ''),
+    h('div.pp-panel.pp-small.pp-match__kind', null, h('b', { text: KIND_LABEL[kind] }), club ? ` · ${club.clubName}` : kind === 'finale' ? ` · ${FINALE.venueName}` : '',
+      kind === 'friendly' ? h('span.pp-muted', { text: ' · unrated' }) : null),
     oppCard,
     meCard,
     h('div.pp-panel.pp-col.pp-match__focus', null,
@@ -88,9 +91,17 @@ export function matchScreen(app, params) {
       focusMeter,
       hintBtn,
       hintInfo,
-      hintCard,
-      h('div.pp-small.pp-muted', { text: `Level ${career.level} hint: ${band.label.toLowerCase()} (${band.plies} ${band.plies === 1 ? 'move' : 'moves'} shown).` })),
-    h('div.pp-panel.pp-panel--dark.pp-match__banner', null, openingBanner));
+      h('div.pp-small.pp-muted.pp-match__note', { text: `Level ${career.level} hint: ${band.label.toLowerCase()} (${band.plies} ${band.plies === 1 ? 'move' : 'moves'} shown).` })));
+
+  /* The engine's state, always visible: a phone that cannot run Stockfish used
+     to lose grades and hints without a word. */
+  const engineLine = h('div.pp-engine');
+  const paintEngine = () => {
+    engineLine.dataset.status = engineService.status;
+    engineLine.textContent = `⚙ ${engineService.statusText}`;
+  };
+  const stopEngineWatch = engineService.onStatus(paintEngine);
+  paintEngine();
 
   const moveList = h('div.pp-moves');
   const lastGrade = h('div.pp-small', { text: 'Your moves are graded live.' });
@@ -101,8 +112,10 @@ export function matchScreen(app, params) {
     paintGuide();
   }, { cls: 'pp-btn--small' });
   const right = h('aside.pp-match__right', null,
-    h('div.pp-panel.pp-col', null, h('h3.pp-h3', { text: 'Moves' }), moveList, lastGrade),
-    h('div.pp-panel.pp-col', null,
+    hintCard,
+    h('div.pp-panel.pp-panel--dark.pp-match__banner', null, openingBanner),
+    h('div.pp-panel.pp-col.pp-match__moves', null, h('h3.pp-h3', { text: 'Moves' }), moveList, lastGrade, engineLine),
+    h('div.pp-panel.pp-col.pp-match__tools', null,
       guideBtn,
       h('div.pp-small.pp-muted', { text: `Gold arrows come from your equipped openings, as deep as you know them. Free, no Focus. ${tapWord() === 'tap' ? 'Tap' : 'Hover'} a suggested square for details.` }),
       h('div.pp-small', null, h('b', { text: `Repertoire ${(career.equipped || []).length}/${repertoireSlots(career.level)}: ` }),
@@ -129,7 +142,7 @@ export function matchScreen(app, params) {
     focusMeter.firstChild.style.width = `${(match.focus / match.focusMax) * 100}%`;
     const q = match.quoteHint();
     const affordable = match.focus >= q.cost;
-    hintBtn.replaceChildren('💡 Ask for Hint', h('small', { text: `${q.cost} Focus · ${q.label}` }));
+    hintBtn.replaceChildren('💡 ', h('span.pp-hintbtn__ask', { text: 'Ask for ' }), 'Hint', h('small', { text: `${q.cost} Focus · ${q.label}` }));
     hintBtn.disabled = !match.isPlayersTurn || match.hintBusy || !affordable || finished;
     const b = q.breakdown;
     const why = [];
@@ -293,7 +306,7 @@ export function matchScreen(app, params) {
         break;
       }
       case 'thinking':
-        thinking.hidden = !payload;
+        thinking.style.visibility = payload ? 'visible' : 'hidden';
         paintFocus();
         if (!payload) paintGuide();
         break;
@@ -330,6 +343,8 @@ export function matchScreen(app, params) {
     sfx.click();
     const r = await match.requestHint();
     if (!r.ok && r.reason === 'focus') app.toast('Not enough Focus for that hint.');
+    if (!r.ok && r.reason === 'engine') app.toast(`No hint: ${engineService.statusText}`, { ms: 5000 });
+    if (!r.ok && r.reason === 'no-line') app.toast('The engine found no line here. Try again.');
     paintFocus();
   }
 
@@ -401,12 +416,15 @@ export function matchScreen(app, params) {
           h('ul.pp-lines', null, ms.lines.map((l) => h('li', null, h('span', { text: l.label }), h(`b${l.points < 0 ? '.neg' : ''}`, { text: `${l.points > 0 ? '+' : ''}${l.points}` }))))),
         h('div.pp-col', null,
           h('h3.pp-h3', { text: 'Your moves' }),
+          summary.accuracy === null ? h('p.pp-small', { text: engineService.available === false
+            ? `Moves were not graded: ${engineService.statusText}`
+            : 'Too few of your moves were graded to give an accuracy.' }) : null,
           h('div.pp-tiles', null,
-            h('div.pp-tile', null, h('b', { text: summary.accuracy === null ? '—' : `${summary.accuracy}%` }), h('span', { text: 'Accuracy' })),
+            h('div.pp-tile', null, h('b', { text: summary.accuracy === null ? 'not graded' : `${summary.accuracy}%` }), h('span', { text: 'Accuracy' })),
             gradeTiles),
           h('h3.pp-h3', { text: 'Career' }),
           h('ul.pp-lines', null,
-            h('li', null, h('span', { text: 'Elo' }), h('b', { class: rewards.eloDelta < 0 ? 'neg' : '', text: `${rewards.eloDelta >= 0 ? '+' : ''}${rewards.eloDelta} → ${career.elo}` })),
+            h('li', null, h('span', { text: 'Elo' }), h('b', { class: rewards.eloDelta < 0 ? 'neg' : '', text: kind === 'friendly' ? `unrated · ${career.elo}` : `${rewards.eloDelta >= 0 ? '+' : ''}${rewards.eloDelta} → ${career.elo}` })),
             h('li', null, h('span', { text: 'XP' }), h('b', { text: `+${rewards.xp.xp}` })),
             progress?.trophy ? h('li', null, h('span', { text: `🏆 ${progress.trophy.trophyName}` }), h('b', { text: `+${progress.trophy.xp.xp} XP` })) : null,
             progress?.won && progress.xp ? h('li', null, h('span', { text: '🥇 Grand Finale' }), h('b', { text: `+${progress.xp.xp} XP` })) : null,
@@ -461,6 +479,7 @@ export function matchScreen(app, params) {
     board,
     destroy() {
       document.removeEventListener('keydown', onKey);
+      stopEngineWatch();
       match.dispose();
       board.destroy();
     }

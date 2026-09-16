@@ -1,0 +1,243 @@
+/*
+ * layout.css - fitting every screen into the window, on every device.
+ *
+ * The rule the whole game follows: the GAME WINDOW NEVER SCROLLS. The page is
+ * pinned to the viewport (no rubber-band, no address-bar drift), screens are
+ * laid out to fit, and only an inner panel (a move list, a modal, a journal
+ * page) may scroll inside its own box.
+ *
+ * Loaded after pap.css and touch.css.
+ */
+
+/* ---------------------------------------------------------- pinned page -- */
+
+html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; }
+#app { position: fixed; inset: 0; overflow: hidden; }
+.pp-screen { overflow: hidden !important; overscroll-behavior: none; }
+
+/* Inner panels that may scroll say so explicitly. */
+.pp-overlay, .pp-book__page, .pp-match__left, .pp-match__right, .pp-moves { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+/* ================================================================ match == */
+
+/* ----------------------------------------- landscape tablets and phones -- */
+@media (orientation: landscape) and (max-width: 1100px), (orientation: landscape) and (max-height: 620px) {
+  .pp-match {
+    --rail: clamp(180px, 26vw, 300px);
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: 8px;
+    padding: 6px max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left));
+  }
+  .pp-match__board {
+    align-self: center;
+    --frame-w: min(calc(100vh - 12px), calc(100vw - 2 * var(--rail) - 40px));
+    --frame-w: min(calc(100dvh - 12px), calc(100vw - 2 * var(--rail) - 40px));
+  }
+  .pp-match__left, .pp-match__right { min-height: 0; max-width: none; gap: 6px; }
+  .pp-match .pp-panel { padding: 6px 10px; flex: none; }
+  .pp-match .pp-small { font-size: 15px; }
+  .pp-match .pp-player { grid-template-columns: 36px 1fr; gap: 6px; }
+  .pp-match .pp-player img { width: 36px; height: 36px; }
+  .pp-match .pp-player__name { font-size: 8px; }
+  .pp-match .pp-player .pp-muted { display: none; }
+  .pp-match .pp-player.is-turn { outline-offset: 1px; }
+  .pp-hintbtn { min-height: 44px; font-size: 17px; }
+  .pp-moves { max-height: none; font-size: 15px; }
+}
+
+/* ----------------------------------------- portrait phones and tablets -- */
+@media (orientation: portrait) and (max-width: 1100px) {
+  .pp-match {
+    --opp-h: 50px; --me-h: 66px; --info-min: 120px; --gap: 6px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: var(--opp-h) auto var(--me-h) minmax(0, 1fr);
+    grid-template-areas: "opp opp" "board board" "me focus" "info info";
+    align-items: stretch; gap: var(--gap);
+    padding: max(6px, env(safe-area-inset-top)) 6px max(6px, env(safe-area-inset-bottom));
+  }
+  .pp-match__left { display: contents; }
+  .pp-match__kind, .pp-match__note, .pp-match .pp-cost, .pp-match .pp-meter--focus { display: none; }
+  .pp-match__opp { grid-area: opp; }
+  .pp-match__me { grid-area: me; }
+  .pp-match__focus { grid-area: focus; }
+  .pp-match__board {
+    grid-area: board;
+    --frame-w: min(calc(100vw - 12px), calc(100vh - var(--opp-h) - var(--me-h) - var(--info-min) - 4 * var(--gap) - 12px));
+    --frame-w: min(calc(100vw - 12px), calc(100dvh - var(--opp-h) - var(--me-h) - var(--info-min) - 4 * var(--gap) - 12px));
+  }
+  .pp-match__right { grid-area: info; max-width: none; min-height: 0; overflow-y: auto; gap: 6px; }
+
+  .pp-match .pp-panel { padding: 4px 10px; flex: none; min-height: 0; }
+  .pp-match__opp, .pp-match__me { overflow: hidden; }
+  .pp-match .pp-player { grid-template-columns: 36px 1fr; gap: 8px; }
+  .pp-match .pp-player img { width: 36px; height: 36px; }
+  .pp-match .pp-player__name { font-size: 9px; line-height: 1.3; }
+  .pp-match .pp-player .pp-small { font-size: 15px; line-height: 1.15; }
+  .pp-match .pp-player .pp-muted { display: none; }
+  .pp-match .pp-player .pp-thinking { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: block; }
+  .pp-match .pp-player { position: relative; }
+  .pp-match .pp-player.is-turn { outline-offset: -3px; }
+  .pp-match__focus { gap: 2px; justify-content: center; overflow: hidden; }
+  .pp-match .pp-focus__row { font-size: 14px; line-height: 1.1; }
+  .pp-match .pp-hintbtn { min-height: 38px; font-size: 16px; padding: 2px 6px; gap: 4px; }
+  .pp-match .pp-hintbtn small { font-size: 11px; }
+  .pp-moves { max-height: none; }
+
+  /* Puzzles: the host on top, the board, then the puzzle panel fills the rest. */
+  .pp-match--puzzle { grid-template-rows: var(--opp-h) auto minmax(0, 1fr); grid-template-areas: "opp opp" "board board" "focus focus"; }
+  .pp-match--puzzle .pp-match__board {
+    --frame-w: min(calc(100vw - 12px), calc(100vh - var(--opp-h) - 180px));
+    --frame-w: min(calc(100vw - 12px), calc(100dvh - var(--opp-h) - 180px));
+  }
+  .pp-match--puzzle .pp-match__focus { overflow-y: auto; justify-content: flex-start; padding: 6px 10px; }
+  .pp-match--puzzle .pp-match__right { display: none; }
+}
+
+/* ================================================================ title == */
+.pp-title__stage { width: min(100vw, calc(100dvh * 1672 / 941)); }
+
+/* =============================================================== create == */
+/* Fits the window: the city list is the one part that scrolls, inside its panel. */
+.pp-create { display: flex; }
+.pp-create__wrap {
+  display: flex; flex-direction: column; min-height: 0; height: 100%;
+  padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+.pp-create__logo { width: auto; height: clamp(36px, 11vh, 120px); max-width: 80vw; margin: 0 auto 2px; flex: none; }
+.pp-create__sub { width: auto; height: clamp(14px, 4vh, 44px); max-width: 70vw; margin: 0 auto 10px; flex: none; }
+.pp-create__grid { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+.pp-create__who { overflow-y: auto; min-height: 0; }
+.pp-create__cities { display: flex; flex-direction: column; min-height: 0; }
+.pp-create__cities .pp-cities { flex: 1; min-height: 0; overflow-y: auto; padding: 4px; align-content: start; }
+
+@media (max-width: 820px), (max-height: 560px) {
+  .pp-create__sub { display: none; }
+  .pp-create .pp-h2 { font-size: 13px; margin: 2px 0 6px; }
+  .pp-create .pp-panel { padding: 8px 10px; }
+  .pp-avatar { padding: 4px; flex-direction: row; justify-content: center; }
+  .pp-avatar canvas { width: 32px; height: 48px; }
+  .pp-create .pp-input { padding: 6px 10px; font-size: 18px; }
+  .pp-create__cities .pp-muted { display: none; }
+  .pp-cities { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .pp-city { flex-direction: row; align-items: stretch; }
+  .pp-city img { width: 34%; aspect-ratio: auto; }
+  .pp-city__body { padding: 4px 8px; font-size: 16px; line-height: 1.15; }
+  .pp-city__body .pp-muted { display: none; }
+  .pp-city__side { top: auto; bottom: 4px; left: 4px; right: auto; font-size: 11px; }
+}
+/* Portrait phone: the "who" panel on top (compact), cities fill the rest. */
+@media (max-width: 820px) and (orientation: portrait) {
+  .pp-create__grid { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+  .pp-create__who { overflow: visible; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; align-items: center; }
+  .pp-create__who > .pp-h2, .pp-create__who > .pp-small, .pp-create__who > .pp-row { grid-column: 1 / -1; }
+  .pp-create__who > .pp-spacer { display: none; }
+  .pp-create__who > .pp-h2:nth-of-type(2) { display: none; }
+  .pp-create__who .pp-avatar-pick { grid-column: 1; }
+  .pp-create__who .pp-input { grid-column: 2; }
+}
+/* Landscape phone: two columns, both fit. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .pp-create__logo { height: 30px; margin-bottom: 6px; }
+  .pp-create__grid { grid-template-columns: minmax(220px, 300px) 1fr; gap: 8px; }
+  .pp-create__who .pp-small { font-size: 14px; }
+}
+
+/* =============================================================== ending == */
+.pp-ending { display: flex; flex-direction: column; }
+.pp-ending__scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pp-credits { padding-bottom: 24px; }
+.pp-ending__bar { flex: none; justify-content: center; padding: 10px 12px max(12px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, #0d0806 30%); }
+@media (max-height: 560px) { .pp-ending__hero { padding-top: 12px; } }
+
+/* ======================================================== match polish == */
+.pp-match__banner:has(.pp-opening-banner:empty) { display: none; }
+@media (max-width: 1100px), (max-height: 620px) {
+  .pp-hintbtn__ask { display: none; }
+  .pp-match .pp-hintbtn { white-space: nowrap; }
+}
+
+/* ================================================================ scene == */
+/* The label slides back inside a narrow stage; the arrow stays on its spot. */
+.pp-hotspot { transform: translate(calc(-50% + var(--nudge, 0px)), -100%); }
+.pp-hotspot__arrow { position: relative; left: calc(-1 * var(--nudge, 0px)); }
+
+/* ============================================================== journal == */
+/* A column: HUD, tabs, then the page, which gets whatever height is left.
+   Books size to that box (container units), not to a guessed 100vh - 90px. */
+.pp-journal { display: flex; flex-direction: column; }
+.pp-journal > .pp-hud { position: relative; flex: none; }
+.pp-journal__tabs { position: static; flex: none; padding: 6px 8px; }
+.pp-journal__body { position: relative; top: auto; bottom: auto; flex: 1; min-height: 0; overflow-y: auto; container-type: size; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+.pp-journal__body > .pp-book { width: min(100cqw - 16px, (100cqh - 8px) * 1536 / 1024); margin: 4px auto; }
+@media (max-width: 760px), (max-height: 520px) {
+  .pp-journal__tabs { gap: 4px; padding: 4px; }
+  .pp-journal__tabs .pp-btn--small { min-height: 32px; padding: 2px 8px; font-size: 15px; }
+}
+.pp-journal__list { display: flex; flex-direction: column; gap: 8px; padding: 8px 10px; max-width: 640px; margin: 0 auto; }
+.pp-journal__shelf { color: var(--gold-hi); margin: 6px 0 0; }
+.pp-openingcard { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; }
+.pp-openingcard.is-equipped { outline: 3px solid var(--gold); }
+.pp-openingcard__head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.pp-openingcard .pp-meter { height: 8px; }
+.pp-passportcard { display: grid; grid-template-columns: 88px 1fr; gap: 10px; align-items: center; }
+.pp-passportcard img { width: 88px; height: 88px; }
+
+/* ============================================================= settings == */
+.pp-book--settings { width: min(100vw - 24px, calc((100dvh - 40px) * 1536 / 1024)); }
+@media (orientation: portrait) and (max-width: 700px) {
+  /* No book art on a phone held upright: the two pages stack in one panel. */
+  .pp-book--settings {
+    width: calc(100vw - 16px); height: calc(100dvh - 16px); aspect-ratio: auto; margin: 8px auto !important;
+    background: rgba(243, 227, 191, 0.98); border: var(--px) solid var(--wood-dark); border-radius: 8px;
+    overflow-y: auto; overscroll-behavior: contain; container-type: normal;
+  }
+  .pp-book--settings .pp-book__page { position: static !important; width: auto !important; top: auto !important; font-size: 17px; padding: 8px 12px; overflow: visible; }
+}
+
+/* ======================================================== opening study == */
+.pp-study { width: min(1000px, 100%); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; gap: 6px; margin: auto; }
+.pp-study__title .pp-h2 { margin: 0; }
+.pp-study__body { flex: 1; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
+.pp-study__board { --frame-w: min(520px, calc(100dvh - 180px), 55vw); align-self: start; }
+.pp-study__side { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+.pp-study__note { min-height: 4.2em; padding: 8px 10px; background: #102238; color: #d8f4ff; border-radius: 6px; font-size: 17px; line-height: 1.25; }
+.pp-study__nav { gap: 4px; align-items: center; }
+.pp-study__nav .pp-btn--small { min-width: 40px; }
+.pp-study__counter { min-width: 3.4em; text-align: center; font-weight: 700; }
+.pp-study__moves { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 2px 6px; font-size: 16px; }
+.pp-study__moves .num { color: var(--ink-soft); text-align: right; align-self: center; }
+.pp-study__move { font: inherit; text-align: left; padding: 1px 6px; border: 0; border-radius: 4px; background: transparent; color: var(--ink); cursor: pointer; }
+.pp-study__move.is-current { background: var(--gold); font-weight: 700; }
+.pp-study__locked { color: var(--ink-soft); opacity: 0.55; padding: 1px 6px; }
+.pp-study__lines { display: flex; flex-direction: column; gap: 4px; }
+.pp-study__line { font: inherit; font-size: 15px; text-align: left; padding: 4px 8px; border: 2px solid var(--paper-3); border-radius: 6px; background: var(--paper-2); color: var(--ink); cursor: pointer; }
+.pp-study__line.is-active { border-color: var(--blue); background: #fff4d8; }
+.pp-study__line.is-done b::after { content: ' ✔'; color: var(--green); }
+@media (orientation: portrait) and (max-width: 820px), (max-height: 560px) {
+  .pp-overlay:has(.pp-study) { padding: 6px; }
+  .pp-study { max-height: calc(100dvh - 12px); }
+}
+@media (orientation: portrait) and (max-width: 820px) {
+  .pp-study__body { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .pp-study__board { --frame-w: min(calc(100vw - 40px), 46dvh); justify-self: center; }
+  .pp-study__note { min-height: 3.6em; font-size: 15px; }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .pp-study__title .pp-small { display: none; }
+  .pp-study__board { --frame-w: calc(100dvh - 90px); }
+  .pp-study__note { min-height: 3em; font-size: 14px; }
+}
+
+/* ======================================================= practice room == */
+.pp-practice__option {
+  display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; text-align: left;
+  padding: 8px 10px; font: inherit; color: var(--ink); cursor: pointer;
+  background: var(--paper-2); border: var(--px) solid var(--wood-dark); border-radius: 8px;
+}
+.pp-practice__option > span:last-child { display: flex; flex-direction: column; }
+.pp-practice__option:active { filter: brightness(0.95); }
+.pp-practice__option.is-new { outline: 3px solid var(--gold); }
+.pp-practice__icon { font-size: 30px; text-align: center; }
+.pp-dots--many { flex-wrap: wrap; gap: 3px; }
+.pp-dots--many .pp-dot { width: 10px; height: 10px; }
+/* The side column scrolls as a whole; its parts must never shrink into each other. */
+.pp-study__side > * { flex: none; }

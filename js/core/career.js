@@ -108,6 +108,27 @@ export function learnFromPlay(career, openingId) {
   return after - before;
 }
 
+/** Finishing an opening's tutorial: known at least a little, so it can be equipped. */
+export function learnFromTutorial(career, openingId) {
+  const before = career.openings[openingId] ?? 0;
+  const after = Math.max(before, MASTERY.tutorialGrant);
+  career.openings[openingId] = after;
+  career.tutorialsDone = { ...(career.tutorialsDone || {}), [openingId]: true };
+  return after - before;
+}
+
+/** A drill set: `firstTry` correct answers out of `total`. Passing teaches like a game. */
+export function learnFromDrill(career, openingId, firstTry, total) {
+  const passed = total > 0 && firstTry / total >= MASTERY.drillPassShare;
+  const stats = career.stats;
+  stats.drillSets = (stats.drillSets || 0) + 1;
+  if (!passed) return { passed, gained: 0 };
+  const before = career.openings[openingId] ?? 0;
+  const after = before >= MASTERY.playCap ? before : Math.min(MASTERY.playCap, before + MASTERY.drillGain);
+  career.openings[openingId] = after;
+  return { passed, gained: after - before };
+}
+
 export const specialtyOpening = (career) => clubById(career.startClubId)?.openingId || null;
 
 /* ----------------------------------------------------------- repertoire -- */

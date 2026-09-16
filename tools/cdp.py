@@ -217,7 +217,7 @@ def match():
         # Opening guide arrows need 40% in an opening; Istanbul = Sicilian (Black), so as White: none expected.
         moves = ["e2e4", "g1f3", "d2d4", "f3d4", "b1c3"]
         for i, uci in enumerate(moves):
-            if not c.wait_for("!!(window.__pap.current && document.querySelector('.pp-hintbtn') && !document.querySelector('.pp-thinking:not([hidden])'))", timeout=40):
+            if not c.wait_for("!!(window.__pap.current && document.querySelector('.pp-hintbtn') && !Array.from(document.querySelectorAll('.pp-thinking')).some(e => e.style.visibility === 'visible'))", timeout=40):
                 failures.append("bot never finished thinking")
                 break
             legal = c.eval(f"""(async () => {{

@@ -322,12 +322,15 @@ img, canvas { image-rendering: pixelated; }
 .pp-match__left, .pp-match__right { align-self: stretch; display: flex; flex-direction: column; gap: 12px; min-width: 0; overflow-y: auto; }
 .pp-match__right { max-width: 320px; }
 .pp-match__left { max-width: 300px; justify-self: end; width: 100%; }
-@media (max-width: 1100px) {
-  .pp-match { grid-template-columns: 1fr; overflow-y: auto; align-items: start; }
-  .pp-match__board { --frame-w: min(96vw, calc(100vh - 220px)); order: 1; }
-  .pp-match__left { order: 0; max-width: none; justify-self: stretch; }
-  .pp-match__right { order: 2; max-width: none; }
-}
+/* Layouts for smaller screens live in css/layout.css. Every one keeps the
+   board in a fixed-size cell: nothing that changes during a game (the
+   thinking label, the opening banner, a hint card, the move list) may sit in
+   a row or column that sizes the board, or the board jumps after moves. */
+.pp-match__left, .pp-match__right { overscroll-behavior: contain; }
+.pp-match__right { justify-self: start; width: 100%; }
+.pp-engine { font-size: 14px; color: var(--ink-soft); margin-top: 4px; }
+.pp-engine[data-status="loading"] { color: #8a5a00; font-weight: 700; }
+.pp-engine[data-status="unavailable"] { color: var(--red); font-weight: 700; }
 .pp-player { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; }
 .pp-player img { width: 56px; height: 56px; }
 .pp-player__name { font-family: var(--font-pixel); font-size: 10px; line-height: 1.5; }
