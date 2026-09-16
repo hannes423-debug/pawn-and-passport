@@ -11,6 +11,9 @@ The rule: the game window never scrolls. For each viewport x screen it checks
   offscreen  a visible button/input lies outside the window and is not inside a
              panel that scrolls on its own (so the player could never reach it)
   board      the match board keeps the same rectangle while moves are played
+  overlap    two separate UI boxes (panels, HUD, pad, map card) cover each other
+  inset      something interactive sits under the iPhone status bar / home bar
+             (the @ios viewports emulate those safe-area insets)
 Screenshots land in $PAP_SHOTS/layout/<viewport>-<screen>.png.
 """
 
@@ -22,7 +25,8 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cdp  # noqa: E402
 
-VIEWPORTS = ["390x844", "844x390", "360x640", "640x360", "768x1024", "1024x768", "1280x720", "1440x900"]
+VIEWPORTS = ["390x844@ios", "844x390@ios", "360x640", "640x360", "768x1024", "1024x768", "1280x720", "1440x900"]
+INSETS = {"390x844": {"top": 47, "bottom": 34, "left": 0, "right": 0}, "844x390": {"top": 0, "bottom": 21, "left": 47, "right": 47}}
 
 PROBE = r"""(() => {
   const vw = innerWidth, vh = innerHeight;
@@ -41,15 +45,40 @@ PROBE = r"""(() => {
     }
     return null;
   };
+  // Separate UI boxes must not cover each other (a modal overlay is exempt: covering is its job).
+  const boxes = [...document.querySelectorAll('.pp-hud, .pp-panel, .pp-pad__stick, .pp-pad__action, .pp-map__card, .pp-map__legend, .pp-scene__dock, .pp-title__item, .pp-title__logo')]
+    .filter((el) => el.offsetParent !== null && !el.closest('.pp-overlay, .pp-dialogue') && getComputedStyle(el).visibility !== 'hidden')
+    .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+  for (let i = 0; i < boxes.length; i += 1) for (let j = i + 1; j < boxes.length; j += 1) {
+    const a = boxes[i], b = boxes[j];
+    if (a.contains(b) || b.contains(a)) continue;
+    const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    const w = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+    const hgt = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+    if (w > 4 && hgt > 4 && w * hgt > 120) {
+      const name = (el) => (el.className || el.tagName).toString().split(' ').filter((c) => c.startsWith('pp-')).slice(0, 2).join('.');
+      out.problems.push(`overlap ${name(a)} x ${name(b)} (${Math.round(w)}x${Math.round(hgt)})`);
+    }
+  }
+  const inset = (side) => { const d = document.createElement('div'); d.style.cssText = `position:fixed;padding-top:env(safe-area-inset-${side})`; document.body.append(d); const v = parseFloat(getComputedStyle(d).paddingTop) || 0; d.remove(); return v; };
+  const safe = { top: inset('top'), bottom: inset('bottom'), left: inset('left'), right: inset('right') };
   const inView = (r) => r.left >= -1 && r.top >= -1 && r.right <= vw + 1 && r.bottom <= vh + 1;
   const controls = [...document.querySelectorAll('button, select, input, .pp-hotspot, [role=button]')]
     .filter((el) => el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden');
   for (const el of controls) {
     const r = el.getBoundingClientRect();
     if (!r.width || !r.height) continue;
-    if (inView(r)) continue;
-    const scroller = scrollsOnItsOwn(el);
-    if (scroller && inView(scroller.getBoundingClientRect())) continue;
+    if (inView(r)) {
+      const scroller = scrollsOnItsOwn(el);
+      const under = r.top < safe.top - 1 || r.bottom > vh - safe.bottom + 1 || r.left < safe.left - 1 || r.right > vw - safe.right + 1;
+      if (under && !scroller) {
+        const label = (el.getAttribute('aria-label') || el.textContent || el.className || el.tagName).trim().slice(0, 30);
+        out.problems.push(`inset "${label}" under the status/home bar`);
+      }
+      continue;
+    }
+    const scroller = scrollsOnItsOwn(el) || el.closest('.pp-map__area.is-pannable, .pp-scene__viewport.is-camera');
+    if (scroller && inView(scroller.getBoundingClientRect())) continue;  // reached by scrolling, panning or walking
     const label = (el.getAttribute('aria-label') || el.textContent || el.className || el.tagName).trim().slice(0, 30);
     out.problems.push(`offscreen "${label}" at ${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`);
   }
@@ -60,7 +89,8 @@ NEW_CAREER = cdp.NEW_CAREER
 
 
 def run_viewport(spec, failures):
-    w, h = map(int, spec.split("x"))
+    size, _, profile = spec.partition("@")
+    w, h = map(int, size.split("x"))
     mobile = min(w, h) < 700
     c = cdp.Chrome(w, h)
     shots = os.path.join(cdp.SHOTS, "layout")
@@ -88,6 +118,8 @@ def run_viewport(spec, failures):
 
     try:
         c.send("Emulation.setDeviceMetricsOverride", {"width": w, "height": h, "deviceScaleFactor": 1, "mobile": mobile})
+        if profile == "ios":
+            c.send("Emulation.setSafeAreaInsetsOverride", {"insets": INSETS[size]})
         if mobile:
             c.send("Emulation.setTouchEmulationEnabled", {"enabled": True, "maxTouchPoints": 5})
         c.goto()

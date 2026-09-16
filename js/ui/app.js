@@ -19,6 +19,7 @@ const TEXT_MS = { slow: 38, normal: 22, fast: 8 };
 
 export function createApp(root, screens) {
   const toasts = h('div.pp-toasts');
+  let hudObserver = new ResizeObserver(() => {});
   document.body.append(toasts);
 
   const app = {
@@ -40,6 +41,16 @@ export function createApp(root, screens) {
       app.current = screen;
       root.append(screen.el);
       document.documentElement.dataset.screen = name;
+      // Screens with the HUD lay out below it; its height changes with the
+      // device (two rows on a phone held upright, the iPhone status bar inset).
+      hudObserver.disconnect();
+      const hud = screen.el.querySelector(':scope > .pp-hud');
+      if (hud) {
+        const publish = () => screen.el.style.setProperty('--hud-h', `${hud.offsetHeight}px`);
+        publish();
+        hudObserver = new ResizeObserver(publish);
+        hudObserver.observe(hud);
+      }
       return screen;
     },
 

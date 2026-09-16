@@ -41,7 +41,12 @@ export function titleScreen(app) {
     app.go(career.completed ? 'ending' : 'scene', { sceneId: career.location.sceneId });
   };
 
+  // The art paints the logo and four menu slots for a landscape window. On a
+  // window taller than it is wide, CSS turns the same art into a backdrop and
+  // this logo plus the real buttons become the menu (css/layout.css).
   const stage = h('div.pp-title__stage', { role: 'main', 'aria-label': `${GAME.title}: ${GAME.subtitle}` },
+    h('img.pp-title__logo', { src: 'assets/ui/logo.webp', alt: '' }),
+    h('img.pp-title__logo-sub', { src: 'assets/ui/logo-sub.webp', alt: '' }),
     h('nav.pp-title__menu', { 'aria-label': 'Main menu' },
       item('▶', career ? 'New Career' : 'New Game', newGame),
       item('▣', 'Continue', cont, { disabled: !career }),

@@ -69,31 +69,55 @@ export async function sceneScreen(app, params) {
   /* ---------------------------------------------------------- layout -- */
   let stageH = 600;
   const hudBar = el.firstChild;
+  /* On a window much narrower than the art (a phone held upright) the scene
+     fills the height and a camera follows the player sideways, instead of
+     shrinking the room into a thin strip. */
+  let camera = false;
+  let stageW = 0;
   const fit = () => {
     // The HUD is shorter on phones and wraps to two rows in portrait.
     if (hudBar?.offsetHeight) { viewport.style.top = `${hudBar.offsetHeight}px`; el.style.setProperty('--hud-h', `${hudBar.offsetHeight}px`); }
     const vw = viewport.clientWidth || window.innerWidth;
     const vh = viewport.clientHeight || (window.innerHeight - 56);
-    const w = Math.min(vw, vh * aspect);
+    camera = vh * aspect > vw * 1.3;
+    const w = camera ? vh * aspect : Math.min(vw, vh * aspect);
+    stageW = w;
     stageH = w / aspect;
     stage.style.width = `${w}px`;
     stage.style.height = `${stageH}px`;
+    viewport.classList.toggle('is-camera', camera);
     for (const actor of actorList) actor.resize();
+    follow();
     requestAnimationFrame(nudgeLabels);
   };
+
+  function follow() {
+    if (!camera) { stage.style.transform = ''; return; }
+    const who = actorList.find((a) => a.player);
+    const vw = viewport.clientWidth;
+    const target = vw / 2 - ((who ? who.x : 50) / 100) * stageW;
+    const x = Math.max(vw - stageW, Math.min(0, target));
+    stage.style.transform = `translate3d(${Math.round(x)}px, 0, 0)`;
+  }
 
   /* A label centred on a spot near the edge of a narrow (portrait) stage
      hangs off the screen: slide the label, not the arrow, back inside. */
   function nudgeLabels() {
     const limit = el.getBoundingClientRect();
+    const top = viewport.getBoundingClientRect().top;
     for (const spot of hotspotLayer.querySelectorAll('.pp-hotspot')) {
       spot.style.setProperty('--nudge', '0px');
+      spot.style.setProperty('--nudge-y', '0px');
       const r = spot.getBoundingClientRect();
       const pad = 2;
       let dx = 0;
+      // Off camera entirely: leave it where it is rather than pin it to the edge.
+      if (r.right < limit.left || r.left > limit.right) continue;
       if (r.left < limit.left + pad) dx = limit.left + pad - r.left;
       else if (r.right > limit.right - pad) dx = limit.right - pad - r.right;
       spot.style.setProperty('--nudge', `${Math.round(dx)}px`);
+      // A label near the top edge of the art would tuck under the HUD.
+      if (r.top < top + pad) spot.style.setProperty('--nudge-y', `${Math.round(top + pad - r.top)}px`);
     }
   }
 
@@ -175,7 +199,9 @@ export async function sceneScreen(app, params) {
         last = now;
         if (segment >= path.length) {
           player.walking = false; player.frame = 0; player.draw();
-          playerNode = target; headingNode = null; walking = null; resolve(true); return;
+          playerNode = target; headingNode = null; walking = null;
+          if (camera) nudgeLabels();
+          resolve(true); return;
         }
         headingNode = path[segment];
         const [tx, ty] = scene.nodes[path[segment]];
@@ -199,6 +225,7 @@ export async function sceneScreen(app, params) {
           if (player.frame % 4 === 0) sfx.step();
         }
         player.draw();
+        follow();
         requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
