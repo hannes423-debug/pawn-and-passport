@@ -9,6 +9,9 @@
 
 import { OPENINGS } from '../js/data/openings.js';
 import { spriteId, setPlayerAvatar, PLAYER_LOOKS } from '../js/ui/sprites.js';
+import { SCENE_LAYERS } from '../js/data/sceneLayers.js';
+import { createWalkGrid } from '../js/core/freeWalk.js';
+import { sceneById } from '../js/data/scenes.js';
 import { CLUBS, FINALE } from '../js/data/clubs.js';
 import { STAR_PLAYERS } from '../js/data/starPlayers.js';
 import { POSTCARDS, BEYOND_THE_TOUR } from '../js/data/postcards.js';
@@ -375,6 +378,42 @@ test('game results move Elo, XP and opening knowledge', () => {
   eq(c.stats.grades.BRILLIANT, 1); eq(c.stats.careerScore, 2500);
   for (let i = 0; i < 30; i += 1) Career.learnFromPlay(c, 'french');
   eq(c.openings.french, 90, 'play alone never masters an opening');
+});
+
+/* -------------------------------------------------------- free walking */
+
+test('layered scenes: every hotspot reachable from the spawn, nothing walks through a footprint', () => {
+  const sizes = JSON.parse(readFileSync(path.join(ROOT, 'assets/manifest.json'), 'utf8')).scenes;
+  for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
+    const scene = sceneById(id);
+    assert(scene, `${id}: scene exists`);
+    const [w, h] = sizes[id];
+    const grid = createWalkGrid(layers, { aspect: w / h });
+    for (const prop of layers.props) assert(existsSync(path.join(ROOT, prop.src)), `${id}/${prop.id}: layer image`);
+    const spawn = grid.nearestFree(...scene.nodes[scene.spawn.default]);
+    assert(spawn, `${id}: spawn on the floor`);
+    for (const spot of scene.hotspots) {
+      const route = grid.path(spawn, scene.nodes[spot.node]);
+      assert(route, `${id}: ${spot.id} reachable`);
+      let prev = spawn;
+      for (const point of route) { assert(grid.lineFree(prev[0], prev[1], point[0], point[1]), `${id}: ${spot.id} route crosses an obstacle`); prev = point; }
+    }
+    for (const prop of layers.props.filter((p) => p.foot)) {
+      const [x0, y0, x1, y1] = prop.foot;
+      assert(!grid.free((x0 + x1) / 2, (y0 + y1) / 2), `${id}/${prop.id}: footprint is blocked`);
+    }
+  }
+});
+
+test('free walking slides along obstacles instead of passing through', () => {
+  const layers = { floor: [[[0, 0], [100, 0], [100, 100], [0, 100]]], blocks: [[40, 40, 60, 60]], props: [] };
+  const grid = createWalkGrid(layers, { aspect: 1 });
+  const straight = grid.move(50, 70, 0, -30);
+  assert(straight.y > 60, `stopped below the block (y ${straight.y})`);
+  const slide = grid.move(50, 70, 20, -30);
+  assert(slide.x > 50 && slide.y < 70, 'a diagonal push slides along the edge');
+  const route = grid.path([50, 80], [50, 20]);
+  assert(route && route.length >= 2, 'a path goes around the block');
 });
 
 /* ---------------------------------------------------------------- report */

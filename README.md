@@ -38,6 +38,7 @@ python3 tools/cdp.py trophy            # Epic/Brilliant/Clutch effects, Star Pla
 python3 tools/cdp_touch.py             # phone: joystick walk + A button (landscape), tap-for-tip (portrait)
 python3 tools/cdp_layout.py            # 8 viewports x every screen: no page scroll, no unreachable button, board stays still
 python3 tools/cdp_practice.py [WxH]    # practice room, tutorial unlock, journal study depth, drills, puzzle practice, ASM.js engine
+python3 tools/cdp_depth.py [scene]      # layered scenes: cut-outs, free walking with collision, depth order, hotspots
 ```
 
 Screenshots go to `tools/shots/`.
@@ -86,6 +87,28 @@ python3 tools/opening-research/report.py       # -> report.md (frequency tree)
 node tools/opening-research/check-lines.mjs    # every line move vs. what strong players play (exit 1 on a flag)
 node tools/opening-research/stats.mjs          # -> js/data/openingStats.js (game counts shown in Study)
 ```
+
+## Depth layers and free walking
+
+Scenes listed in `tools/build_layers.py` (so far: the six casual venues and the
+Madrid courtyard) are walked freely: joystick, arrow keys or WASD move the
+player anywhere on the floor with collision, and a tap walks there along an A*
+path (`js/core/freeWalk.js`). Every object a character can pass behind (lamps,
+trees, tables, signs, the pavilion, the fountain) is cut out of the scene art
+into `assets/layers/<scene>/` and stacked with the characters by its ground
+line, so the player walks behind a lamp and in front of a table.
+
+```bash
+python3 tools/build_layers.py --preview   # cut-outs + js/data/sceneLayers.js; previews in tools/shots/layers-<scene>.png
+python3 tools/cdp_depth.py                # browser: cut-outs, walking with collision, depth order, every hotspot
+```
+
+Each prop is a rect (GrabCut seeds from it), a base line and a footprint;
+each scene has floor polygons and extra blocks. To use hand-made layers
+instead of GrabCut, put a transparent PNG the size of the scene at
+`<City folder>/layers/<scene>.png` (for example `London/layers/lon-venue.png`)
+and rebuild: each prop then takes that file's pixels inside its rect.
+Scenes not in the list keep their waypoint paths.
 
 ## Build for itch.io
 

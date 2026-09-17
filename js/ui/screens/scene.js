@@ -7,6 +7,12 @@
  * Every hotspot is also a button in the dock, so nothing needs precise
  * clicking and the keyboard works (keys 1-9). On touch screens a joystick walks
  * the same graph link by link and the A button uses whatever is nearest.
+ *
+ * LAYERED scenes (js/data/sceneLayers.js, built by tools/build_layers.py) are
+ * walked FREELY instead: the joystick, arrow keys or WASD move the player
+ * anywhere on the floor with collision, a tap walks there along an A* path,
+ * and every cut-out object is drawn in depth order with the characters, so
+ * the player passes behind a lamp and in front of a table.
  */
 
 import { h, button, wait, clear } from '../dom.js';
@@ -26,9 +32,19 @@ import { starLines, loungeLines } from '../../core/dialogue.js';
 import { createTouchpad, tapWord } from '../touch.js';
 import { openOpeningStudy } from '../openingStudy.js';
 import { learnFromTutorial } from '../../core/career.js';
+import { SCENE_LAYERS } from '../../data/sceneLayers.js';
+import { createWalkGrid } from '../../core/freeWalk.js';
 
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
 const WALK_SPEED = 42;           // percent of the stage height per second
+
+/* A walk grid takes a moment to bake on a phone: build each scene's once. */
+const walkGrids = new Map();
+function walkGridFor(id, layers, aspect) {
+  const key = `${id}:${aspect.toFixed(4)}`;
+  if (!walkGrids.has(key)) walkGrids.set(key, createWalkGrid(layers, { aspect }));
+  return walkGrids.get(key);
+}
 
 export async function sceneScreen(app, params) {
   const career = app.career;
@@ -171,9 +187,23 @@ export async function sceneScreen(app, params) {
     if (look) makeActor(look, npc.at, { dir: 'down' });
   }
 
+  /* Depth layers: each cut-out object sits in the actors layer, stacked by its ground line. */
+  const layers = SCENE_LAYERS[scene.id] || null;
+  const freeMode = !!layers;
+  const grid = freeMode ? walkGridFor(scene.id, layers, aspect) : null;
+  if (freeMode) {
+    for (const prop of layers.props) {
+      actors.append(h('img.pp-prop', {
+        src: prop.src, alt: '', draggable: 'false', dataset: { prop: prop.id },
+        style: { left: `${prop.x}%`, top: `${prop.y}%`, width: `${prop.w}%`, height: `${prop.h}%`, zIndex: String(Math.round(prop.base * 10)) }
+      }));
+    }
+  }
+
   const spawnNode = (params.node && scene.nodes[params.node] ? params.node : null) || scene.spawn[params.spawn] || scene.spawn.default;
   let playerNode = spawnNode;
-  const player = makeActor(PLAYER_LOOKS[career.avatar], scene.nodes[spawnNode], { dir: 'up', player: true });
+  const spawnAt = freeMode ? (grid.nearestFree(...scene.nodes[spawnNode]) || scene.nodes[spawnNode]) : scene.nodes[spawnNode];
+  const player = makeActor(PLAYER_LOOKS[career.avatar], spawnAt, { dir: 'up', player: true });
 
   /* -------------------------------------------------------- walking -- */
   let walking = null;
@@ -182,7 +212,66 @@ export async function sceneScreen(app, params) {
   // toward it or go back to playerNode: starting from path[1] regardless used
   // to cut straight across the room, through whatever was painted there.
   let headingNode = null;
+  let stepClock = 0;
+  /** Advance the walk animation and face the direction of travel (screen-space dx, dy). */
+  function animateStep(dxPx, dy, dt) {
+    if (Math.abs(dxPx) > 1e-6 || Math.abs(dy) > 1e-6) {
+      player.dir = Math.abs(dxPx) > Math.abs(dy) ? (dxPx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+    }
+    stepClock += dt;
+    if (!player.walking) { player.walking = true; player.frame = 0; }
+    if (stepClock > 0.09) {
+      stepClock = 0;
+      player.frame += 1;
+      if (player.frame % 4 === 0) sfx.step();
+    }
+    player.draw();
+    follow();
+  }
+  function stopWalking() {
+    player.walking = false; player.frame = 0; player.draw();
+    if (camera) nudgeLabels();
+  }
+
+  /** Free mode: walk a list of points (already collision-free) to the end. */
+  function walkPoints(points) {
+    const token = {};
+    walking = token;
+    return new Promise((resolve) => {
+      let k = 0;
+      let last = performance.now();
+      const tick = (now) => {
+        if (walking !== token) { stopWalking(); resolve(false); return; }
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        if (k >= points.length) { stopWalking(); walking = null; resolve(true); return; }
+        const [tx, ty] = points[k];
+        const dxPx = (tx - player.x) * aspect;
+        const dy = ty - player.y;
+        const dist = Math.hypot(dxPx, dy);
+        const step = WALK_SPEED * dt;
+        if (dist <= step) { player.x = tx; player.y = ty; k += 1; }
+        else { player.x += (dxPx / dist) * step / aspect; player.y += (dy / dist) * step; }
+        animateStep(dxPx, dy, dt);
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+
+  /** Free mode: path to a point; resolves true on arrival. */
+  async function walkToPoint(x, y) {
+    const route = grid.path([player.x, player.y], [x, y]);
+    if (!route) return false;
+    playerNode = null;
+    return walkPoints(route);
+  }
+
   function walkTo(target) {
+    if (freeMode) {
+      const [x, y] = scene.nodes[target];
+      return walkToPoint(x, y).then((ok) => { if (ok) playerNode = target; return ok; });
+    }
     const path = findPath(scene, playerNode, target);
     if (!path) return Promise.resolve(false);
     const token = {};
@@ -239,7 +328,10 @@ export async function sceneScreen(app, params) {
     busy = true;
     sfx.click();
     try {
-      const arrived = await walkTo(spot.node);
+      // Free mode: close enough already counts as there.
+      const near = freeMode && distanceTo(spot) <= USE_RADIUS;
+      if (near) playerNode = spot.node;
+      const arrived = near || await walkTo(spot.node);
       if (arrived) await runAction(spot);
     } finally {
       busy = false;
@@ -272,12 +364,13 @@ export async function sceneScreen(app, params) {
     dock.replaceChildren(h('div.pp-panel', null, h('div.pp-scene__title', { text: app.locationName() }), list));
   }
 
-  // Clicking empty floor walks to the nearest waypoint.
+  // Clicking empty floor walks there (free mode) or to the nearest waypoint.
   stage.addEventListener('click', (e) => {
     if (busy) return;
     const rect = stage.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * 100;
     const py = ((e.clientY - rect.top) / rect.height) * 100;
+    if (freeMode) { walkToPoint(px, py).then(() => paintPad()); return; }
     let best = null;
     for (const [id, [x, y]] of Object.entries(scene.nodes)) {
       const d = Math.hypot((x - px) * aspect, y - py);
@@ -286,8 +379,33 @@ export async function sceneScreen(app, params) {
     if (best) walkTo(best.id);
   });
 
+  /* Arrow keys and WASD walk freely in a layered scene. */
+  const held = new Set();
+  const KEY_VEC = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0] };
+  const keyVector = () => {
+    let x = 0; let y = 0;
+    for (const k of held) { x += KEY_VEC[k][0]; y += KEY_VEC[k][1]; }
+    const len = Math.hypot(x, y);
+    return len ? { x: x / len, y: y / len } : null;
+  };
+  const onKeyUp = (e) => {
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (!held.delete(k)) return;
+    if (!stickHeld) stick = keyVector();
+  };
+  document.addEventListener('keyup', onKeyUp);
+
   const onKey = (e) => {
     if (document.querySelector('.pp-overlay, .pp-dialogue')) return;
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (freeMode && KEY_VEC[key]) {
+      e.preventDefault();
+      if (!held.has(key)) {
+        held.add(key);
+        if (!stickHeld) { stick = keyVector(); if (!blocked()) { if (walking && !driving) walking = null; drive(); } }
+      }
+      return;
+    }
     const n = Number(e.key);
     if (n >= 1 && n <= scene.hotspots.length) use(scene.hotspots[n - 1]);
     if (e.key === 'm' || e.key === 'M') app.go('map');
@@ -323,10 +441,44 @@ export async function sceneScreen(app, params) {
   }
 
   let stick = null;
+  let stickHeld = false;
   let driving = false;
   async function drive() {
     if (driving) return;
     driving = true;
+    if (freeMode) {
+      // Direct control: velocity from the stick (analog) or keys, sliding along obstacles.
+      let last = performance.now();
+      let padClock = 0;
+      try {
+        while (stick && !blocked()) {
+          await nextFrame();
+          const now = performance.now();
+          const dt = Math.min(0.05, (now - last) / 1000);
+          last = now;
+          if (!stick) break;
+          const mag = Math.min(1, Math.hypot(stick.x, stick.y));
+          const len = Math.hypot(stick.x, stick.y) || 1;
+          const step = WALK_SPEED * dt * (0.35 + 0.65 * mag);
+          const dxPx = (stick.x / len) * step;
+          const dy = (stick.y / len) * step;
+          const r = grid.move(player.x, player.y, dxPx / aspect, dy);
+          const mdx = (r.x - player.x) * aspect;
+          const mdy = r.y - player.y;
+          player.x = r.x; player.y = r.y;
+          playerNode = null;
+          // Face where the stick points even against a wall.
+          animateStep(r.moved ? mdx : dxPx, r.moved ? mdy : dy, dt);
+          padClock += dt;
+          if (padClock > 0.2) { padClock = 0; paintPad(); }
+        }
+      } finally {
+        driving = false;
+        stopWalking();
+        paintPad();
+      }
+      return;
+    }
     try {
       while (stick && !blocked()) {
         const target = nodeToward(stick);
@@ -346,8 +498,22 @@ export async function sceneScreen(app, params) {
     }
   }
 
+  const USE_RADIUS = 8;     // screen-space percent of the scene height
+  const distanceTo = (spot) => {
+    const [x, y] = scene.nodes[spot.node];
+    return Math.hypot((x - player.x) * aspect, y - player.y);
+  };
+
   /** What A does: the hotspot underfoot, otherwise the nearest one (walk there, then use it). */
   function spotForAction() {
+    if (freeMode) {
+      let best = null;
+      for (const spot of scene.hotspots) {
+        const d = distanceTo(spot);
+        if (!best || d < best.d) best = { spot, d };
+      }
+      return best ? { spot: best.spot, ready: best.d <= USE_RADIUS } : null;
+    }
     if (!walking) {
       const here = scene.hotspots.find((spot) => spot.node === playerNode);
       if (here) return { spot: here, ready: true };
@@ -363,7 +529,8 @@ export async function sceneScreen(app, params) {
 
   const pad = createTouchpad({
     onStick(vec) {
-      stick = vec;
+      stickHeld = !!vec;
+      stick = vec || keyVector();
       if (vec && !blocked()) {
         if (walking && !driving) walking = null;     // the stick overrides a tap-to-walk
         drive();
@@ -649,6 +816,7 @@ export async function sceneScreen(app, params) {
       viewportObserver.disconnect();
       window.removeEventListener('resize', fit);
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('keyup', onKeyUp);
     }
   };
 }

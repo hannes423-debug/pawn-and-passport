@@ -133,7 +133,7 @@ add({
   nodes: { arrive: [50, 92], plaza: [27, 86], stairFoot: [12, 69], stairTop: [9, 45], terrace: [15, 37], host: [21, 37], exit: [50, 96] },
   links: [['arrive', 'plaza'], ['plaza', 'stairFoot'], ['stairFoot', 'stairTop'], ['stairTop', 'terrace'], ['terrace', 'host'], ['arrive', 'exit']],
   hotspots: [
-    { id: 'mission', node: 'host', label: 'Chess tables', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [28, 33] } },
+    { id: 'mission', node: 'host', label: 'Chess tables', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [29.5, 36.5] } },
     { id: 'exit', node: 'exit', label: 'Leave the park', verb: 'Travel', action: { type: 'leave' } }
   ]
 });
@@ -158,7 +158,7 @@ add({
   nodes: { arrive: [50, 86], aisle: [50, 74], west: [21, 74], host: [21, 57], exit: [50, 93] },
   links: [['arrive', 'aisle'], ['aisle', 'west'], ['west', 'host'], ['arrive', 'exit']],
   hotspots: [
-    { id: 'mission', node: 'host', label: 'Courtyard chess tables', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [27, 50] } },
+    { id: 'mission', node: 'host', label: 'Courtyard chess tables', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [24.5, 53] } },
     { id: 'exit', node: 'exit', label: 'Leave the courtyard', verb: 'Travel', action: { type: 'leave' } }
   ]
 });
@@ -180,7 +180,7 @@ add({
   nodes: { arrive: [50, 87], floor: [50, 72], host: [47, 62], exit: [50, 95] },
   links: [['arrive', 'floor'], ['floor', 'host'], ['arrive', 'exit']],
   hotspots: [
-    { id: 'mission', node: 'host', label: 'Cafe chess table', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [39, 54] } },
+    { id: 'mission', node: 'host', label: 'Cafe chess table', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [36, 57] } },
     { id: 'exit', node: 'exit', label: 'Leave the cafe', verb: 'Travel', action: { type: 'leave' } }
   ]
 });
@@ -199,10 +199,10 @@ add(upstairs('ist-up', 'assets/scenes/ist-up.webp',
 add({
   // Bosphorus tea terrace: up the steps, round the sign, to the middle table.
   id: 'ist-venue', image: 'assets/scenes/ist-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
-  nodes: { arrive: [50, 90], steps: [50, 80], west: [30, 64], host: [38, 58], exit: [50, 97] },
+  nodes: { arrive: [62, 61], steps: [50, 63], west: [30, 61], host: [38, 58], exit: [50, 63] },
   links: [['arrive', 'steps'], ['steps', 'west'], ['west', 'host'], ['arrive', 'exit']],
   hotspots: [
-    { id: 'mission', node: 'host', label: 'Tea terrace table', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [55, 57] } },
+    { id: 'mission', node: 'host', label: 'Tea terrace table', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [59, 61.5] } },
     { id: 'exit', node: 'exit', label: 'Down to the water', verb: 'Travel', action: { type: 'leave' } }
   ]
 });
@@ -227,7 +227,7 @@ add({
   nodes: { arrive: [77, 87], walk: [77, 62], host: [62, 55], exit: [60, 93] },
   links: [['arrive', 'walk'], ['walk', 'host'], ['arrive', 'exit']],
   hotspots: [
-    { id: 'mission', node: 'host', label: 'Chess corner', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [57, 48] } },
+    { id: 'mission', node: 'host', label: 'Chess corner', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [54.5, 52] } },
     { id: 'exit', node: 'exit', label: 'Leave the promenade', verb: 'Travel', action: { type: 'leave' } }
   ]
 });
@@ -249,7 +249,7 @@ add({
   nodes: { arrive: [80, 42], quay: [70, 63], host: [52, 64], exit: [86, 30] },
   links: [['arrive', 'quay'], ['quay', 'host'], ['arrive', 'exit']],
   hotspots: [
-    { id: 'mission', node: 'host', label: 'Riverside chess table', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [45, 66] } },
+    { id: 'mission', node: 'host', label: 'Riverside chess table', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [50, 66.5] } },
     { id: 'exit', node: 'exit', label: 'Up to the old town', verb: 'Travel', action: { type: 'leave' } }
   ]
 });

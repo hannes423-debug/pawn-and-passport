@@ -18,7 +18,7 @@ mkdir -p "$out"
 cp index.html "$out/"
 cp -r css js vendor "$out/"
 mkdir -p "$out/assets"
-cp -r assets/ui assets/scenes assets/cities assets/postcards assets/pieces assets/board assets/fonts assets/characters "$out/assets/"
+cp -r assets/ui assets/scenes assets/cities assets/postcards assets/pieces assets/board assets/fonts assets/characters assets/layers "$out/assets/"
 cp docs/LICENSES.md "$out/LICENSES.md"
 cp vendor/stockfish/COPYING-GPLv3.txt "$out/COPYING-GPLv3.txt"
 
