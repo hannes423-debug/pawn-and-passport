@@ -240,7 +240,8 @@ export function drawCharacter(ctx, look, { dir = 'down', frame = 0, walking = fa
     // unevenly; smooth when shrinking, stay crisp when enlarging.
     ctx.imageSmoothingEnabled = h < CELL.H;
     ctx.imageSmoothingQuality = 'high';
-    const col = walking ? CELL.idle + (frame % CELL.walk) : frame % CELL.idle;
+    // Standing is always the first idle frame: characters hold still.
+    const col = walking ? CELL.idle + (frame % CELL.walk) : 0;
     ctx.drawImage(sheet, col * CELL.W, ROW[dir] * CELL.H, CELL.W, CELL.H, x, y, w, h);
     return;
   }

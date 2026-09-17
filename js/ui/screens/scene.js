@@ -17,7 +17,7 @@
 
 import { h, button, wait, clear } from '../dom.js';
 import { sfx, stopMusic } from '../audio.js';
-import { drawCharacter, hasSheet, PLAYER_LOOKS, CELL } from '../sprites.js';
+import { drawCharacter, PLAYER_LOOKS, CELL } from '../sprites.js';
 import { sceneById, findPath } from '../../data/scenes.js';
 import { CLUBS, FINALE, clubById } from '../../data/clubs.js';
 import { STAR_PLAYERS, starById, starForClub } from '../../data/starPlayers.js';
@@ -157,7 +157,7 @@ export async function sceneScreen(app, params) {
     const shadow = h('div.pp-actor__shadow');
     actors.append(shadow, canvas);
     const actor = {
-      look, x, y, dir, frame: Math.floor(Math.random() * 4), walking: false, canvas, shadow, player,
+      look, x, y, dir, frame: 0, walking: false, canvas, shadow, player,
       resize() {
         // Characters stand about a tenth of the scene tall; close-up scenes
         // set their own measured height (scenes.js actorHeight).
@@ -769,14 +769,7 @@ export async function sceneScreen(app, params) {
     }
   }
 
-  /* --------------------------------------------------- idle animation -- */
-  const idleTimer = setInterval(() => {
-    for (const actor of actorList) {
-      if (actor.walking || !hasSheet(actor.look)) continue;
-      actor.frame += 1;
-      actor.draw();
-    }
-  }, 320);
+  /* Standing characters hold still: no idle animation. */
 
   /* ---------------------------------------------------------- arrival -- */
   window.addEventListener('resize', fit);
@@ -825,7 +818,6 @@ export async function sceneScreen(app, params) {
       walking = null;
       stick = null;
       pad.destroy();
-      clearInterval(idleTimer);
       viewportObserver.disconnect();
       window.removeEventListener('resize', fit);
       document.removeEventListener('keydown', onKey);
