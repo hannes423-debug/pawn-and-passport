@@ -16,6 +16,7 @@ import { sfx } from '../audio.js';
 import { portraitUrl, PLAYER_LOOKS } from '../sprites.js';
 import { createBoard } from '../board.js';
 import { PapMatch } from '../../game/match.js';
+import { UNDO } from '../../data/config.js';
 import { engineService } from '../../chess/engine/engineService.js';
 import { HIGHLIGHT, ARROW } from '../../chess/render/boardRenderer.js';
 import { hex } from '../../chess/render/feedback.js';
@@ -76,6 +77,7 @@ export function matchScreen(app, params) {
   const focusText = h('span');
   const focusMeter = h('div.pp-meter.pp-meter--focus', null, h('div.pp-meter__fill'));
   const hintBtn = h('button.pp-btn.pp-btn--blue.pp-hintbtn', { type: 'button', onclick: () => askHint() });
+  const undoBtn = h('button.pp-btn.pp-undobtn', { type: 'button', onclick: () => askUndo(), 'aria-label': 'Undo your last move' });
   const hintInfo = h('div.pp-cost');
   const hintCard = h('div.pp-hint-card', { hidden: true });
   const openingBanner = h('div.pp-opening-banner');
@@ -89,7 +91,8 @@ export function matchScreen(app, params) {
     h('div.pp-panel.pp-col.pp-match__focus', null,
       h('div.pp-focus__row', null, h('span', { text: '✦ Focus' }), focusText),
       focusMeter,
-      hintBtn,
+      // The two Focus abilities side by side, at every viewport.
+      h('div.pp-abilities', null, hintBtn, undoBtn),
       hintInfo,
       h('div.pp-small.pp-muted.pp-match__note', { text: `Level ${career.level} hint: ${band.label.toLowerCase()} (${band.plies} ${band.plies === 1 ? 'move' : 'moves'} shown).` })));
 
@@ -144,6 +147,15 @@ export function matchScreen(app, params) {
     const affordable = match.focus >= q.cost;
     hintBtn.replaceChildren('💡 ', h('span.pp-hintbtn__ask', { text: 'Ask for ' }), 'Hint', h('small', { text: `${q.cost} Focus · ${q.label}` }));
     hintBtn.disabled = !match.isPlayersTurn || match.hintBusy || !affordable || finished;
+    const u = match.undoState();
+    const undoNote = u.reason === 'used' ? (u.max === 1 ? 'Used' : 'All used')
+      : u.reason === 'cooldown' ? `In ${u.cooldown} move${u.cooldown === 1 ? '' : 's'}`
+      : u.reason === 'nothing' ? 'Move first'
+      : `${u.cost} Focus · ${u.left} left`;
+    undoBtn.replaceChildren('↶ ', 'Undo', h('small', { text: undoNote }));
+    undoBtn.disabled = !u.ok || finished;
+    undoBtn.dataset.state = u.reason || 'ready';
+    undoBtn.title = `Take back your last move. Costs ${u.cost} Focus, ${u.max} per game at level ${career.level}, then ${UNDO.cooldownMoves} moves of cooldown.`;
     const b = q.breakdown;
     const why = [];
     if (q.inBook && b.familiarity < 1) why.push(`known line x${b.familiarity}`);
@@ -287,6 +299,7 @@ export function matchScreen(app, params) {
       }
       case 'graded': {
         const { record, grade, tier } = payload;
+        if (record.undone) break;
         if (app.settings.moveGrades) {
           renderer.markVerdict(record.ply, record.to, tier === 'playable' ? 'good' : tier);
           board.fx.grade(payload);
@@ -295,6 +308,18 @@ export function matchScreen(app, params) {
         lastGrade.replaceChildren(`Move ${Math.ceil(record.ply / 2)}. ${record.san}: `, h(`b.pp-grade.pp-grade--${meta.tier}`, { text: `${meta.glyph} ${meta.label}` }),
           payload.focusGain ? ` · +${payload.focusGain} Focus` : '', payload.followedHint ? ' (hinted)' : '');
         paintMoves(); paintFocus();
+        break;
+      }
+      case 'undo': {
+        // The game emits one 'undo' per half-move; the match emits one with `state` when done.
+        if (!payload?.state) break;
+        renderer.clearArrows(ARROW.HINT); renderer.clearArrows('hint-reply');
+        suggestions = suggestions.filter((sug) => sug.kind !== 'hint');
+        tip.hidden = true; hintCard.hidden = true;
+        renderer.clearVerdicts();
+        paintPosition(match.game.lastMove);
+        paintMoves(); paintGuide(); paintFocus();
+        board.fx.word('UNDO', '#c9a6ff', `${payload.state.left} left this game`);
         break;
       }
       case 'opening': {
@@ -339,6 +364,17 @@ export function matchScreen(app, params) {
     }
   });
 
+  function askUndo() {
+    const r = match.undo();
+    if (!r.ok) {
+      const why = { focus: `Undo needs ${r.cost} Focus.`, cooldown: `Undo is cooling down: ${r.cooldown} more move${r.cooldown === 1 ? '' : 's'}.`,
+        used: 'No undos left this game.', nothing: 'Nothing to undo yet.', over: 'The game is over.' }[r.reason];
+      if (why) app.toast(why);
+      return;
+    }
+    sfx.click();
+  }
+
   async function askHint() {
     sfx.click();
     const r = await match.requestHint();
@@ -351,6 +387,7 @@ export function matchScreen(app, params) {
   const onKey = (e) => {
     if (document.querySelector('.pp-overlay, .pp-dialogue')) return;
     if ((e.key === 'h' || e.key === 'H') && !hintBtn.disabled) askHint();
+    if ((e.key === 'u' || e.key === 'U') && !undoBtn.disabled) askUndo();
   };
   document.addEventListener('keydown', onKey);
 

@@ -43,6 +43,7 @@ try:
         c.pump(1)
         print(sid)
         expected = c.eval(f"import('./js/data/sceneLayers.js').then(m => m.SCENE_LAYERS['{sid}'].props.length)", await_promise=True)
+        c.wait_for(f"document.querySelectorAll('.pp-prop').length === {expected}", timeout=10)
         check(c.eval("document.querySelectorAll('.pp-prop').length") == expected, f"{sid}: all {expected} cut-outs on the stage")
         grid_js = f"""Promise.all([import('./js/core/freeWalk.js'), import('./js/data/sceneLayers.js'), import('./js/data/scenes.js')]).then(([F, L, S]) => {{
             const img = document.querySelector('.pp-scene__bg');

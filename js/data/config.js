@@ -81,6 +81,21 @@ export const HINTS = Object.freeze({
   search: { depth: 14, movetime: 1500, nodes: 1500000 }
 });
 
+/* ================================================================= undo === */
+/* The second Focus ability: take back your last move (and the reply to it).
+   It costs a level-1 player's ENTIRE Focus pool, is capped per game even at
+   max level, and has a cooldown counted in your own moves. */
+export const UNDO = Object.freeze({
+  cost: 30,                          // = FOCUS.base: a beginner's whole pool
+  usesByLevel: [                     // hard cap per game, whatever Focus you have
+    { from: 1, uses: 1 },
+    { from: 6, uses: 2 },
+    { from: 12, uses: 3 }
+  ],
+  cooldownMoves: 5,                  // your moves before it can be used again
+  scorePenalty: 150                  // Match Score, per undo
+});
+
 /* ======================================================= opening mastery === */
 export const MASTERY = Object.freeze({
   starting: 40,
@@ -164,6 +179,7 @@ export const SCORE = Object.freeze({
   upsetPerElo: 1,                    // a win against a stronger opponent
   upsetCap: 300,
   hintPenalty: 40,
+  undoPenalty: 150,
   letters: [
     { from: 3200, letter: 'S' }, { from: 2600, letter: 'A' }, { from: 2000, letter: 'B' },
     { from: 1400, letter: 'C' }, { from: 0, letter: 'D' }
@@ -188,4 +204,4 @@ export const BOOK = Object.freeze({
   starPreference: 1.0
 });
 
-export default { GAME, LEVELS, XP, ELO, FOCUS, HINTS, MASTERY, REPERTOIRE, TOURNAMENT, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK };
+export default { GAME, LEVELS, XP, ELO, FOCUS, HINTS, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK };

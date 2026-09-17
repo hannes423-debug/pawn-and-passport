@@ -123,14 +123,14 @@ export const SCENES = {};
 const add = (scene) => { SCENES[scene.id] = scene; };
 
 /* New York */
-add(garden('nyc-ext', 'assets/scenes/nyc-ext.webp',
-  { gate: [50, 86], path: [50, 69], porch: [50, 50], door: [50, 45], sides: [[38, 59], [62, 59]] }));
-add(hallA('nyc-int', 'assets/scenes/nyc-int.webp', {
-  entrance: [50, 90], lobby: [50, 66], mid: [50, 40], stairs: [50, 16],
-  dirDoor: [33, 33], director: [20, 34], starNpc: [16, 27],
-  pracDoor: [33, 60], practice: [19, 64], practiceNpc: [13, 60],
-  hallDoor: [67, 45], hall: [80, 47], hallNpc: [86, 41]
-}));
+add({ ...garden('nyc-ext', 'assets/scenes/nyc-ext.webp',
+  { gate: [50, 89], path: [39.5, 62], porch: [50, 48], door: [50, 44.5], sides: [[39.5, 62], [60.5, 62]] }), actorHeight: 0.095 });
+add({ ...hallA('nyc-int', 'assets/scenes/nyc-int.webp', {
+  entrance: [50, 91], lobby: [50, 78], mid: [50, 40], stairs: [50, 14],
+  dirDoor: [34, 38.5], director: [27, 32], starNpc: [18, 23.5],
+  pracDoor: [34, 60], practice: [18.2, 66], practiceNpc: [18.2, 58.5],
+  hallDoor: [64, 40], hall: [80.5, 46], hallNpc: [80.5, 35]
+}), actorHeight: 0.07 });
 add(upstairs('nyc-up', 'assets/scenes/nyc-up.webp',
   { stairs: [50, 45], hub: [50, 70], lounge: [22, 58], loungeNpc: [16, 50], trophies: [78, 55] }));
 add({
@@ -172,12 +172,12 @@ add({
 /* Vienna */
 add(garden('vie-ext', 'assets/scenes/vie-ext.webp',
   { gate: [50, 88], path: [50, 66], porch: [50, 52], door: [50, 44] }));
-add(hallA('vie-int', 'assets/scenes/vie-int.webp', {
-  entrance: [50, 90], lobby: [50, 62], mid: [44, 34], stairs: [50, 14],
-  dirDoor: [33, 30], director: [19, 32], starNpc: [18, 24],
-  pracDoor: [33, 58], practice: [18, 62], practiceNpc: [12, 56],
-  hallDoor: [67, 42], hall: [80, 46], hallNpc: [86, 40]
-}));
+add({ ...hallA('vie-int', 'assets/scenes/vie-int.webp', {
+  entrance: [50, 91], lobby: [50, 78], mid: [50, 33], stairs: [50, 12],
+  dirDoor: [34, 35], director: [27.5, 34], starNpc: [18.3, 23],
+  pracDoor: [34, 60], practice: [29.2, 60], practiceNpc: [17.9, 58],
+  hallDoor: [65, 36], hall: [81.3, 47], hallNpc: [81.3, 37]
+}), actorHeight: 0.07 });
 add(upstairs('vie-up', 'assets/scenes/vie-up.webp',
   { stairs: [50, 86], hub: [50, 30], lounge: [22, 46], loungeNpc: [14, 40], trophies: [80, 50] }));
 add({
@@ -214,16 +214,16 @@ add({
 });
 
 /* Chennai */
-add(garden('che-ext', 'assets/scenes/che-ext.webp',
-  { gate: [50, 82], path: [50, 62], porch: [50, 50], door: [50, 41] }));
+add({ ...garden('che-ext', 'assets/scenes/che-ext.webp',
+  { gate: [50, 89], path: [50, 70], porch: [50, 52], door: [50, 44] }), actorHeight: 0.09 });
 add({
-  id: 'che-int', image: 'assets/scenes/che-int.webp', kind: 'interior', spawn: { default: 'entrance', entrance: 'entrance' },
-  nodes: { entrance: [50, 90], lobby: [50, 72], stairs: [50, 56], hall: [50, 32], dirDoor: [32, 70], director: [18, 64], studyDoor: [68, 70], study: [80, 64] },
+  id: 'che-int', image: 'assets/scenes/che-int.webp', actorHeight: 0.07, kind: 'interior', spawn: { default: 'entrance', entrance: 'entrance' },
+  nodes: { entrance: [50, 92], lobby: [50, 74], stairs: [50, 50], hall: [50, 28], dirDoor: [31, 66.5], director: [26, 73], studyDoor: [69, 66.5], study: [83.2, 67] },
   links: [['entrance', 'lobby'], ['lobby', 'stairs'], ['stairs', 'hall'], ['lobby', 'dirDoor'], ['dirDoor', 'director'], ['lobby', 'studyDoor'], ['studyDoor', 'study']],
   hotspots: [
-    { id: 'tournament', node: 'hall', label: 'Tournament hall', verb: 'Play', action: { type: 'tournament' }, npc: { kind: 'regular', index: 0, at: [38, 26] } },
-    { id: 'star', node: 'director', label: "Director's office", verb: 'Talk', action: { type: 'star' }, npc: { kind: 'star', at: [20, 55] } },
-    { id: 'friendly', node: 'study', label: 'Study and practice', verb: 'Practice', action: { type: 'friendly' }, npc: { kind: 'regular', index: 1, at: [86, 58] } },
+    { id: 'tournament', node: 'hall', label: 'Tournament hall', verb: 'Play', action: { type: 'tournament' }, npc: { kind: 'regular', index: 0, at: [50, 22] } },
+    { id: 'star', node: 'director', label: "Director's office", verb: 'Talk', action: { type: 'star' }, npc: { kind: 'star', at: [18.8, 57.5] } },
+    { id: 'friendly', node: 'study', label: 'Study and practice', verb: 'Practice', action: { type: 'friendly' }, npc: { kind: 'regular', index: 1, at: [83.2, 59] } },
     { id: 'exit', node: 'entrance', label: 'Temple garden', verb: 'Exit', action: { type: 'scene', to: 'che-ext', spawn: 'door' } }
   ]
 });

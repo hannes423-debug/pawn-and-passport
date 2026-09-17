@@ -7,7 +7,9 @@
  * guidance sliders or loadouts. What it adds is small:
  *
  *   Focus   a per-game pool, refilled at the start, earned back by strong moves
- *   Hint    the single active ability; cost and depth from js/core/hints.js
+ *   Hint    an active ability; cost and depth from js/core/hints.js
+ *   Undo    an active ability: take back your last move and the reply
+ *           (config UNDO: expensive, capped per game, cooldown in moves)
  *   Grades  every PLAYER move is annotated live and graded (incl. CLUTCH)
  *   Guide   arrows from the player's own opening knowledge
  *
@@ -21,15 +23,16 @@ import { REVIEW_LEVEL } from '../chess/engine/analysisLevels.js';
 import { ChessBot } from '../chess/bots/chessBot.js';
 import { GameReview } from '../chess/analysis/gameReview.js';
 import { accuracyFromWinProbLoss } from '../chess/core/gameResult.js';
-import { pvToSan } from '../chess/core/rules.js';
+import { pvToSan, applyUci } from '../chess/core/rules.js';
 import { otherColour } from '../chess/core/constants.js';
-import { FOCUS, MASTERY, BOOK, GRADING } from '../data/config.js';
+import { FOCUS, MASTERY, BOOK, GRADING, UNDO } from '../data/config.js';
 import { profileForOpponent } from '../core/difficulty.js';
 import { fullBook, bookForOpening } from '../core/openingBook.js';
 import { hintQuote } from '../core/hints.js';
-import { gradeMove, emptyGradeCounts } from '../core/grading.js';
+import { gradeMove, emptyGradeCounts, GRADE_META } from '../core/grading.js';
+import { offeredPieces } from '../chess/analysis/brilliance.js';
 import { matchScore } from '../core/scoring.js';
-import { maxFocus, specialtyOpening, equippedMastery } from '../core/career.js';
+import { maxFocus, specialtyOpening, equippedMastery, undoUses } from '../core/career.js';
 
 export class PapMatch {
   /**
@@ -57,6 +60,7 @@ export class PapMatch {
     this.game = new ChessGame({
       timeControl: TIME_CONTROLS.find((tc) => tc.id === 'unlimited'),
       mode: 'career',
+      allowUndo: true,          // gated by the Undo ability below, never free
       players: {
         [playerColour]: { name: career.name, kind: 'human', rating: career.elo },
         [otherColour(playerColour)]: { name: opponent.name, kind: 'bot', rating: opponent.elo }
@@ -69,6 +73,14 @@ export class PapMatch {
     this.focusMax = maxFocus(career.level);
     this.focus = this.focusMax;
     this.hintsUsed = 0;
+    /* Pieces the player had hanging when a special grade was awarded. Leaving
+       the same piece en prise move after move (a fishing-pole trap the bot
+       never takes) must not earn Brilliant/Epic/Clutch every move: only the
+       move that first offered it does. */
+    this.specialOffers = new Set();
+    this.undosUsed = 0;
+    this.undoMax = undoUses(career.level);
+    this.playerMovesSinceUndo = Infinity;   // no cooldown before the first undo
     this.grades = emptyGradeCounts();
     this.openingsReached = new Set();
     this.lastHint = null;
@@ -114,6 +126,7 @@ export class PapMatch {
     this._noteOpening(record);
     const followedHint = !!this.lastHint && this.lastHint.uci === record.uci;
     this.lastHint = null;
+    this.playerMovesSinceUndo += 1;
     this._pending.push(this._grade(record, followedHint));
     await this.maybePlayBot();
     return record;
@@ -154,10 +167,12 @@ export class PapMatch {
   async _grade(record, followedHint) {
     try {
       await this.reviewer.annotate(record);
+      if (record.undone) return;
       // Same position, same MultiPV: this is a cache hit, not a second search.
       const before = await this.service.review(record.fenBefore, { multiPv: REVIEW_LEVEL.multiPv, ...this.gradingSearch });
-      const verdict = gradeMove(record, before.lines);
-      if (!verdict.grade) return;
+      let verdict = gradeMove(record, before.lines);
+      if (!verdict.grade || record.undone) return;
+      verdict = this._noRepeatSpecial(record, verdict);
       record.grade = verdict.grade;
       this.grades[verdict.grade] = (this.grades[verdict.grade] || 0) + 1;
       let focusGain = 0;
@@ -165,10 +180,33 @@ export class PapMatch {
         focusGain = Math.min(FOCUS.regen[verdict.grade], this.focusMax - this.focus);
         this.focus += focusGain;
       }
+      record.focusGain = focusGain;
       this.emit('graded', { record, ...verdict, focusGain, followedHint });
     } catch (error) {
       /* Live grading is best-effort: with no engine the game is still chess. */
     }
+  }
+
+  /**
+   * A special grade (EPIC, BRILLIANT, CLUTCH) only counts when the move offers
+   * something NEW: if every piece the player has hanging after the move was
+   * already hanging when an earlier special grade was given, it is the same
+   * sacrifice still standing, and the move is graded by its plain quality.
+   */
+  _noRepeatSpecial(record, verdict) {
+    if (!['EPIC', 'BRILLIANT', 'CLUTCH'].includes(verdict.grade)) return verdict;
+    let hanging = [];
+    try {
+      const after = record.fenAfter || applyUci(record.fenBefore, record.uci)?.fen;
+      hanging = offeredPieces(after, this.playerColour).map((p) => `${p.type}@${p.square}`);
+    } catch { hanging = []; }
+    const fresh = hanging.filter((key) => !this.specialOffers.has(key));
+    if (hanging.length && !fresh.length) {
+      const plain = record.mistakeClassification === 'EXCELLENT' ? 'EXCELLENT' : 'BEST';
+      return { grade: plain, tier: GRADE_META[plain].tier, meta: GRADE_META[plain], repeatOffer: true };
+    }
+    for (const key of hanging) this.specialOffers.add(key);
+    return verdict;
   }
 
   /* ---------------------------------------------------------------- hints */
@@ -203,6 +241,54 @@ export class PapMatch {
     } finally {
       this.hintBusy = false;
     }
+  }
+
+  /* ----------------------------------------------------------------- undo */
+
+  /** Can Undo be used right now, and if not, why. */
+  undoState() {
+    const mine = this.game.history.filter((m) => m.color === this.playerColour);
+    const left = Math.max(0, this.undoMax - this.undosUsed);
+    const cooldown = Number.isFinite(this.playerMovesSinceUndo) ? Math.max(0, UNDO.cooldownMoves - this.playerMovesSinceUndo) : 0;
+    let reason = null;
+    if (this.game.status !== 'active') reason = 'over';
+    else if (!left) reason = 'used';
+    else if (cooldown) reason = 'cooldown';
+    else if (!mine.length) reason = 'nothing';
+    else if (this.focus < UNDO.cost) reason = 'focus';
+    else if (this.hintBusy) reason = 'busy';
+    return { ok: !reason, reason, cost: UNDO.cost, left, max: this.undoMax, cooldown };
+  }
+
+  /** Take back the player's last move (and the bot's reply, or its search). */
+  undo() {
+    const state = this.undoState();
+    if (!state.ok) return { ok: false, ...state };
+    this._botToken += 1;                   // a bot reply in flight is abandoned (its search is not stopped: that could cut a grading search short)
+    const undone = [];
+    // Pop until the player's own last move is gone and it is the player's turn.
+    while (this.game.history.length) {
+      const last = this.game.lastMove;
+      const r = this.game.undo();
+      if (!r.ok) break;
+      undone.push(last);
+      if (last.color === this.playerColour) break;
+    }
+    if (!undone.some((m) => m.color === this.playerColour)) return { ok: false, reason: 'nothing' };
+    for (const record of undone) {
+      record.undone = true;
+      if (record.color !== this.playerColour) continue;
+      if (record.grade && this.grades[record.grade]) this.grades[record.grade] -= 1;
+      if (record.focusGain) this.focus = Math.max(0, this.focus - record.focusGain);
+    }
+    this.focus -= UNDO.cost;
+    this.undosUsed += 1;
+    this.playerMovesSinceUndo = 0;
+    this.lastHint = null;
+    this.thinking = false;
+    this.emit('thinking', false);
+    this.emit('undo', { undone, state: this.undoState() });
+    return { ok: true, undone };
   }
 
   /** Guide arrows from what the player already knows. Free, never the engine. */
@@ -251,12 +337,12 @@ export class PapMatch {
     const grades = Object.fromEntries(Object.entries(this.grades).filter(([, n]) => n));
     const ms = matchScore({
       score, accuracy, grades, checkmate,
-      playerElo: this.career.elo, opponentElo: this.opponent.elo, hintsUsed: this.hintsUsed
+      playerElo: this.career.elo, opponentElo: this.opponent.elo, hintsUsed: this.hintsUsed, undosUsed: this.undosUsed
     });
     return {
       kind: this.kind, score, accuracy, grades, checkmate, hintsUsed: this.hintsUsed,
       opponentElo: this.opponent.elo, opponentName: this.opponent.name,
-      matchScore: ms, openingsReached: [...this.openingsReached],
+      matchScore: ms, openingsReached: [...this.openingsReached], undosUsed: this.undosUsed,
       headline: result?.headline || 'Game over', termination: result?.termination || null,
       plies: this.game.ply, pgn: result?.pgn || ''
     };

@@ -16,6 +16,7 @@ import { SCORE } from '../data/config.js';
  * @param {number} g.playerElo
  * @param {number} g.opponentElo
  * @param {number} [g.hintsUsed]
+ * @param {number} [g.undosUsed]
  * @returns {{total:number, letter:string, lines:{label:string, points:number}[]}}
  */
 export function matchScore(g) {
@@ -35,6 +36,7 @@ export function matchScore(g) {
     add('Upset bonus', Math.min(SCORE.upsetCap, (g.opponentElo - g.playerElo) * SCORE.upsetPerElo));
   }
   if (g.hintsUsed) add(`Hints used x${g.hintsUsed}`, -g.hintsUsed * SCORE.hintPenalty);
+  if (g.undosUsed) add(`Undo x${g.undosUsed}`, -g.undosUsed * SCORE.undoPenalty);
 
   const total = Math.max(0, lines.reduce((sum, line) => sum + line.points, 0));
   const letter = SCORE.letters.find((entry) => total >= entry.from)?.letter || 'D';

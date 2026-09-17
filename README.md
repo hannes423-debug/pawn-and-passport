@@ -41,6 +41,7 @@ python3 tools/cdp_touch.py             # phone: joystick walk + A button (landsc
 python3 tools/cdp_layout.py            # 8 viewports x every screen: no page scroll, no unreachable button, board stays still
 python3 tools/cdp_practice.py [WxH]    # practice room, tutorial unlock, journal study depth, drills, puzzle practice, ASM.js engine
 python3 tools/cdp_depth.py [scene]      # layered scenes: cut-outs, free walking with collision, depth order, hotspots
+python3 tools/cdp_undo.py               # Undo ability: cost, cap per level, cooldown, takeback; Hint+Undo visible at 8 viewports
 ```
 
 Screenshots go to `tools/shots/`.
@@ -53,6 +54,18 @@ or walks to the nearest one. Hotspot labels are tappable too. Matches and puzzle
 switch to a one-column layout in portrait and board-between-rails in landscape;
 a tap on a guide-arrow square shows its opening card. The HUD gets a fullscreen
 button where the browser supports it. Code: `js/ui/touch.js`, `css/touch.css`.
+
+## Focus abilities
+
+**Hint** and **Undo** sit side by side in every layout. Undo takes back your
+last move and the reply. It costs 30 Focus (a level-1 player's whole pool), is
+capped per game (1 use, 2 from level 6, 3 from level 12), has a cooldown of 5 of
+your own moves, and costs 150 Match Score. Tunables: `UNDO` in
+`js/data/config.js`. Keyboard: H and U.
+
+Grading during a game never says "Missed win" (it would reveal a winning line):
+those moves show as Inaccuracy, Mistake or Blunder by size. A piece left
+hanging earns Brilliant/Epic/Clutch only on the move that first offered it.
 
 ## The window never scrolls
 
@@ -92,8 +105,8 @@ node tools/opening-research/stats.mjs          # -> js/data/openingStats.js (gam
 
 ## Depth layers and free walking
 
-Scenes listed in `tools/build_layers.py` (so far: the six casual venues and the
-Madrid courtyard) are walked freely: joystick, arrow keys or WASD move the
+Scenes listed in `tools/build_layers.py` (so far: the six casual venues, the
+Madrid courtyard, and the New York and Chennai clubs plus the Vienna club interior) are walked freely: joystick, arrow keys or WASD move the
 player anywhere on the floor with collision, and a tap walks there along an A*
 path (`js/core/freeWalk.js`). Every object a character can pass behind (lamps,
 trees, tables, signs, the pavilion, the fountain) is cut out of the scene art

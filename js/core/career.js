@@ -11,7 +11,7 @@
  *   Postcards      optional, 6, unlock the Beyond the Tour page
  */
 
-import { LEVELS, XP, ELO, FOCUS, HINTS, MASTERY, REPERTOIRE, TOURNAMENT, GAME } from '../data/config.js';
+import { LEVELS, XP, ELO, FOCUS, HINTS, MASTERY, REPERTOIRE, TOURNAMENT, GAME, UNDO } from '../data/config.js';
 import { CLUBS, FINALE, clubById } from '../data/clubs.js';
 import { OPENINGS } from '../data/openings.js';
 import { STAR_PLAYERS, starForClub, starById } from '../data/starPlayers.js';
@@ -84,6 +84,13 @@ export function grantXp(career, amount) {
 }
 
 export const maxFocus = (level) => FOCUS.base + FOCUS.perLevel * (Math.min(level, LEVELS.cap) - 1);
+
+/** How many undos a game allows at this level. */
+export function undoUses(level) {
+  let uses = UNDO.usesByLevel[0].uses;
+  for (const band of UNDO.usesByLevel) if (level >= band.from) uses = band.uses;
+  return uses;
+}
 
 export function hintPlies(level) {
   let band = HINTS.pliesByLevel[0];

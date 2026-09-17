@@ -129,6 +129,7 @@ export class GameReview {
     move.bestMoveSan = bestLine.san;
     move.evaluationDelta = verdict.cpLoss;
     move.winProbLoss = verdict.winProbLoss;
+    move.classificationBands = verdict.bands;
     move.mistakeClassification = verdict.classification;
     move.complexity = verdict.complexity;
     /* Carried on the record so the RPG can pay for it without re-running the

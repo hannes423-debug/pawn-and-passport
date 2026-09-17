@@ -5,7 +5,7 @@ tools/cdp_touch.py - the touch controls, driven with real CDP touch events.
     python3 tools/serve.py 8123 &
     python3 tools/cdp_touch.py
 
-Landscape phone (844x390, touch emulation): the joystick walks the nyc-int
+Landscape phone (844x390, touch emulation): the joystick walks the ist-int (a waypoint scene; layered scenes are covered by cdp_depth.py)
 waypoint graph (up to the stairs, a short push down stops ON mid, right to the
 hall), A uses the hotspot underfoot (the tournament desk opens). Then portrait
 (390x844): a tap on a guide-arrow square shows the opening card.
@@ -32,7 +32,7 @@ try:
     c.goto(); c.eval("localStorage.clear()"); c.goto()
     c.wait_for("!!document.querySelector('.pp-title__item')")
     c.eval(cdp.NEW_CAREER % ("girl", "nyc"), await_promise=True)
-    c.eval("window.__pap.go('scene', { sceneId: 'nyc-int' }).then(() => 1)", await_promise=True)
+    c.eval("window.__pap.go('scene', { sceneId: 'ist-int' }).then(() => 1)", await_promise=True)
     c.wait_for("!!document.querySelector('.pp-actor')", timeout=10); c.pump(1)
     print("data-touch", c.eval("document.documentElement.dataset.touch"), "pad visible", c.eval("getComputedStyle(document.querySelector('.pp-pad')).display"))
     # the player sprite is created last

@@ -11,6 +11,10 @@
  *           cruising, and the move holds the position.
  *
  * EPIC and BRILLIANT outrank CLUTCH: a sound sacrifice is rarer still.
+ *
+ * MISS ("missed win") is never shown during a game: it would tell the player
+ * that a winning line is on the board. It is reported as the generic mistake
+ * its size deserves (Inaccuracy, Mistake or Blunder, by the same bands).
  */
 
 import { CLUTCH } from '../data/config.js';
@@ -57,9 +61,22 @@ export function isClutch(record, lines) {
 /**
  * @returns {{grade:string, tier:string, meta:Object}}
  */
+/** A missed win, shown as a plain mistake of the same size. */
+export function genericMistake(record) {
+  const loss = record.winProbLoss ?? 0;
+  const bands = record.classificationBands || {};
+  if (loss <= (bands.inaccuracy ?? 11)) return 'INACCURACY';
+  if (loss <= (bands.mistake ?? 20)) return 'MISTAKE';
+  return 'BLUNDER';
+}
+
 export function gradeMove(record, lines = null) {
   const c = record.mistakeClassification;
   if (!c) return { grade: null, tier: 'neutral', meta: null };
+  if (c === 'MISS') {
+    const grade = genericMistake(record);
+    return { grade, tier: GRADE_META[grade].tier, meta: GRADE_META[grade] };
+  }
   let grade = c;
   if (c === 'BRILLIANT') {
     grade = tierFor(c, { isBest: record.bestMove === record.uci, loss: record.evaluationDelta }) === 'epic' ? 'EPIC' : 'BRILLIANT';
@@ -74,4 +91,4 @@ export function emptyGradeCounts() {
   return Object.fromEntries(GRADE_ORDER.map((g) => [g, 0]));
 }
 
-export default { GRADE_META, GRADE_ORDER, isClutch, gradeMove, emptyGradeCounts };
+export default { GRADE_META, GRADE_ORDER, isClutch, gradeMove, genericMistake, emptyGradeCounts };

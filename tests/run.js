@@ -13,6 +13,9 @@ import { SCENE_LAYERS } from '../js/data/sceneLayers.js';
 import { createWalkGrid, walkerFor } from '../js/core/freeWalk.js';
 import { sceneById } from '../js/data/scenes.js';
 import { CLUB_PUZZLES } from '../js/data/clubPuzzles.js';
+import { PapMatch } from '../js/game/match.js';
+import { undoUses, maxFocus as maxFocusOf } from '../js/core/career.js';
+import { UNDO } from '../js/data/config.js';
 import { CLUBS, FINALE } from '../js/data/clubs.js';
 import { STAR_PLAYERS } from '../js/data/starPlayers.js';
 import { POSTCARDS, BEYOND_THE_TOUR } from '../js/data/postcards.js';
@@ -407,6 +410,32 @@ test('club puzzle solutions are legal and mates end in mate', () => {
     eq(p.solution.length % 2, 1, `${p.id}: ends on the player's move`);
     if (p.title.startsWith('Mate')) assert(r.isCheckmate(), `${p.id}: "${p.title}" ends in mate`);
   }
+});
+
+/* ------------------------------------------------------ grading rules */
+
+test('a missed win is shown as a plain mistake, never "Missed win"', () => {
+  const miss = (loss) => gradeMove({ mistakeClassification: 'MISS', winProbLoss: loss, classificationBands: { inaccuracy: 11, mistake: 20 } }).grade;
+  eq(miss(8), 'INACCURACY'); eq(miss(15), 'MISTAKE'); eq(miss(40), 'BLUNDER');
+});
+
+test('a piece left hanging earns a special grade once, not every move', () => {
+  const self = { playerColour: 'w', specialOffers: new Set() };
+  const special = { grade: 'CLUTCH', tier: 'clutch' };
+  // White knight g5 attacked by the h6 pawn and undefended: d2-d3 leaves it hanging.
+  const first = { fenBefore: 'rnbqkb1r/pppp1pp1/5n1p/4p1N1/4P3/8/PPPP1PPP/RNBQKB1R w KQkq - 0 4', uci: 'd2d3', mistakeClassification: 'BEST' };
+  eq(PapMatch.prototype._noRepeatSpecial.call(self, first, special).grade, 'CLUTCH', 'first offer counts');
+  const again = { fenBefore: 'rnbqkb1r/pppp1pp1/5n1p/4p1N1/4P3/3P4/PPP2PPP/RNBQKB1R w KQkq - 0 5', uci: 'b1c3', mistakeClassification: 'BEST' };
+  eq(PapMatch.prototype._noRepeatSpecial.call(self, again, { grade: 'EPIC', tier: 'epic' }).grade, 'BEST', 'same knight still hanging');
+  const quiet = { fenBefore: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', uci: 'e2e4', mistakeClassification: 'EXCELLENT' };
+  eq(PapMatch.prototype._noRepeatSpecial.call({ playerColour: 'w', specialOffers: new Set() }, quiet, special).grade, 'CLUTCH', 'nothing hanging: a clutch stays a clutch');
+});
+
+test('undo: level caps and scoring', () => {
+  eq(undoUses(1), 1); eq(undoUses(6), 2); eq(undoUses(15), 3);
+  eq(UNDO.cost, maxFocusOf(1), 'a beginner spends the whole pool');
+  const s = matchScore({ score: 1, accuracy: 80, grades: {}, playerElo: 600, opponentElo: 600, undosUsed: 2 });
+  assert(s.lines.some((l) => /Undo x2/.test(l.label) && l.points === -2 * 150), JSON.stringify(s.lines));
 });
 
 /* -------------------------------------------------------- free walking */
