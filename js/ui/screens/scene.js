@@ -137,6 +137,15 @@ export async function sceneScreen(app, params) {
       spot.style.setProperty('--nudge', `${Math.round(dx)}px`);
       // A label near the top edge of the art would tuck under the HUD.
       if (r.top < top + pad) spot.style.setProperty('--nudge-y', `${Math.round(top + pad - r.top)}px`);
+      // Never under the joystick or the A button: lift the label above them.
+      for (const control of viewport.querySelectorAll('.pp-pad__stick, .pp-pad__action')) {
+        const c = control.getBoundingClientRect();
+        if (!c.width || getComputedStyle(control.parentElement).display === 'none') continue;
+        const moved = r.left + dx;
+        if (moved < c.right && moved + r.width > c.left && r.bottom > c.top && r.top < c.bottom) {
+          spot.style.setProperty('--nudge-y', `${Math.round(c.top - 6 - r.bottom)}px`);
+        }
+      }
     }
   }
 

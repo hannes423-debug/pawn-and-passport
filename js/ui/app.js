@@ -38,7 +38,15 @@ export function createApp(root, screens) {
       clear(root);
       document.querySelectorAll('.pp-overlay, .pp-dialogue').forEach((el) => el.remove());
       app.currentName = name;
+      const token = (app._goToken = (app._goToken || 0) + 1);
       const screen = await factory(app, params);
+      // A newer navigation started while this screen was loading: drop this one,
+      // or both screens end up stacked in the page.
+      if (token !== app._goToken) {
+        try { screen.destroy?.(); } catch (error) { console.error(error); }
+        return app.current;
+      }
+      clear(root);
       app.current = screen;
       root.append(screen.el);
       document.documentElement.dataset.screen = name;

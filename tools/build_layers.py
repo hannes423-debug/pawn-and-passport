@@ -164,8 +164,8 @@ LAYERS = {
     'nyc-venue': {
         'floor': [
             [[5, 24], [95, 24], [95, 40], [84, 40], [84, 38], [16, 38], [16, 40], [5, 40]],
-            [[5, 39], [16, 39], [18, 67], [19, 73], [12, 73], [6, 67]],
-            [[84, 39], [95, 39], [94, 67], [88, 73], [81, 73], [82, 67]],
+            [[7.5, 38], [15.3, 38], [15.3, 67], [17, 73], [12.5, 73], [12.5, 69], [7.5, 67]],
+            [[85.7, 38], [92.7, 38], [92.7, 67], [88, 73], [83.5, 73], [85.7, 69]],
             [[18, 62], [82, 62], [88, 72], [88, 88], [62, 88], [62, 92], [38, 92], [38, 88], [12, 88], [12, 72]],
         ],
         'blocks': [(31, 66, 69, 86)],
@@ -186,7 +186,7 @@ LAYERS = {
             ('pillar-se', (80, 55, 86, 70.5), 70, None),
             ('lamp-sw', (20.5, 51, 24.5, 68.5), 67, (21, 64, 24, 68)),
             ('lamp-se', (76, 51, 80, 68.5), 67, (76.5, 64, 79.5, 68)),
-            ('fountain', (30.5, 55, 69.5, 87), 80, None),
+            ('fountain', (30.5, 55, 69.5, 87), 80, None, {'rects': [(44.5, 55.5, 55.5, 67)], 'ellipses': [(50, 75.8, 19.2, 10.3)]}),
             ('lamp-front-w', (22.5, 77, 26.5, 89.5), 88, (23, 85, 26, 89)),
             ('lamp-front-e', (74.5, 77, 78.5, 89.5), 88, (75, 85, 78, 89)),
             ('planter-front-w', (30.5, 83, 36.5, 93.5), 92, (31, 88, 36, 92.5)),
@@ -1050,7 +1050,12 @@ def cut_mask(rgb, box):
         gc = np.zeros((y1 - y0, x1 - x0), bool)
     cc = colour_cut(rgb, box)
     ic = inpaint_cut(rgb, box)
-    mask = gc | cc | ic
+    # A pixel counts when two cutters agree. The union let floor texture that
+    # only one cutter flagged into the layer, and a character standing on
+    # that floor vanished behind it.
+    strict = (gc & (cc | ic)) | (cc & ic)
+    # Small objects often get only one vote; then the union is the better guess.
+    mask = strict if strict.mean() >= 0.12 else (gc | cc | ic)
     labels, n = ndimage.label(mask)
     if n:
         sizes = ndimage.sum(mask, labels, range(1, n + 1))
@@ -1060,6 +1065,20 @@ def cut_mask(rgb, box):
     if mask.mean() < 0.02:
         mask = np.ones_like(mask)
     return mask
+
+
+def clip_mask(clip, box, W, H):
+    """Keep only pixels inside the clip shapes (percent): {'rects': [...], 'ellipses': [(cx, cy, rx, ry)]}."""
+    x0, y0, x1, y1 = box
+    ys, xs = np.mgrid[y0:y1, x0:x1]
+    px = xs / W * 100
+    py = ys / H * 100
+    keep = np.zeros(px.shape, bool)
+    for rx0, ry0, rx1, ry1 in clip.get('rects', []):
+        keep |= (px >= rx0) & (px <= rx1) & (py >= ry0) & (py <= ry1)
+    for cx, cy, rx, ry in clip.get('ellipses', []):
+        keep |= ((px - cx) / rx) ** 2 + ((py - cy) / ry) ** 2 <= 1
+    return keep
 
 
 def build(scene, spec):
@@ -1074,13 +1093,17 @@ def build(scene, spec):
     props = []
     preview = img.convert('RGBA').copy() if PREVIEW else None
     tint = Image.new('RGBA', (W, H), (0, 0, 0, 0)) if PREVIEW else None
-    for pid, rect, base, foot in spec['props']:
+    for entry in spec['props']:
+        pid, rect, base, foot = entry[:4]
+        clip = entry[4] if len(entry) > 4 else None
         box = px_rect(rect, W, H)
         x0, y0, x1, y1 = box
         if artist is not None:
             piece = artist[y0:y1, x0:x1].copy()
         else:
             mask = cut_mask(rgb, box)
+            if clip:
+                mask &= clip_mask(clip, box, W, H)
             piece = np.dstack([rgb[y0:y1, x0:x1], np.where(mask, 255, 0).astype(np.uint8)])
         Image.fromarray(piece.astype(np.uint8), 'RGBA').save(os.path.join(out_dir, f'{pid}.png'), optimize=True)
         props.append({'id': pid, 'src': f'assets/layers/{scene}/{pid}.png',

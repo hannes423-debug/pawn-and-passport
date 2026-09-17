@@ -41,10 +41,20 @@ try:
         c.eval(f"window.__pap.go('scene', {{ sceneId: '{sid}' }}).then(() => 1)", await_promise=True)
         c.wait_for("document.querySelectorAll('.pp-prop').length > 0 && document.querySelectorAll('.pp-actor').length > 0", timeout=20)
         c.pump(1)
+        # A walk started by the previous scene's last hotspot can still navigate
+        # after this scene opened: make sure this scene is the one showing.
+        for _ in range(3):
+            if c.eval(f"!!document.querySelector('.pp-scene__bg[src*=\"{sid}\"]')"):
+                break
+            c.eval(f"window.__pap.go('scene', {{ sceneId: '{sid}' }}).then(() => 1)", await_promise=True)
+            c.pump(1.5)
         print(sid)
         expected = c.eval(f"import('./js/data/sceneLayers.js').then(m => m.SCENE_LAYERS['{sid}'].props.length)", await_promise=True)
         c.wait_for(f"document.querySelectorAll('.pp-prop').length === {expected}", timeout=30)
-        check(c.eval("document.querySelectorAll('.pp-prop').length") == expected, f"{sid}: all {expected} cut-outs on the stage")
+        got = c.eval("document.querySelectorAll('.pp-prop').length")
+        if got != expected:
+            print("   debug:", c.eval("JSON.stringify({ bg: document.querySelector('.pp-scene__bg')?.getAttribute('src'), screen: window.__pap.currentName, ids: [...document.querySelectorAll('.pp-prop')].slice(0, 3).map(e => e.dataset.prop) })"))
+        check(got == expected, f"{sid}: all {expected} cut-outs on the stage ({got})")
         grid_js = f"""Promise.all([import('./js/core/freeWalk.js'), import('./js/data/sceneLayers.js'), import('./js/data/scenes.js')]).then(([F, L, S]) => {{
             const img = document.querySelector('.pp-scene__bg');
             const walker = F.walkerFor(S.sceneById('{sid}').actorHeight ?? 0.1);
