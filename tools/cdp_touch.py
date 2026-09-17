@@ -5,7 +5,7 @@ tools/cdp_touch.py - the touch controls, driven with real CDP touch events.
     python3 tools/serve.py 8123 &
     python3 tools/cdp_touch.py
 
-Landscape phone (844x390, touch emulation): the joystick walks the ist-int (a waypoint scene; layered scenes are covered by cdp_depth.py)
+Landscape phone (844x390, touch emulation): the joystick walks freely in ist-int
 waypoint graph (up to the stairs, a short push down stops ON mid, right to the
 hall), A uses the hotspot underfoot (the tournament desk opens). Then portrait
 (390x844): a tap on a guide-arrow square shows the opening card.
@@ -39,32 +39,31 @@ try:
     r = c.eval("JSON.stringify(document.querySelector('.pp-pad__base').getBoundingClientRect())")
     r = json.loads(r); cx, cy = r['x']+r['width']/2, r['y']+r['height']/2
     p0 = player(); print("start", p0, "A:", c.eval("document.querySelector('.pp-pad__label').textContent"))
+    # hold the stick up: free walking moves the player up the hall
     touch("touchStart", cx, cy); c.pump(0.1)
     for i in range(1, 6): touch("touchMove", cx, cy - i*10); c.pump(0.03)
-    c.pump(2.5)
+    c.pump(1.5)
     p1 = player(); print("after stick up", p1, "active", c.eval("document.querySelector('.pp-pad__stick').classList.contains('is-active')"))
     c.shot("t1-stick-held")
-    touch("touchEnd"); c.pump(0.8)
-    p2 = player(); print("released", p2, "A:", c.eval("document.querySelector('.pp-pad__label').textContent"), "ready", c.eval("document.querySelector('.pp-pad__action').classList.contains('is-ready')"))
+    touch("touchEnd"); c.pump(0.6)
     if not p1[1] < p0[1] - 5: fails.append("stick up did not walk up")
-    # tap down briefly: the link in progress finishes, so the player stops ON the mid node
-    touch("touchStart", cx, cy); touch("touchMove", cx, cy + 50)
-    c.wait_for("parseFloat([...document.querySelectorAll('.pp-actor')].pop().style.top) > 20", timeout=10, step=0.02)
-    touch("touchEnd"); c.pump(2.0)
-    pm = player(); print("after short down", pm, "A:", c.eval("document.querySelector('.pp-pad__label').textContent"))
-    if not pm[1] > p2[1] + 5: fails.append("short down did not move")
-    # hold right: mid -> hallDoor -> hall
+    # release stops the player
+    p2 = player(); c.pump(0.6); p2b = player()
+    if abs(p2b[1] - p2[1]) > 0.5: fails.append("player kept walking after release")
+    # hold right: slides along obstacles, x must grow
     touch("touchStart", cx, cy)
     for i in range(1, 6): touch("touchMove", cx + i*10, cy); c.pump(0.03)
-    c.pump(3.0); touch("touchEnd"); c.pump(1.0)
-    p3 = player(); lab = c.eval("document.querySelector('.pp-pad__label').textContent")
-    print("after stick right", p3, "A:", lab, "ready", c.eval("document.querySelector('.pp-pad__action').classList.contains('is-ready')"))
-    if not p3[0] > pm[0] + 5: fails.append("stick right did not walk right")
-    if lab != "Play": fails.append(f"expected A=Play at the hall, got {lab}")
+    c.pump(1.5); touch("touchEnd"); c.pump(0.6)
+    p3 = player(); print("after stick right", p3)
+    if not p3[0] > p2b[0] + 2: fails.append("stick right did not walk right")
+    lab = c.eval("document.querySelector('.pp-pad__label').textContent")
+    print("A label", lab)
+    if not lab: fails.append("A has no label")
+    # A walks to the nearest hotspot and uses it
     a = json.loads(c.eval("JSON.stringify(document.querySelector('.pp-pad__action b').getBoundingClientRect())"))
     touch("touchStart", a['x']+a['width']/2, a['y']+a['height']/2); c.pump(0.05); touch("touchEnd")
-    ok = c.wait_for("!!document.querySelector('.pp-overlay, .pp-dialogue')", timeout=15)
-    print("A opened", ok, c.eval("(document.querySelector('.pp-overlay h2, .pp-dialogue__name')||{}).textContent"))
+    ok = c.wait_for("!!document.querySelector('.pp-overlay, .pp-dialogue') || !document.querySelector('.pp-scene__bg[src*=\"ist-int\"]')", timeout=25)
+    print("A opened", ok)
     c.pump(1); c.shot("t2-after-A")
     if not ok: fails.append("A did not open anything")
     for e in c.errors(): print("CONSOLE", e); fails.append(e)

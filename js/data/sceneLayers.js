@@ -4879,6 +4879,6595 @@ export const SCENE_LAYERS = {
    ]
   ]
  },
+ "lon-ext": {
+  "props": [
+   {
+    "id": "gazebo",
+    "src": "assets/layers/lon-ext/gazebo.png",
+    "x": 15.953,
+    "y": 18.969,
+    "w": 11.533,
+    "h": 19.061,
+    "base": 37,
+    "foot": [
+     17.5,
+     29,
+     26.5,
+     37
+    ]
+   },
+   {
+    "id": "lamp-nw",
+    "src": "assets/layers/lon-ext/lamp-nw.png",
+    "x": 28.453,
+    "y": 21.915,
+    "w": 2.072,
+    "h": 10.129,
+    "base": 31.5,
+    "foot": [
+     29,
+     30,
+     30,
+     31.5
+    ]
+   },
+   {
+    "id": "lamp-ne",
+    "src": "assets/layers/lon-ext/lamp-ne.png",
+    "x": 69.475,
+    "y": 21.915,
+    "w": 2.003,
+    "h": 10.129,
+    "base": 31.5,
+    "foot": [
+     70,
+     30,
+     71,
+     31.5
+    ]
+   },
+   {
+    "id": "lamp-w",
+    "src": "assets/layers/lon-ext/lamp-w.png",
+    "x": 26.45,
+    "y": 36.924,
+    "w": 2.555,
+    "h": 9.116,
+    "base": 45.5,
+    "foot": [
+     27,
+     44,
+     28.5,
+     45.5
+    ]
+   },
+   {
+    "id": "lamp-e",
+    "src": "assets/layers/lon-ext/lamp-e.png",
+    "x": 70.994,
+    "y": 36.924,
+    "w": 2.486,
+    "h": 9.576,
+    "base": 46,
+    "foot": [
+     71.5,
+     44.5,
+     73,
+     46
+    ]
+   },
+   {
+    "id": "lamp-sw",
+    "src": "assets/layers/lon-ext/lamp-sw.png",
+    "x": 20.994,
+    "y": 50.921,
+    "w": 2.486,
+    "h": 11.602,
+    "base": 62,
+    "foot": [
+     21.5,
+     60.5,
+     23,
+     62
+    ]
+   },
+   {
+    "id": "lamp-se",
+    "src": "assets/layers/lon-ext/lamp-se.png",
+    "x": 76.45,
+    "y": 51.934,
+    "w": 2.555,
+    "h": 11.05,
+    "base": 62.5,
+    "foot": [
+     77,
+     61,
+     78.5,
+     62.5
+    ]
+   },
+   {
+    "id": "bed-bench-nw",
+    "src": "assets/layers/lon-ext/bed-bench-nw.png",
+    "x": 10.981,
+    "y": 38.95,
+    "w": 13.052,
+    "h": 9.024,
+    "base": 47,
+    "foot": null
+   },
+   {
+    "id": "bed-bench-n1",
+    "src": "assets/layers/lon-ext/bed-bench-n1.png",
+    "x": 29.972,
+    "y": 40.976,
+    "w": 12.017,
+    "h": 8.011,
+    "base": 48,
+    "foot": null
+   },
+   {
+    "id": "bed-bench-n2",
+    "src": "assets/layers/lon-ext/bed-bench-n2.png",
+    "x": 57.942,
+    "y": 40.976,
+    "w": 12.086,
+    "h": 8.011,
+    "base": 48,
+    "foot": null
+   },
+   {
+    "id": "bed-sw",
+    "src": "assets/layers/lon-ext/bed-sw.png",
+    "x": 25.0,
+    "y": 50.0,
+    "w": 10.014,
+    "h": 16.022,
+    "base": 65,
+    "foot": null
+   },
+   {
+    "id": "bed-w",
+    "src": "assets/layers/lon-ext/bed-w.png",
+    "x": 37.5,
+    "y": 50.0,
+    "w": 4.489,
+    "h": 16.022,
+    "base": 65,
+    "foot": null
+   },
+   {
+    "id": "bed-e",
+    "src": "assets/layers/lon-ext/bed-e.png",
+    "x": 57.942,
+    "y": 50.0,
+    "w": 4.558,
+    "h": 16.022,
+    "base": 65,
+    "foot": null
+   },
+   {
+    "id": "bed-se",
+    "src": "assets/layers/lon-ext/bed-se.png",
+    "x": 64.986,
+    "y": 50.0,
+    "w": 10.014,
+    "h": 16.022,
+    "base": 65,
+    "foot": null
+   },
+   {
+    "id": "tables-ne",
+    "src": "assets/layers/lon-ext/tables-ne.png",
+    "x": 76.934,
+    "y": 26.98,
+    "w": 8.08,
+    "h": 12.063,
+    "base": 38,
+    "foot": [
+     77.5,
+     33,
+     84.5,
+     38
+    ]
+   },
+   {
+    "id": "tables-e",
+    "src": "assets/layers/lon-ext/tables-e.png",
+    "x": 79.972,
+    "y": 37.937,
+    "w": 9.047,
+    "h": 11.05,
+    "base": 48,
+    "foot": [
+     80.5,
+     44,
+     88.5,
+     48
+    ]
+   },
+   {
+    "id": "tables-se",
+    "src": "assets/layers/lon-ext/tables-se.png",
+    "x": 81.975,
+    "y": 50.921,
+    "w": 8.011,
+    "h": 12.063,
+    "base": 62,
+    "foot": [
+     82.5,
+     57,
+     89.5,
+     62
+    ]
+   },
+   {
+    "id": "signboard",
+    "src": "assets/layers/lon-ext/signboard.png",
+    "x": 8.978,
+    "y": 51.934,
+    "w": 11.05,
+    "h": 12.063,
+    "base": 63,
+    "foot": [
+     9.5,
+     60,
+     19.5,
+     63
+    ]
+   },
+   {
+    "id": "trees-sw",
+    "src": "assets/layers/lon-ext/trees-sw.png",
+    "x": 18.992,
+    "y": 65.93,
+    "w": 20.994,
+    "h": 10.037,
+    "base": 75,
+    "foot": null
+   },
+   {
+    "id": "trees-se",
+    "src": "assets/layers/lon-ext/trees-se.png",
+    "x": 59.945,
+    "y": 65.93,
+    "w": 21.064,
+    "h": 10.037,
+    "base": 75,
+    "foot": null
+   },
+   {
+    "id": "pillar-w",
+    "src": "assets/layers/lon-ext/pillar-w.png",
+    "x": 35.497,
+    "y": 69.982,
+    "w": 5.525,
+    "h": 17.035,
+    "base": 86,
+    "foot": null
+   },
+   {
+    "id": "pillar-e",
+    "src": "assets/layers/lon-ext/pillar-e.png",
+    "x": 58.978,
+    "y": 69.982,
+    "w": 5.525,
+    "h": 17.035,
+    "base": 86,
+    "foot": null
+   },
+   {
+    "id": "gate-w",
+    "src": "assets/layers/lon-ext/gate-w.png",
+    "x": 40.47,
+    "y": 73.941,
+    "w": 5.041,
+    "h": 12.063,
+    "base": 85,
+    "foot": [
+     41,
+     79,
+     44,
+     85
+    ]
+   },
+   {
+    "id": "gate-e",
+    "src": "assets/layers/lon-ext/gate-e.png",
+    "x": 54.489,
+    "y": 73.941,
+    "w": 5.041,
+    "h": 12.063,
+    "base": 85,
+    "foot": [
+     56,
+     79,
+     59,
+     85
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     12,
+     24
+    ],
+    [
+     33,
+     24
+    ],
+    [
+     33,
+     38
+    ],
+    [
+     45,
+     38
+    ],
+    [
+     45,
+     34
+    ],
+    [
+     55,
+     34
+    ],
+    [
+     55,
+     38
+    ],
+    [
+     67,
+     38
+    ],
+    [
+     67,
+     24
+    ],
+    [
+     88,
+     24
+    ],
+    [
+     88,
+     66
+    ],
+    [
+     59,
+     66
+    ],
+    [
+     59,
+     92
+    ],
+    [
+     41,
+     92
+    ],
+    [
+     41,
+     66
+    ],
+    [
+     12,
+     66
+    ]
+   ]
+  ],
+  "blocks": [
+   [
+    11,
+    40,
+    24,
+    47
+   ],
+   [
+    30.5,
+    43,
+    41.5,
+    48.5
+   ],
+   [
+    58.5,
+    43,
+    69.5,
+    48.5
+   ],
+   [
+    25.5,
+    53,
+    34.5,
+    65
+   ],
+   [
+    37.8,
+    53,
+    41.8,
+    65
+   ],
+   [
+    58.2,
+    53,
+    62.2,
+    65
+   ],
+   [
+    65.5,
+    53,
+    74.5,
+    65
+   ]
+  ]
+ },
+ "vie-ext": {
+  "props": [
+   {
+    "id": "gazebo",
+    "src": "assets/layers/vie-ext/gazebo.png",
+    "x": 9.952,
+    "y": 13.983,
+    "w": 15.066,
+    "h": 21.987,
+    "base": 35,
+    "foot": null
+   },
+   {
+    "id": "cypress-w",
+    "src": "assets/layers/vie-ext/cypress-w.png",
+    "x": 27.989,
+    "y": 23.919,
+    "w": 4.008,
+    "h": 14.075,
+    "base": 37.5,
+    "foot": [
+     28.5,
+     35.5,
+     31.5,
+     37.5
+    ]
+   },
+   {
+    "id": "cypress-e",
+    "src": "assets/layers/vie-ext/cypress-e.png",
+    "x": 67.934,
+    "y": 23.919,
+    "w": 4.077,
+    "h": 14.075,
+    "base": 37.5,
+    "foot": [
+     68.5,
+     35.5,
+     71.5,
+     37.5
+    ]
+   },
+   {
+    "id": "topiary-door-w",
+    "src": "assets/layers/vie-ext/topiary-door-w.png",
+    "x": 38.977,
+    "y": 33.947,
+    "w": 2.557,
+    "h": 8.096,
+    "base": 41.5,
+    "foot": [
+     39.3,
+     40,
+     41.2,
+     41.5
+    ]
+   },
+   {
+    "id": "topiary-door-e",
+    "src": "assets/layers/vie-ext/topiary-door-e.png",
+    "x": 58.466,
+    "y": 33.947,
+    "w": 2.557,
+    "h": 8.096,
+    "base": 41.5,
+    "foot": [
+     58.8,
+     40,
+     60.7,
+     41.5
+    ]
+   },
+   {
+    "id": "flowerbed-w",
+    "src": "assets/layers/vie-ext/flowerbed-w.png",
+    "x": 29.993,
+    "y": 40.938,
+    "w": 7.533,
+    "h": 5.06,
+    "base": 45,
+    "foot": [
+     30.5,
+     42,
+     37,
+     45
+    ]
+   },
+   {
+    "id": "flowerbed-e",
+    "src": "assets/layers/vie-ext/flowerbed-e.png",
+    "x": 62.474,
+    "y": 40.938,
+    "w": 7.533,
+    "h": 5.06,
+    "base": 45,
+    "foot": [
+     63,
+     42,
+     69.5,
+     45
+    ]
+   },
+   {
+    "id": "topiary-path-w",
+    "src": "assets/layers/vie-ext/topiary-path-w.png",
+    "x": 34.969,
+    "y": 43.974,
+    "w": 3.041,
+    "h": 8.004,
+    "base": 51.5,
+    "foot": [
+     35.3,
+     49,
+     37.8,
+     51.5
+    ]
+   },
+   {
+    "id": "topiary-path-e",
+    "src": "assets/layers/vie-ext/topiary-path-e.png",
+    "x": 61.99,
+    "y": 43.974,
+    "w": 3.041,
+    "h": 8.004,
+    "base": 51.5,
+    "foot": [
+     62.2,
+     49,
+     64.7,
+     51.5
+    ]
+   },
+   {
+    "id": "lamp-w",
+    "src": "assets/layers/vie-ext/lamp-w.png",
+    "x": 23.981,
+    "y": 42.962,
+    "w": 2.488,
+    "h": 16.007,
+    "base": 58.5,
+    "foot": [
+     24.5,
+     56.5,
+     26,
+     58.5
+    ]
+   },
+   {
+    "id": "lamp-e",
+    "src": "assets/layers/vie-ext/lamp-e.png",
+    "x": 72.979,
+    "y": 42.962,
+    "w": 2.488,
+    "h": 16.007,
+    "base": 58.5,
+    "foot": [
+     73.5,
+     56.5,
+     75,
+     58.5
+    ]
+   },
+   {
+    "id": "bench-w",
+    "src": "assets/layers/vie-ext/bench-w.png",
+    "x": 12.992,
+    "y": 47.93,
+    "w": 8.017,
+    "h": 5.06,
+    "base": 52.5,
+    "foot": [
+     13.5,
+     50,
+     20.5,
+     52.5
+    ]
+   },
+   {
+    "id": "tables-ne",
+    "src": "assets/layers/vie-ext/tables-ne.png",
+    "x": 79.959,
+    "y": 30.911,
+    "w": 13.062,
+    "h": 14.075,
+    "base": 44,
+    "foot": [
+     81,
+     36,
+     92.5,
+     44
+    ]
+   },
+   {
+    "id": "chess-plinth",
+    "src": "assets/layers/vie-ext/chess-plinth.png",
+    "x": 79.475,
+    "y": 46.918,
+    "w": 8.017,
+    "h": 15.087,
+    "base": 61,
+    "foot": [
+     80,
+     52,
+     87,
+     57
+    ]
+   },
+   {
+    "id": "pine-w",
+    "src": "assets/layers/vie-ext/pine-w.png",
+    "x": 32.965,
+    "y": 39.926,
+    "w": 6.565,
+    "h": 31.095,
+    "base": 70,
+    "foot": [
+     35,
+     64,
+     39,
+     70
+    ]
+   },
+   {
+    "id": "pine-e",
+    "src": "assets/layers/vie-ext/pine-e.png",
+    "x": 60.47,
+    "y": 39.926,
+    "w": 6.496,
+    "h": 31.095,
+    "base": 70,
+    "foot": [
+     61,
+     64,
+     65,
+     70
+    ]
+   },
+   {
+    "id": "pillar-w",
+    "src": "assets/layers/vie-ext/pillar-w.png",
+    "x": 33.449,
+    "y": 43.974,
+    "w": 7.049,
+    "h": 48.022,
+    "base": 91,
+    "foot": null
+   },
+   {
+    "id": "pillar-e",
+    "src": "assets/layers/vie-ext/pillar-e.png",
+    "x": 59.433,
+    "y": 43.974,
+    "w": 7.049,
+    "h": 48.022,
+    "base": 91,
+    "foot": null
+   },
+   {
+    "id": "gate-w",
+    "src": "assets/layers/vie-ext/gate-w.png",
+    "x": 39.945,
+    "y": 67.985,
+    "w": 4.561,
+    "h": 18.031,
+    "base": 85,
+    "foot": [
+     41,
+     80,
+     44,
+     85
+    ]
+   },
+   {
+    "id": "gate-e",
+    "src": "assets/layers/vie-ext/gate-e.png",
+    "x": 55.494,
+    "y": 67.985,
+    "w": 4.492,
+    "h": 18.031,
+    "base": 85,
+    "foot": [
+     56,
+     80,
+     59,
+     85
+    ]
+   },
+   {
+    "id": "urn-w",
+    "src": "assets/layers/vie-ext/urn-w.png",
+    "x": 39.945,
+    "y": 81.969,
+    "w": 4.077,
+    "h": 8.004,
+    "base": 89.5,
+    "foot": [
+     40.5,
+     87,
+     43.5,
+     89.5
+    ]
+   },
+   {
+    "id": "urn-e",
+    "src": "assets/layers/vie-ext/urn-e.png",
+    "x": 55.978,
+    "y": 81.969,
+    "w": 4.008,
+    "h": 8.004,
+    "base": 89.5,
+    "foot": [
+     56.5,
+     87,
+     59.5,
+     89.5
+    ]
+   },
+   {
+    "id": "streetlamp-w",
+    "src": "assets/layers/vie-ext/streetlamp-w.png",
+    "x": 5.46,
+    "y": 63.937,
+    "w": 3.525,
+    "h": 30.083,
+    "base": 93,
+    "foot": null
+   },
+   {
+    "id": "streetlamp-e",
+    "src": "assets/layers/vie-ext/streetlamp-e.png",
+    "x": 88.943,
+    "y": 63.937,
+    "w": 4.077,
+    "h": 30.083,
+    "base": 93,
+    "foot": null
+   }
+  ],
+  "floor": [
+   [
+    [
+     10,
+     44
+    ],
+    [
+     45,
+     44
+    ],
+    [
+     45,
+     37
+    ],
+    [
+     55,
+     37
+    ],
+    [
+     55,
+     44
+    ],
+    [
+     90,
+     44
+    ],
+    [
+     90,
+     57
+    ],
+    [
+     64,
+     57
+    ],
+    [
+     64,
+     70
+    ],
+    [
+     58,
+     70
+    ],
+    [
+     58,
+     95
+    ],
+    [
+     42,
+     95
+    ],
+    [
+     42,
+     70
+    ],
+    [
+     36,
+     70
+    ],
+    [
+     36,
+     57
+    ],
+    [
+     10,
+     57
+    ]
+   ],
+   [
+    [
+     10,
+     36
+    ],
+    [
+     30,
+     36
+    ],
+    [
+     30,
+     45
+    ],
+    [
+     10,
+     45
+    ]
+   ],
+   [
+    [
+     70,
+     31
+    ],
+    [
+     93,
+     31
+    ],
+    [
+     93,
+     45
+    ],
+    [
+     70,
+     45
+    ]
+   ]
+  ],
+  "blocks": []
+ },
+ "ist-ext": {
+  "props": [
+   {
+    "id": "pots-porch-w",
+    "src": "assets/layers/ist-ext/pots-porch-w.png",
+    "x": 34.945,
+    "y": 38.95,
+    "w": 10.083,
+    "h": 7.09,
+    "base": 45,
+    "foot": [
+     35.5,
+     43.5,
+     44.5,
+     45
+    ]
+   },
+   {
+    "id": "pots-porch-e",
+    "src": "assets/layers/ist-ext/pots-porch-e.png",
+    "x": 54.972,
+    "y": 38.95,
+    "w": 10.014,
+    "h": 7.09,
+    "base": 45,
+    "foot": [
+     55.5,
+     43.5,
+     64.5,
+     45
+    ]
+   },
+   {
+    "id": "lamp-porch-w",
+    "src": "assets/layers/ist-ext/lamp-porch-w.png",
+    "x": 31.492,
+    "y": 35.912,
+    "w": 2.486,
+    "h": 11.05,
+    "base": 46,
+    "foot": [
+     32,
+     44.5,
+     33.5,
+     46
+    ]
+   },
+   {
+    "id": "lamp-porch-e",
+    "src": "assets/layers/ist-ext/lamp-porch-e.png",
+    "x": 65.953,
+    "y": 35.912,
+    "w": 2.555,
+    "h": 11.05,
+    "base": 46,
+    "foot": [
+     66.5,
+     44.5,
+     68,
+     46
+    ]
+   },
+   {
+    "id": "bed-nw",
+    "src": "assets/layers/ist-ext/bed-nw.png",
+    "x": 18.992,
+    "y": 43.923,
+    "w": 12.983,
+    "h": 11.05,
+    "base": 54,
+    "foot": null
+   },
+   {
+    "id": "bench-nw",
+    "src": "assets/layers/ist-ext/bench-nw.png",
+    "x": 31.975,
+    "y": 47.974,
+    "w": 8.011,
+    "h": 6.998,
+    "base": 54,
+    "foot": null
+   },
+   {
+    "id": "bench-ne",
+    "src": "assets/layers/ist-ext/bench-ne.png",
+    "x": 59.945,
+    "y": 47.974,
+    "w": 8.08,
+    "h": 6.998,
+    "base": 54,
+    "foot": null
+   },
+   {
+    "id": "bed-ne",
+    "src": "assets/layers/ist-ext/bed-ne.png",
+    "x": 67.956,
+    "y": 43.923,
+    "w": 13.052,
+    "h": 11.05,
+    "base": 54,
+    "foot": null
+   },
+   {
+    "id": "topiary-pot-w",
+    "src": "assets/layers/ist-ext/topiary-pot-w.png",
+    "x": 40.47,
+    "y": 47.974,
+    "w": 3.522,
+    "h": 11.05,
+    "base": 58.5,
+    "foot": [
+     41,
+     56,
+     43.5,
+     58.5
+    ]
+   },
+   {
+    "id": "topiary-pot-e",
+    "src": "assets/layers/ist-ext/topiary-pot-e.png",
+    "x": 55.939,
+    "y": 47.974,
+    "w": 3.591,
+    "h": 11.05,
+    "base": 58.5,
+    "foot": [
+     56.5,
+     56,
+     59,
+     58.5
+    ]
+   },
+   {
+    "id": "bench-sw",
+    "src": "assets/layers/ist-ext/bench-sw.png",
+    "x": 23.964,
+    "y": 55.985,
+    "w": 9.047,
+    "h": 10.037,
+    "base": 65,
+    "foot": [
+     24.5,
+     59,
+     32.5,
+     65
+    ]
+   },
+   {
+    "id": "bench-se",
+    "src": "assets/layers/ist-ext/bench-se.png",
+    "x": 64.434,
+    "y": 55.985,
+    "w": 11.533,
+    "h": 10.037,
+    "base": 65,
+    "foot": [
+     65,
+     59,
+     75.5,
+     65
+    ]
+   },
+   {
+    "id": "topiary-sw",
+    "src": "assets/layers/ist-ext/topiary-sw.png",
+    "x": 35.981,
+    "y": 58.932,
+    "w": 4.006,
+    "h": 8.103,
+    "base": 66.5,
+    "foot": [
+     36.3,
+     64,
+     39.7,
+     66.5
+    ]
+   },
+   {
+    "id": "topiary-se",
+    "src": "assets/layers/ist-ext/topiary-se.png",
+    "x": 59.945,
+    "y": 58.932,
+    "w": 4.075,
+    "h": 8.103,
+    "base": 66.5,
+    "foot": [
+     60.3,
+     64,
+     63.7,
+     66.5
+    ]
+   },
+   {
+    "id": "lamp-sw",
+    "src": "assets/layers/ist-ext/lamp-sw.png",
+    "x": 19.475,
+    "y": 58.932,
+    "w": 2.555,
+    "h": 10.037,
+    "base": 68,
+    "foot": [
+     20,
+     66.5,
+     21.5,
+     68
+    ]
+   },
+   {
+    "id": "lamp-se",
+    "src": "assets/layers/ist-ext/lamp-se.png",
+    "x": 77.486,
+    "y": 58.932,
+    "w": 2.486,
+    "h": 10.037,
+    "base": 68,
+    "foot": [
+     78,
+     66.5,
+     79.5,
+     68
+    ]
+   },
+   {
+    "id": "olive-w",
+    "src": "assets/layers/ist-ext/olive-w.png",
+    "x": 13.95,
+    "y": 29.926,
+    "w": 12.017,
+    "h": 20.074,
+    "base": 48,
+    "foot": null
+   },
+   {
+    "id": "olive-e",
+    "src": "assets/layers/ist-ext/olive-e.png",
+    "x": 73.964,
+    "y": 29.926,
+    "w": 12.017,
+    "h": 20.074,
+    "base": 48,
+    "foot": null
+   },
+   {
+    "id": "pillar-w",
+    "src": "assets/layers/ist-ext/pillar-w.png",
+    "x": 36.464,
+    "y": 63.996,
+    "w": 5.041,
+    "h": 23.02,
+    "base": 86,
+    "foot": null
+   },
+   {
+    "id": "pillar-e",
+    "src": "assets/layers/ist-ext/pillar-e.png",
+    "x": 58.494,
+    "y": 63.996,
+    "w": 4.972,
+    "h": 23.02,
+    "base": 86,
+    "foot": null
+   },
+   {
+    "id": "gate-arch",
+    "src": "assets/layers/ist-ext/gate-arch.png",
+    "x": 40.47,
+    "y": 64.917,
+    "w": 19.061,
+    "h": 11.05,
+    "base": 99,
+    "foot": null
+   },
+   {
+    "id": "gate-door-w",
+    "src": "assets/layers/ist-ext/gate-door-w.png",
+    "x": 40.953,
+    "y": 71.915,
+    "w": 3.039,
+    "h": 14.088,
+    "base": 85,
+    "foot": [
+     41.5,
+     78,
+     43.5,
+     85
+    ]
+   },
+   {
+    "id": "gate-door-e",
+    "src": "assets/layers/ist-ext/gate-door-e.png",
+    "x": 55.939,
+    "y": 71.915,
+    "w": 3.039,
+    "h": 14.088,
+    "base": 85,
+    "foot": [
+     56.5,
+     78,
+     58.5,
+     85
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     20,
+     46
+    ],
+    [
+     80,
+     46
+    ],
+    [
+     80,
+     68
+    ],
+    [
+     58,
+     68
+    ],
+    [
+     58,
+     90
+    ],
+    [
+     42,
+     90
+    ],
+    [
+     42,
+     68
+    ],
+    [
+     20,
+     68
+    ]
+   ],
+   [
+    [
+     46,
+     40
+    ],
+    [
+     54,
+     40
+    ],
+    [
+     54,
+     47
+    ],
+    [
+     46,
+     47
+    ]
+   ],
+   [
+    [
+     30,
+     41
+    ],
+    [
+     70,
+     41
+    ],
+    [
+     70,
+     47
+    ],
+    [
+     30,
+     47
+    ]
+   ]
+  ],
+  "blocks": [
+   [
+    19.5,
+    46,
+    31.5,
+    54
+   ],
+   [
+    32.5,
+    50,
+    39.5,
+    54
+   ],
+   [
+    60.5,
+    50,
+    67.5,
+    54
+   ],
+   [
+    68.5,
+    46,
+    80.5,
+    54
+   ]
+  ]
+ },
+ "wen-ext": {
+  "props": [
+   {
+    "id": "bonsai-w",
+    "src": "assets/layers/wen-ext/bonsai-w.png",
+    "x": 35.981,
+    "y": 35.912,
+    "w": 7.044,
+    "h": 10.129,
+    "base": 45,
+    "foot": [
+     37,
+     43,
+     42.5,
+     45
+    ]
+   },
+   {
+    "id": "bonsai-e",
+    "src": "assets/layers/wen-ext/bonsai-e.png",
+    "x": 56.975,
+    "y": 35.912,
+    "w": 7.044,
+    "h": 10.129,
+    "base": 45,
+    "foot": [
+     57.5,
+     43,
+     63,
+     45
+    ]
+   },
+   {
+    "id": "lion-w",
+    "src": "assets/layers/wen-ext/lion-w.png",
+    "x": 39.986,
+    "y": 41.989,
+    "w": 4.489,
+    "h": 10.037,
+    "base": 51,
+    "foot": [
+     40.5,
+     48,
+     44,
+     51
+    ]
+   },
+   {
+    "id": "lion-e",
+    "src": "assets/layers/wen-ext/lion-e.png",
+    "x": 55.456,
+    "y": 41.989,
+    "w": 4.558,
+    "h": 10.037,
+    "base": 51,
+    "foot": [
+     56,
+     48,
+     59.5,
+     51
+    ]
+   },
+   {
+    "id": "flowerbed-w",
+    "src": "assets/layers/wen-ext/flowerbed-w.png",
+    "x": 26.934,
+    "y": 43.923,
+    "w": 11.05,
+    "h": 6.077,
+    "base": 49,
+    "foot": null
+   },
+   {
+    "id": "flowerbed-e",
+    "src": "assets/layers/wen-ext/flowerbed-e.png",
+    "x": 61.948,
+    "y": 43.923,
+    "w": 11.05,
+    "h": 6.077,
+    "base": 49,
+    "foot": null
+   },
+   {
+    "id": "lantern-nw",
+    "src": "assets/layers/wen-ext/lantern-nw.png",
+    "x": 22.445,
+    "y": 37.937,
+    "w": 3.039,
+    "h": 16.022,
+    "base": 53.5,
+    "foot": [
+     23,
+     52,
+     25,
+     53.5
+    ]
+   },
+   {
+    "id": "lantern-ne",
+    "src": "assets/layers/wen-ext/lantern-ne.png",
+    "x": 74.448,
+    "y": 37.937,
+    "w": 3.039,
+    "h": 16.022,
+    "base": 53.5,
+    "foot": [
+     75,
+     52,
+     77,
+     53.5
+    ]
+   },
+   {
+    "id": "lantern-w",
+    "src": "assets/layers/wen-ext/lantern-w.png",
+    "x": 28.936,
+    "y": 48.987,
+    "w": 5.041,
+    "h": 17.035,
+    "base": 65,
+    "foot": null
+   },
+   {
+    "id": "lantern-e",
+    "src": "assets/layers/wen-ext/lantern-e.png",
+    "x": 65.953,
+    "y": 48.987,
+    "w": 5.041,
+    "h": 17.035,
+    "base": 65,
+    "foot": null
+   },
+   {
+    "id": "hedge-w",
+    "src": "assets/layers/wen-ext/hedge-w.png",
+    "x": 13.95,
+    "y": 54.972,
+    "w": 23.066,
+    "h": 17.035,
+    "base": 70,
+    "foot": null
+   },
+   {
+    "id": "hedge-e",
+    "src": "assets/layers/wen-ext/hedge-e.png",
+    "x": 62.983,
+    "y": 54.972,
+    "w": 22.997,
+    "h": 17.035,
+    "base": 70,
+    "foot": null
+   },
+   {
+    "id": "cypress-w",
+    "src": "assets/layers/wen-ext/cypress-w.png",
+    "x": 34.461,
+    "y": 53.959,
+    "w": 4.558,
+    "h": 16.022,
+    "base": 69,
+    "foot": [
+     35,
+     66,
+     38.5,
+     69
+    ]
+   },
+   {
+    "id": "cypress-e",
+    "src": "assets/layers/wen-ext/cypress-e.png",
+    "x": 60.981,
+    "y": 53.959,
+    "w": 4.489,
+    "h": 16.022,
+    "base": 69,
+    "foot": [
+     61.5,
+     66,
+     65,
+     69
+    ]
+   },
+   {
+    "id": "pillar-w",
+    "src": "assets/layers/wen-ext/pillar-w.png",
+    "x": 30.939,
+    "y": 59.945,
+    "w": 7.044,
+    "h": 33.057,
+    "base": 92,
+    "foot": null
+   },
+   {
+    "id": "pillar-e",
+    "src": "assets/layers/wen-ext/pillar-e.png",
+    "x": 61.948,
+    "y": 59.945,
+    "w": 7.044,
+    "h": 33.057,
+    "base": 92,
+    "foot": null
+   },
+   {
+    "id": "gate-w",
+    "src": "assets/layers/wen-ext/gate-w.png",
+    "x": 37.983,
+    "y": 68.969,
+    "w": 6.008,
+    "h": 19.061,
+    "base": 87,
+    "foot": [
+     39,
+     82,
+     43.5,
+     87
+    ]
+   },
+   {
+    "id": "gate-e",
+    "src": "assets/layers/wen-ext/gate-e.png",
+    "x": 55.939,
+    "y": 68.969,
+    "w": 6.077,
+    "h": 19.061,
+    "base": 87,
+    "foot": [
+     56.5,
+     82,
+     61,
+     87
+    ]
+   },
+   {
+    "id": "pot-w",
+    "src": "assets/layers/wen-ext/pot-w.png",
+    "x": 37.983,
+    "y": 83.978,
+    "w": 4.006,
+    "h": 6.998,
+    "base": 90,
+    "foot": [
+     38.5,
+     88,
+     41.5,
+     90
+    ]
+   },
+   {
+    "id": "pot-e",
+    "src": "assets/layers/wen-ext/pot-e.png",
+    "x": 57.942,
+    "y": 83.978,
+    "w": 4.075,
+    "h": 6.998,
+    "base": 90,
+    "foot": [
+     58.5,
+     88,
+     61.5,
+     90
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     44,
+     44
+    ],
+    [
+     56,
+     44
+    ],
+    [
+     56,
+     49
+    ],
+    [
+     76,
+     49
+    ],
+    [
+     76,
+     56
+    ],
+    [
+     62,
+     56
+    ],
+    [
+     62,
+     69
+    ],
+    [
+     57,
+     69
+    ],
+    [
+     57,
+     93
+    ],
+    [
+     43,
+     93
+    ],
+    [
+     43,
+     69
+    ],
+    [
+     38,
+     69
+    ],
+    [
+     38,
+     56
+    ],
+    [
+     24,
+     56
+    ],
+    [
+     24,
+     49
+    ],
+    [
+     44,
+     49
+    ]
+   ]
+  ],
+  "blocks": []
+ },
+ "lon-int": {
+  "props": [
+   {
+    "id": "table-1",
+    "src": "assets/layers/lon-int/table-1.png",
+    "x": 16.436,
+    "y": 18.969,
+    "w": 11.533,
+    "h": 15.009,
+    "base": 33.5,
+    "foot": [
+     17.5,
+     22,
+     27,
+     33.5
+    ]
+   },
+   {
+    "id": "table-2",
+    "src": "assets/layers/lon-int/table-2.png",
+    "x": 30.939,
+    "y": 18.969,
+    "w": 12.086,
+    "h": 15.009,
+    "base": 33.5,
+    "foot": [
+     32,
+     22,
+     42,
+     33.5
+    ]
+   },
+   {
+    "id": "table-3",
+    "src": "assets/layers/lon-int/table-3.png",
+    "x": 56.975,
+    "y": 18.969,
+    "w": 12.017,
+    "h": 15.009,
+    "base": 33.5,
+    "foot": [
+     58,
+     22,
+     68,
+     33.5
+    ]
+   },
+   {
+    "id": "table-4",
+    "src": "assets/layers/lon-int/table-4.png",
+    "x": 70.994,
+    "y": 18.969,
+    "w": 10.981,
+    "h": 15.009,
+    "base": 33.5,
+    "foot": [
+     72,
+     22,
+     81,
+     33.5
+    ]
+   },
+   {
+    "id": "plant-hall-w",
+    "src": "assets/layers/lon-int/plant-hall-w.png",
+    "x": 42.956,
+    "y": 26.98,
+    "w": 3.522,
+    "h": 10.037,
+    "base": 36.5,
+    "foot": [
+     43.5,
+     34,
+     46,
+     36.5
+    ]
+   },
+   {
+    "id": "plant-hall-e",
+    "src": "assets/layers/lon-int/plant-hall-e.png",
+    "x": 53.453,
+    "y": 26.98,
+    "w": 3.522,
+    "h": 10.037,
+    "base": 36.5,
+    "foot": [
+     54,
+     34,
+     56.5,
+     36.5
+    ]
+   },
+   {
+    "id": "side-table",
+    "src": "assets/layers/lon-int/side-table.png",
+    "x": 83.494,
+    "y": 24.954,
+    "w": 4.489,
+    "h": 11.05,
+    "base": 35.5,
+    "foot": [
+     84,
+     28,
+     87.5,
+     35.5
+    ]
+   },
+   {
+    "id": "bench-w",
+    "src": "assets/layers/lon-int/bench-w.png",
+    "x": 35.497,
+    "y": 51.934,
+    "w": 6.975,
+    "h": 5.525,
+    "base": 57,
+    "foot": [
+     36,
+     54.5,
+     42,
+     57
+    ]
+   },
+   {
+    "id": "bench-e",
+    "src": "assets/layers/lon-int/bench-e.png",
+    "x": 57.459,
+    "y": 51.934,
+    "w": 7.044,
+    "h": 5.525,
+    "base": 57,
+    "foot": [
+     58,
+     54.5,
+     64,
+     57
+    ]
+   },
+   {
+    "id": "plant-stair-w",
+    "src": "assets/layers/lon-int/plant-stair-w.png",
+    "x": 42.472,
+    "y": 48.987,
+    "w": 3.039,
+    "h": 9.024,
+    "base": 57.5,
+    "foot": [
+     42.8,
+     55,
+     45.2,
+     57.5
+    ]
+   },
+   {
+    "id": "plant-stair-e",
+    "src": "assets/layers/lon-int/plant-stair-e.png",
+    "x": 54.489,
+    "y": 48.987,
+    "w": 3.522,
+    "h": 9.024,
+    "base": 57.5,
+    "foot": [
+     54.8,
+     55,
+     57.7,
+     57.5
+    ]
+   },
+   {
+    "id": "plants-lobby-w",
+    "src": "assets/layers/lon-int/plants-lobby-w.png",
+    "x": 35.497,
+    "y": 73.941,
+    "w": 3.522,
+    "h": 7.09,
+    "base": 80.5,
+    "foot": [
+     36,
+     78,
+     38.8,
+     80.5
+    ]
+   },
+   {
+    "id": "plants-lobby-e",
+    "src": "assets/layers/lon-int/plants-lobby-e.png",
+    "x": 60.981,
+    "y": 73.941,
+    "w": 3.522,
+    "h": 7.09,
+    "base": 80.5,
+    "foot": [
+     61.2,
+     78,
+     64,
+     80.5
+    ]
+   },
+   {
+    "id": "plant-lobby-w2",
+    "src": "assets/layers/lon-int/plant-lobby-w2.png",
+    "x": 42.472,
+    "y": 74.954,
+    "w": 2.555,
+    "h": 5.525,
+    "base": 80,
+    "foot": [
+     42.7,
+     78,
+     44.8,
+     80
+    ]
+   },
+   {
+    "id": "plant-lobby-e2",
+    "src": "assets/layers/lon-int/plant-lobby-e2.png",
+    "x": 54.489,
+    "y": 74.954,
+    "w": 2.486,
+    "h": 5.525,
+    "base": 80,
+    "foot": [
+     54.7,
+     78,
+     56.8,
+     80
+    ]
+   },
+   {
+    "id": "pillar-entry-w",
+    "src": "assets/layers/lon-int/pillar-entry-w.png",
+    "x": 41.436,
+    "y": 78.913,
+    "w": 3.591,
+    "h": 10.129,
+    "base": 88.5,
+    "foot": [
+     42,
+     85,
+     44.8,
+     88.5
+    ]
+   },
+   {
+    "id": "pillar-entry-e",
+    "src": "assets/layers/lon-int/pillar-entry-e.png",
+    "x": 54.972,
+    "y": 78.913,
+    "w": 3.522,
+    "h": 10.129,
+    "base": 88.5,
+    "foot": [
+     55.2,
+     85,
+     58,
+     88.5
+    ]
+   },
+   {
+    "id": "plant-entry-w",
+    "src": "assets/layers/lon-int/plant-entry-w.png",
+    "x": 36.464,
+    "y": 82.965,
+    "w": 3.522,
+    "h": 8.011,
+    "base": 90.5,
+    "foot": null
+   },
+   {
+    "id": "plant-entry-e",
+    "src": "assets/layers/lon-int/plant-entry-e.png",
+    "x": 59.945,
+    "y": 82.965,
+    "w": 3.522,
+    "h": 8.011,
+    "base": 90.5,
+    "foot": null
+   },
+   {
+    "id": "desk",
+    "src": "assets/layers/lon-int/desk.png",
+    "x": 14.434,
+    "y": 50.0,
+    "w": 10.566,
+    "h": 10.958,
+    "base": 60.5,
+    "foot": [
+     15,
+     55,
+     24.5,
+     60.5
+    ]
+   },
+   {
+    "id": "chairs-dir",
+    "src": "assets/layers/lon-int/chairs-dir.png",
+    "x": 15.47,
+    "y": 59.945,
+    "w": 9.53,
+    "h": 6.077,
+    "base": 65.5,
+    "foot": [
+     16,
+     62,
+     24.5,
+     65.5
+    ]
+   },
+   {
+    "id": "round-table",
+    "src": "assets/layers/lon-int/round-table.png",
+    "x": 11.948,
+    "y": 65.93,
+    "w": 13.052,
+    "h": 13.076,
+    "base": 78.5,
+    "foot": [
+     13,
+     70,
+     24,
+     78.5
+    ]
+   },
+   {
+    "id": "plant-dir-e",
+    "src": "assets/layers/lon-int/plant-dir-e.png",
+    "x": 28.936,
+    "y": 45.948,
+    "w": 3.591,
+    "h": 7.09,
+    "base": 52.5,
+    "foot": [
+     29.5,
+     50,
+     32,
+     52.5
+    ]
+   },
+   {
+    "id": "plant-dir-se",
+    "src": "assets/layers/lon-int/plant-dir-se.png",
+    "x": 28.453,
+    "y": 68.969,
+    "w": 3.522,
+    "h": 9.024,
+    "base": 77.5,
+    "foot": [
+     29,
+     74,
+     31.5,
+     77.5
+    ]
+   },
+   {
+    "id": "plant-dir-w",
+    "src": "assets/layers/lon-int/plant-dir-w.png",
+    "x": 6.975,
+    "y": 50.0,
+    "w": 3.039,
+    "h": 5.985,
+    "base": 55.5,
+    "foot": [
+     7.5,
+     53,
+     9.8,
+     55.5
+    ]
+   },
+   {
+    "id": "dir-sidetable",
+    "src": "assets/layers/lon-int/dir-sidetable.png",
+    "x": 6.975,
+    "y": 66.943,
+    "w": 3.039,
+    "h": 10.037,
+    "base": 76.5,
+    "foot": [
+     7.3,
+     70,
+     9.8,
+     76.5
+    ]
+   },
+   {
+    "id": "study-desks",
+    "src": "assets/layers/lon-int/study-desks.png",
+    "x": 68.992,
+    "y": 48.987,
+    "w": 18.992,
+    "h": 10.037,
+    "base": 58.5,
+    "foot": [
+     69.5,
+     53,
+     87.5,
+     58.5
+    ]
+   },
+   {
+    "id": "study-long",
+    "src": "assets/layers/lon-int/study-long.png",
+    "x": 71.478,
+    "y": 59.945,
+    "w": 13.536,
+    "h": 14.088,
+    "base": 73.5,
+    "foot": [
+     72.5,
+     63,
+     84.5,
+     73.5
+    ]
+   },
+   {
+    "id": "study-side",
+    "src": "assets/layers/lon-int/study-side.png",
+    "x": 86.464,
+    "y": 56.998,
+    "w": 6.561,
+    "h": 20.994,
+    "base": 77.5,
+    "foot": [
+     87,
+     60,
+     92.8,
+     77.5
+    ]
+   },
+   {
+    "id": "plant-study-w",
+    "src": "assets/layers/lon-int/plant-study-w.png",
+    "x": 66.989,
+    "y": 68.969,
+    "w": 3.522,
+    "h": 9.024,
+    "base": 77.5,
+    "foot": [
+     67.5,
+     74,
+     70,
+     77.5
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     14,
+     17
+    ],
+    [
+     86,
+     17
+    ],
+    [
+     86,
+     37
+    ],
+    [
+     14,
+     37
+    ]
+   ],
+   [
+    [
+     45.5,
+     36
+    ],
+    [
+     54.5,
+     36
+    ],
+    [
+     54.5,
+     56
+    ],
+    [
+     45.5,
+     56
+    ]
+   ],
+   [
+    [
+     35.5,
+     55
+    ],
+    [
+     64.5,
+     55
+    ],
+    [
+     64.5,
+     80
+    ],
+    [
+     57.5,
+     80
+    ],
+    [
+     57.5,
+     95
+    ],
+    [
+     42.5,
+     95
+    ],
+    [
+     42.5,
+     80
+    ],
+    [
+     35.5,
+     80
+    ]
+   ],
+   [
+    [
+     7,
+     52
+    ],
+    [
+     32.5,
+     52
+    ],
+    [
+     32.5,
+     79
+    ],
+    [
+     7,
+     79
+    ]
+   ],
+   [
+    [
+     31,
+     66
+    ],
+    [
+     37,
+     66
+    ],
+    [
+     37,
+     74
+    ],
+    [
+     31,
+     74
+    ]
+   ],
+   [
+    [
+     67.5,
+     57
+    ],
+    [
+     93,
+     57
+    ],
+    [
+     93,
+     79
+    ],
+    [
+     67.5,
+     79
+    ]
+   ],
+   [
+    [
+     63,
+     66
+    ],
+    [
+     69,
+     66
+    ],
+    [
+     69,
+     74
+    ],
+    [
+     63,
+     74
+    ]
+   ]
+  ],
+  "blocks": []
+ },
+ "ist-int": {
+  "props": [
+   {
+    "id": "desk",
+    "src": "assets/layers/ist-int/desk.png",
+    "x": 11.956,
+    "y": 20.975,
+    "w": 13.062,
+    "h": 11.04,
+    "base": 31.5,
+    "foot": [
+     12.5,
+     25,
+     24.5,
+     31.5
+    ]
+   },
+   {
+    "id": "armchairs",
+    "src": "assets/layers/ist-int/armchairs.png",
+    "x": 11.956,
+    "y": 31.923,
+    "w": 12.025,
+    "h": 7.084,
+    "base": 38,
+    "foot": [
+     12.5,
+     34,
+     23.5,
+     38
+    ]
+   },
+   {
+    "id": "plant-dir-w",
+    "src": "assets/layers/ist-int/plant-dir-w.png",
+    "x": 4.976,
+    "y": 27.967,
+    "w": 3.525,
+    "h": 8.004,
+    "base": 35.5,
+    "foot": [
+     5.3,
+     32,
+     8.3,
+     35.5
+    ]
+   },
+   {
+    "id": "plant-dir-e",
+    "src": "assets/layers/ist-int/plant-dir-e.png",
+    "x": 28.956,
+    "y": 18.951,
+    "w": 3.041,
+    "h": 12.052,
+    "base": 30.5,
+    "foot": [
+     29.3,
+     26,
+     31.8,
+     30.5
+    ]
+   },
+   {
+    "id": "plant-prac-w",
+    "src": "assets/layers/ist-int/plant-prac-w.png",
+    "x": 4.976,
+    "y": 62.925,
+    "w": 3.041,
+    "h": 9.108,
+    "base": 71.5,
+    "foot": [
+     5.3,
+     68,
+     7.8,
+     71.5
+    ]
+   },
+   {
+    "id": "plant-hall-nw",
+    "src": "assets/layers/ist-int/plant-hall-nw.png",
+    "x": 39.461,
+    "y": 32.935,
+    "w": 4.561,
+    "h": 7.084,
+    "base": 39.5,
+    "foot": [
+     40,
+     36.5,
+     43.7,
+     39.5
+    ]
+   },
+   {
+    "id": "plant-hall-ne",
+    "src": "assets/layers/ist-int/plant-hall-ne.png",
+    "x": 55.978,
+    "y": 32.935,
+    "w": 4.492,
+    "h": 7.084,
+    "base": 39.5,
+    "foot": [
+     56.3,
+     36.5,
+     60,
+     39.5
+    ]
+   },
+   {
+    "id": "settee-w",
+    "src": "assets/layers/ist-int/settee-w.png",
+    "x": 35.936,
+    "y": 45.998,
+    "w": 4.077,
+    "h": 11.96,
+    "base": 57.5,
+    "foot": [
+     36.3,
+     48,
+     39.7,
+     57.5
+    ]
+   },
+   {
+    "id": "settee-e",
+    "src": "assets/layers/ist-int/settee-e.png",
+    "x": 59.986,
+    "y": 45.998,
+    "w": 4.008,
+    "h": 11.96,
+    "base": 57.5,
+    "foot": [
+     60.3,
+     48,
+     63.7,
+     57.5
+    ]
+   },
+   {
+    "id": "plant-hall-w",
+    "src": "assets/layers/ist-int/plant-hall-w.png",
+    "x": 34.485,
+    "y": 42.962,
+    "w": 4.492,
+    "h": 6.072,
+    "base": 48.5,
+    "foot": [
+     35,
+     46,
+     38.7,
+     48.5
+    ]
+   },
+   {
+    "id": "plant-hall-e",
+    "src": "assets/layers/ist-int/plant-hall-e.png",
+    "x": 60.954,
+    "y": 42.962,
+    "w": 4.561,
+    "h": 6.072,
+    "base": 48.5,
+    "foot": [
+     61.3,
+     46,
+     65,
+     48.5
+    ]
+   },
+   {
+    "id": "plant-hall-sw",
+    "src": "assets/layers/ist-int/plant-hall-sw.png",
+    "x": 40.498,
+    "y": 60.994,
+    "w": 3.525,
+    "h": 6.992,
+    "base": 67.5,
+    "foot": [
+     41,
+     64.5,
+     43.7,
+     67.5
+    ]
+   },
+   {
+    "id": "plant-hall-se",
+    "src": "assets/layers/ist-int/plant-hall-se.png",
+    "x": 55.978,
+    "y": 60.994,
+    "w": 3.525,
+    "h": 6.992,
+    "base": 67.5,
+    "foot": [
+     56.3,
+     64.5,
+     59,
+     67.5
+    ]
+   },
+   {
+    "id": "plant-hall-sw2",
+    "src": "assets/layers/ist-int/plant-hall-sw2.png",
+    "x": 34.485,
+    "y": 62.925,
+    "w": 4.492,
+    "h": 8.096,
+    "base": 70.5,
+    "foot": [
+     35,
+     68,
+     38.7,
+     70.5
+    ]
+   },
+   {
+    "id": "plant-hall-se2",
+    "src": "assets/layers/ist-int/plant-hall-se2.png",
+    "x": 60.954,
+    "y": 62.925,
+    "w": 4.561,
+    "h": 8.096,
+    "base": 70.5,
+    "foot": [
+     61.3,
+     68,
+     65,
+     70.5
+    ]
+   },
+   {
+    "id": "lamp-hall-w",
+    "src": "assets/layers/ist-int/lamp-hall-w.png",
+    "x": 38.493,
+    "y": 68.997,
+    "w": 2.488,
+    "h": 5.98,
+    "base": 74.5,
+    "foot": [
+     38.8,
+     72.5,
+     40.8,
+     74.5
+    ]
+   },
+   {
+    "id": "lamp-hall-e",
+    "src": "assets/layers/ist-int/lamp-hall-e.png",
+    "x": 58.95,
+    "y": 68.997,
+    "w": 2.557,
+    "h": 5.98,
+    "base": 74.5,
+    "foot": [
+     59.2,
+     72.5,
+     61.2,
+     74.5
+    ]
+   },
+   {
+    "id": "pillar-w",
+    "src": "assets/layers/ist-int/pillar-w.png",
+    "x": 36.973,
+    "y": 72.953,
+    "w": 4.561,
+    "h": 16.007,
+    "base": 88.5,
+    "foot": null
+   },
+   {
+    "id": "pillar-e",
+    "src": "assets/layers/ist-int/pillar-e.png",
+    "x": 58.466,
+    "y": 72.953,
+    "w": 4.561,
+    "h": 16.007,
+    "base": 88.5,
+    "foot": null
+   },
+   {
+    "id": "plant-entry-w",
+    "src": "assets/layers/ist-int/plant-entry-w.png",
+    "x": 40.498,
+    "y": 73.965,
+    "w": 4.008,
+    "h": 11.04,
+    "base": 84.5,
+    "foot": [
+     41,
+     81,
+     44,
+     84.5
+    ]
+   },
+   {
+    "id": "plant-entry-e",
+    "src": "assets/layers/ist-int/plant-entry-e.png",
+    "x": 55.494,
+    "y": 73.965,
+    "w": 4.008,
+    "h": 11.04,
+    "base": 84.5,
+    "foot": [
+     56,
+     81,
+     59,
+     84.5
+    ]
+   },
+   {
+    "id": "head-table",
+    "src": "assets/layers/ist-int/head-table.png",
+    "x": 72.979,
+    "y": 25.943,
+    "w": 16.033,
+    "h": 8.096,
+    "base": 33.5,
+    "foot": [
+     73.5,
+     30,
+     88.5,
+     33.5
+    ]
+   },
+   {
+    "id": "plant-tour-w",
+    "src": "assets/layers/ist-int/plant-tour-w.png",
+    "x": 67.45,
+    "y": 51.978,
+    "w": 3.041,
+    "h": 8.004,
+    "base": 59.5,
+    "foot": [
+     69,
+     56,
+     70.5,
+     59.5
+    ]
+   },
+   {
+    "id": "prac-01",
+    "src": "assets/layers/ist-int/prac-01.png",
+    "x": 8.431,
+    "y": 53.91,
+    "w": 7.049,
+    "h": 9.108,
+    "base": 62.7,
+    "foot": [
+     9.0,
+     56.5,
+     15.0,
+     62.7
+    ]
+   },
+   {
+    "id": "prac-02",
+    "src": "assets/layers/ist-int/prac-02.png",
+    "x": 8.431,
+    "y": 62.925,
+    "w": 7.049,
+    "h": 9.568,
+    "base": 72.2,
+    "foot": [
+     9.0,
+     65.5,
+     15.0,
+     72.2
+    ]
+   },
+   {
+    "id": "prac-11",
+    "src": "assets/layers/ist-int/prac-11.png",
+    "x": 19.489,
+    "y": 53.91,
+    "w": 6.98,
+    "h": 9.108,
+    "base": 62.7,
+    "foot": [
+     20.0,
+     56.5,
+     26.0,
+     62.7
+    ]
+   },
+   {
+    "id": "prac-12",
+    "src": "assets/layers/ist-int/prac-12.png",
+    "x": 19.489,
+    "y": 62.925,
+    "w": 6.98,
+    "h": 9.568,
+    "base": 72.2,
+    "foot": [
+     20.0,
+     65.5,
+     26.0,
+     72.2
+    ]
+   },
+   {
+    "id": "tour-01",
+    "src": "assets/layers/ist-int/tour-01.png",
+    "x": 70.767,
+    "y": 33.211,
+    "w": 6.704,
+    "h": 7.268,
+    "base": 40.2,
+    "foot": [
+     71.3,
+     35.8,
+     77.0,
+     40.2
+    ]
+   },
+   {
+    "id": "tour-02",
+    "src": "assets/layers/ist-int/tour-02.png",
+    "x": 70.767,
+    "y": 41.214,
+    "w": 6.704,
+    "h": 7.82,
+    "base": 48.7,
+    "foot": [
+     71.3,
+     43.8,
+     77.0,
+     48.7
+    ]
+   },
+   {
+    "id": "tour-03",
+    "src": "assets/layers/ist-int/tour-03.png",
+    "x": 70.767,
+    "y": 49.954,
+    "w": 6.704,
+    "h": 7.084,
+    "base": 56.7,
+    "foot": [
+     71.3,
+     52.5,
+     77.0,
+     56.7
+    ]
+   },
+   {
+    "id": "tour-04",
+    "src": "assets/layers/ist-int/tour-04.png",
+    "x": 70.767,
+    "y": 58.418,
+    "w": 6.704,
+    "h": 7.544,
+    "base": 65.7,
+    "foot": [
+     71.3,
+     61.0,
+     77.0,
+     65.7
+    ]
+   },
+   {
+    "id": "tour-11",
+    "src": "assets/layers/ist-int/tour-11.png",
+    "x": 83.967,
+    "y": 33.211,
+    "w": 6.842,
+    "h": 7.268,
+    "base": 40.2,
+    "foot": [
+     84.5,
+     35.8,
+     90.3,
+     40.2
+    ]
+   },
+   {
+    "id": "tour-12",
+    "src": "assets/layers/ist-int/tour-12.png",
+    "x": 83.967,
+    "y": 41.214,
+    "w": 6.842,
+    "h": 7.82,
+    "base": 48.7,
+    "foot": [
+     84.5,
+     43.8,
+     90.3,
+     48.7
+    ]
+   },
+   {
+    "id": "tour-13",
+    "src": "assets/layers/ist-int/tour-13.png",
+    "x": 83.967,
+    "y": 49.954,
+    "w": 6.842,
+    "h": 7.084,
+    "base": 56.7,
+    "foot": [
+     84.5,
+     52.5,
+     90.3,
+     56.7
+    ]
+   },
+   {
+    "id": "tour-14",
+    "src": "assets/layers/ist-int/tour-14.png",
+    "x": 83.967,
+    "y": 58.418,
+    "w": 6.842,
+    "h": 7.544,
+    "base": 65.7,
+    "foot": [
+     84.5,
+     61.0,
+     90.3,
+     65.7
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     6,
+     22
+    ],
+    [
+     31,
+     22
+    ],
+    [
+     31,
+     38
+    ],
+    [
+     6,
+     38
+    ]
+   ],
+   [
+    [
+     29,
+     31
+    ],
+    [
+     37,
+     31
+    ],
+    [
+     37,
+     36
+    ],
+    [
+     29,
+     36
+    ]
+   ],
+   [
+    [
+     6,
+     55
+    ],
+    [
+     31,
+     55
+    ],
+    [
+     31,
+     72
+    ],
+    [
+     6,
+     72
+    ]
+   ],
+   [
+    [
+     29,
+     58
+    ],
+    [
+     37,
+     58
+    ],
+    [
+     37,
+     63
+    ],
+    [
+     29,
+     63
+    ]
+   ],
+   [
+    [
+     45,
+     9
+    ],
+    [
+     55,
+     9
+    ],
+    [
+     55,
+     36
+    ],
+    [
+     64,
+     36
+    ],
+    [
+     64,
+     73
+    ],
+    [
+     58,
+     73
+    ],
+    [
+     58,
+     93
+    ],
+    [
+     42,
+     93
+    ],
+    [
+     42,
+     73
+    ],
+    [
+     36,
+     73
+    ],
+    [
+     36,
+     36
+    ],
+    [
+     45,
+     36
+    ]
+   ],
+   [
+    [
+     62,
+     42
+    ],
+    [
+     70,
+     42
+    ],
+    [
+     70,
+     47
+    ],
+    [
+     62,
+     47
+    ]
+   ],
+   [
+    [
+     69,
+     33
+    ],
+    [
+     94,
+     33
+    ],
+    [
+     94,
+     73
+    ],
+    [
+     69,
+     73
+    ]
+   ]
+  ],
+  "blocks": []
+ },
+ "wen-int": {
+  "props": [
+   {
+    "id": "desk",
+    "src": "assets/layers/wen-int/desk.png",
+    "x": 10.497,
+    "y": 14.917,
+    "w": 12.983,
+    "h": 14.088,
+    "base": 28.5,
+    "foot": [
+     11,
+     23,
+     23,
+     28.5
+    ]
+   },
+   {
+    "id": "armchairs",
+    "src": "assets/layers/wen-int/armchairs.png",
+    "x": 9.461,
+    "y": 26.98,
+    "w": 14.572,
+    "h": 10.037,
+    "base": 36.5,
+    "foot": [
+     10,
+     30,
+     23.5,
+     36.5
+    ]
+   },
+   {
+    "id": "lantern-dir",
+    "src": "assets/layers/wen-int/lantern-dir.png",
+    "x": 3.453,
+    "y": 17.956,
+    "w": 2.555,
+    "h": 9.024,
+    "base": 26.5,
+    "foot": [
+     4,
+     24.5,
+     5.8,
+     26.5
+    ]
+   },
+   {
+    "id": "plant-dir-e",
+    "src": "assets/layers/wen-int/plant-dir-e.png",
+    "x": 26.934,
+    "y": 12.983,
+    "w": 3.039,
+    "h": 12.063,
+    "base": 24.5,
+    "foot": [
+     27.3,
+     21,
+     29.8,
+     24.5
+    ]
+   },
+   {
+    "id": "bamboo-w",
+    "src": "assets/layers/wen-int/bamboo-w.png",
+    "x": 3.453,
+    "y": 51.934,
+    "w": 3.522,
+    "h": 13.076,
+    "base": 64.5,
+    "foot": [
+     4,
+     62,
+     6.8,
+     64.5
+    ]
+   },
+   {
+    "id": "bamboo-e",
+    "src": "assets/layers/wen-int/bamboo-e.png",
+    "x": 27.486,
+    "y": 51.934,
+    "w": 3.522,
+    "h": 13.076,
+    "base": 64.5,
+    "foot": [
+     27.8,
+     62,
+     30.8,
+     64.5
+    ]
+   },
+   {
+    "id": "vase-w",
+    "src": "assets/layers/wen-int/vase-w.png",
+    "x": 36.948,
+    "y": 19.982,
+    "w": 4.075,
+    "h": 8.011,
+    "base": 27.5,
+    "foot": [
+     37.5,
+     25,
+     40.7,
+     27.5
+    ]
+   },
+   {
+    "id": "vase-e",
+    "src": "assets/layers/wen-int/vase-e.png",
+    "x": 58.978,
+    "y": 19.982,
+    "w": 4.006,
+    "h": 8.011,
+    "base": 27.5,
+    "foot": [
+     59.3,
+     25,
+     62.5,
+     27.5
+    ]
+   },
+   {
+    "id": "plant-stair-w",
+    "src": "assets/layers/wen-int/plant-stair-w.png",
+    "x": 39.434,
+    "y": 15.93,
+    "w": 4.075,
+    "h": 11.05,
+    "base": 26.5,
+    "foot": [
+     40,
+     23.5,
+     43.2,
+     26.5
+    ]
+   },
+   {
+    "id": "plant-stair-e",
+    "src": "assets/layers/wen-int/plant-stair-e.png",
+    "x": 56.492,
+    "y": 15.93,
+    "w": 4.006,
+    "h": 11.05,
+    "base": 26.5,
+    "foot": [
+     56.8,
+     23.5,
+     60,
+     26.5
+    ]
+   },
+   {
+    "id": "sign-club",
+    "src": "assets/layers/wen-int/sign-club.png",
+    "x": 41.436,
+    "y": 29.926,
+    "w": 17.058,
+    "h": 7.09,
+    "base": 99,
+    "foot": null
+   },
+   {
+    "id": "lantern-w",
+    "src": "assets/layers/wen-int/lantern-w.png",
+    "x": 40.953,
+    "y": 36.924,
+    "w": 3.039,
+    "h": 9.116,
+    "base": 45.5,
+    "foot": [
+     41.5,
+     43.5,
+     43.5,
+     45.5
+    ]
+   },
+   {
+    "id": "lantern-e",
+    "src": "assets/layers/wen-int/lantern-e.png",
+    "x": 55.939,
+    "y": 36.924,
+    "w": 3.039,
+    "h": 9.116,
+    "base": 45.5,
+    "foot": [
+     56.5,
+     43.5,
+     58.5,
+     45.5
+    ]
+   },
+   {
+    "id": "plant-side-w",
+    "src": "assets/layers/wen-int/plant-side-w.png",
+    "x": 33.978,
+    "y": 40.976,
+    "w": 3.522,
+    "h": 6.998,
+    "base": 47.5,
+    "foot": [
+     34.5,
+     45,
+     37.2,
+     47.5
+    ]
+   },
+   {
+    "id": "plant-side-e",
+    "src": "assets/layers/wen-int/plant-side-e.png",
+    "x": 62.5,
+    "y": 40.976,
+    "w": 3.522,
+    "h": 6.998,
+    "base": 47.5,
+    "foot": [
+     62.8,
+     45,
+     65.5,
+     47.5
+    ]
+   },
+   {
+    "id": "plant-side-sw",
+    "src": "assets/layers/wen-int/plant-side-sw.png",
+    "x": 33.978,
+    "y": 54.972,
+    "w": 3.522,
+    "h": 8.011,
+    "base": 62.5,
+    "foot": [
+     34.5,
+     60,
+     37.2,
+     62.5
+    ]
+   },
+   {
+    "id": "plant-side-se",
+    "src": "assets/layers/wen-int/plant-side-se.png",
+    "x": 62.5,
+    "y": 54.972,
+    "w": 3.522,
+    "h": 8.011,
+    "base": 62.5,
+    "foot": [
+     62.8,
+     60,
+     65.5,
+     62.5
+    ]
+   },
+   {
+    "id": "reception",
+    "src": "assets/layers/wen-int/reception.png",
+    "x": 43.439,
+    "y": 61.971,
+    "w": 13.052,
+    "h": 11.05,
+    "base": 72.5,
+    "foot": [
+     44,
+     66,
+     56,
+     72.5
+    ]
+   },
+   {
+    "id": "plant-rec-w",
+    "src": "assets/layers/wen-int/plant-rec-w.png",
+    "x": 40.47,
+    "y": 63.996,
+    "w": 3.522,
+    "h": 9.024,
+    "base": 72.5,
+    "foot": [
+     41,
+     68,
+     43.8,
+     72.5
+    ]
+   },
+   {
+    "id": "plant-rec-e",
+    "src": "assets/layers/wen-int/plant-rec-e.png",
+    "x": 55.939,
+    "y": 63.996,
+    "w": 3.591,
+    "h": 9.024,
+    "base": 72.5,
+    "foot": [
+     56.2,
+     68,
+     59,
+     72.5
+    ]
+   },
+   {
+    "id": "screen-w",
+    "src": "assets/layers/wen-int/screen-w.png",
+    "x": 33.494,
+    "y": 69.982,
+    "w": 6.975,
+    "h": 12.063,
+    "base": 81.5,
+    "foot": [
+     34,
+     76,
+     40,
+     81.5
+    ]
+   },
+   {
+    "id": "screen-e",
+    "src": "assets/layers/wen-int/screen-e.png",
+    "x": 59.461,
+    "y": 69.982,
+    "w": 7.044,
+    "h": 12.063,
+    "base": 81.5,
+    "foot": [
+     60,
+     76,
+     66,
+     81.5
+    ]
+   },
+   {
+    "id": "lantern-entry-w",
+    "src": "assets/layers/wen-int/lantern-entry-w.png",
+    "x": 41.436,
+    "y": 77.993,
+    "w": 2.555,
+    "h": 8.011,
+    "base": 85.5,
+    "foot": [
+     42,
+     83.5,
+     43.8,
+     85.5
+    ]
+   },
+   {
+    "id": "lantern-entry-e",
+    "src": "assets/layers/wen-int/lantern-entry-e.png",
+    "x": 55.939,
+    "y": 77.993,
+    "w": 2.555,
+    "h": 8.011,
+    "base": 85.5,
+    "foot": [
+     56.2,
+     83.5,
+     58,
+     85.5
+    ]
+   },
+   {
+    "id": "bonsai-entry-w",
+    "src": "assets/layers/wen-int/bonsai-entry-w.png",
+    "x": 38.467,
+    "y": 79.926,
+    "w": 4.558,
+    "h": 10.037,
+    "base": 89.5,
+    "foot": [
+     39,
+     86.5,
+     42.7,
+     89.5
+    ]
+   },
+   {
+    "id": "bonsai-entry-e",
+    "src": "assets/layers/wen-int/bonsai-entry-e.png",
+    "x": 56.975,
+    "y": 79.926,
+    "w": 4.558,
+    "h": 10.037,
+    "base": 89.5,
+    "foot": [
+     57.3,
+     86.5,
+     61,
+     89.5
+    ]
+   },
+   {
+    "id": "head-table",
+    "src": "assets/layers/wen-int/head-table.png",
+    "x": 75.483,
+    "y": 19.982,
+    "w": 14.986,
+    "h": 12.063,
+    "base": 32.5,
+    "foot": null
+   },
+   {
+    "id": "plant-tour-sw",
+    "src": "assets/layers/wen-int/plant-tour-sw.png",
+    "x": 69.475,
+    "y": 74.954,
+    "w": 3.522,
+    "h": 7.09,
+    "base": 81.5,
+    "foot": [
+     70,
+     79,
+     72.8,
+     81
+    ]
+   },
+   {
+    "id": "plant-tour-e",
+    "src": "assets/layers/wen-int/plant-tour-e.png",
+    "x": 93.439,
+    "y": 39.963,
+    "w": 3.039,
+    "h": 8.011,
+    "base": 47.5,
+    "foot": [
+     93.7,
+     45,
+     95,
+     47.5
+    ]
+   },
+   {
+    "id": "plant-tour-se",
+    "src": "assets/layers/wen-int/plant-tour-se.png",
+    "x": 93.439,
+    "y": 74.954,
+    "w": 3.039,
+    "h": 7.09,
+    "base": 81.5,
+    "foot": [
+     93.7,
+     79,
+     95,
+     81
+    ]
+   },
+   {
+    "id": "prac-01",
+    "src": "assets/layers/wen-int/prac-01.png",
+    "x": 7.459,
+    "y": 61.971,
+    "w": 8.011,
+    "h": 9.484,
+    "base": 71.2,
+    "foot": [
+     8.0,
+     64.5,
+     15.0,
+     71.2
+    ]
+   },
+   {
+    "id": "prac-02",
+    "src": "assets/layers/wen-int/prac-02.png",
+    "x": 7.459,
+    "y": 71.915,
+    "w": 8.011,
+    "h": 9.116,
+    "base": 80.7,
+    "foot": [
+     8.0,
+     74.5,
+     15.0,
+     80.7
+    ]
+   },
+   {
+    "id": "prac-11",
+    "src": "assets/layers/wen-int/prac-11.png",
+    "x": 18.439,
+    "y": 61.971,
+    "w": 8.08,
+    "h": 9.484,
+    "base": 71.2,
+    "foot": [
+     19.0,
+     64.5,
+     26.0,
+     71.2
+    ]
+   },
+   {
+    "id": "prac-12",
+    "src": "assets/layers/wen-int/prac-12.png",
+    "x": 18.439,
+    "y": 71.915,
+    "w": 8.08,
+    "h": 9.116,
+    "base": 80.7,
+    "foot": [
+     19.0,
+     74.5,
+     26.0,
+     80.7
+    ]
+   },
+   {
+    "id": "tour-01",
+    "src": "assets/layers/wen-int/tour-01.png",
+    "x": 72.445,
+    "y": 38.49,
+    "w": 8.08,
+    "h": 8.471,
+    "base": 46.7,
+    "foot": [
+     73.0,
+     41.0,
+     80.0,
+     46.7
+    ]
+   },
+   {
+    "id": "tour-02",
+    "src": "assets/layers/wen-int/tour-02.png",
+    "x": 72.445,
+    "y": 47.974,
+    "w": 8.08,
+    "h": 8.011,
+    "base": 55.7,
+    "foot": [
+     73.0,
+     50.5,
+     80.0,
+     55.7
+    ]
+   },
+   {
+    "id": "tour-03",
+    "src": "assets/layers/wen-int/tour-03.png",
+    "x": 72.445,
+    "y": 57.459,
+    "w": 8.08,
+    "h": 8.564,
+    "base": 65.7,
+    "foot": [
+     73.0,
+     60.0,
+     80.0,
+     65.7
+    ]
+   },
+   {
+    "id": "tour-11",
+    "src": "assets/layers/wen-int/tour-11.png",
+    "x": 84.461,
+    "y": 38.49,
+    "w": 8.011,
+    "h": 8.471,
+    "base": 46.7,
+    "foot": [
+     85.0,
+     41.0,
+     92.0,
+     46.7
+    ]
+   },
+   {
+    "id": "tour-12",
+    "src": "assets/layers/wen-int/tour-12.png",
+    "x": 84.461,
+    "y": 47.974,
+    "w": 8.011,
+    "h": 8.011,
+    "base": 55.7,
+    "foot": [
+     85.0,
+     50.5,
+     92.0,
+     55.7
+    ]
+   },
+   {
+    "id": "tour-13",
+    "src": "assets/layers/wen-int/tour-13.png",
+    "x": 84.461,
+    "y": 57.459,
+    "w": 8.011,
+    "h": 8.564,
+    "base": 65.7,
+    "foot": [
+     85.0,
+     60.0,
+     92.0,
+     65.7
+    ]
+   },
+   {
+    "id": "tour-bottom",
+    "src": "assets/layers/wen-int/tour-bottom.png",
+    "x": 78.453,
+    "y": 65.93,
+    "w": 8.08,
+    "h": 10.037,
+    "base": 75.7,
+    "foot": [
+     79,
+     68.5,
+     86,
+     75.7
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     5,
+     20
+    ],
+    [
+     30,
+     20
+    ],
+    [
+     30,
+     38
+    ],
+    [
+     5,
+     38
+    ]
+   ],
+   [
+    [
+     28,
+     28
+    ],
+    [
+     36,
+     28
+    ],
+    [
+     36,
+     33
+    ],
+    [
+     28,
+     33
+    ]
+   ],
+   [
+    [
+     5,
+     61
+    ],
+    [
+     30,
+     61
+    ],
+    [
+     30,
+     80
+    ],
+    [
+     5,
+     80
+    ]
+   ],
+   [
+    [
+     28,
+     60
+    ],
+    [
+     36,
+     60
+    ],
+    [
+     36,
+     65
+    ],
+    [
+     28,
+     65
+    ]
+   ],
+   [
+    [
+     45,
+     4
+    ],
+    [
+     55,
+     4
+    ],
+    [
+     55,
+     26
+    ],
+    [
+     65,
+     26
+    ],
+    [
+     65,
+     76
+    ],
+    [
+     60,
+     76
+    ],
+    [
+     60,
+     92
+    ],
+    [
+     40,
+     92
+    ],
+    [
+     40,
+     76
+    ],
+    [
+     35,
+     76
+    ],
+    [
+     35,
+     26
+    ],
+    [
+     45,
+     26
+    ]
+   ],
+   [
+    [
+     63,
+     48
+    ],
+    [
+     71,
+     48
+    ],
+    [
+     71,
+     53
+    ],
+    [
+     63,
+     53
+    ]
+   ],
+   [
+    [
+     70,
+     33
+    ],
+    [
+     95,
+     33
+    ],
+    [
+     95,
+     80
+    ],
+    [
+     70,
+     80
+    ]
+   ]
+  ],
+  "blocks": []
+ },
+ "nyc-up": {
+  "props": [
+   {
+    "id": "sofa",
+    "src": "assets/layers/nyc-up/sofa.png",
+    "x": 13.97,
+    "y": 26.93,
+    "w": 14.039,
+    "h": 11.029,
+    "base": 37.5,
+    "foot": [
+     14.5,
+     31,
+     27.5,
+     37.5
+    ]
+   },
+   {
+    "id": "shelf-lounge",
+    "src": "assets/layers/nyc-up/shelf-lounge.png",
+    "x": 5.947,
+    "y": 21.967,
+    "w": 7.538,
+    "h": 15.074,
+    "base": 36.5,
+    "foot": [
+     7,
+     31,
+     13,
+     36.5
+    ]
+   },
+   {
+    "id": "plant-lounge-e",
+    "src": "assets/layers/nyc-up/plant-lounge-e.png",
+    "x": 29.461,
+    "y": 20.956,
+    "w": 4.564,
+    "h": 15.074,
+    "base": 35.5,
+    "foot": [
+     30,
+     33,
+     33.5,
+     35.5
+    ]
+   },
+   {
+    "id": "armchair-w",
+    "src": "assets/layers/nyc-up/armchair-w.png",
+    "x": 10.443,
+    "y": 38.971,
+    "w": 7.054,
+    "h": 7.996,
+    "base": 46.5,
+    "foot": [
+     11,
+     41.5,
+     17,
+     46.5
+    ]
+   },
+   {
+    "id": "armchair-e",
+    "src": "assets/layers/nyc-up/armchair-e.png",
+    "x": 24.481,
+    "y": 38.971,
+    "w": 7.538,
+    "h": 7.996,
+    "base": 46.5,
+    "foot": [
+     25,
+     41.5,
+     31.5,
+     46.5
+    ]
+   },
+   {
+    "id": "coffee-table",
+    "src": "assets/layers/nyc-up/coffee-table.png",
+    "x": 16.459,
+    "y": 38.971,
+    "w": 8.022,
+    "h": 6.985,
+    "base": 45.5,
+    "foot": [
+     17,
+     41,
+     24,
+     45.5
+    ]
+   },
+   {
+    "id": "game-table",
+    "src": "assets/layers/nyc-up/game-table.png",
+    "x": 12.932,
+    "y": 50.0,
+    "w": 10.581,
+    "h": 11.029,
+    "base": 60.5,
+    "foot": [
+     13.5,
+     53,
+     23,
+     60.5
+    ]
+   },
+   {
+    "id": "plant-lounge-w1",
+    "src": "assets/layers/nyc-up/plant-lounge-w1.png",
+    "x": 5.463,
+    "y": 36.949,
+    "w": 4.011,
+    "h": 10.018,
+    "base": 46.5,
+    "foot": [
+     6,
+     43.5,
+     9.2,
+     46.5
+    ]
+   },
+   {
+    "id": "plant-lounge-w2",
+    "src": "assets/layers/nyc-up/plant-lounge-w2.png",
+    "x": 4.979,
+    "y": 47.978,
+    "w": 4.011,
+    "h": 10.018,
+    "base": 57.5,
+    "foot": [
+     5.5,
+     54.5,
+     8.7,
+     57.5
+    ]
+   },
+   {
+    "id": "lamp-game",
+    "src": "assets/layers/nyc-up/lamp-game.png",
+    "x": 27.939,
+    "y": 50.0,
+    "w": 3.527,
+    "h": 6.985,
+    "base": 56.5,
+    "foot": [
+     28.5,
+     54,
+     31,
+     56.5
+    ]
+   },
+   {
+    "id": "plant-center-nw",
+    "src": "assets/layers/nyc-up/plant-center-nw.png",
+    "x": 36.445,
+    "y": 22.978,
+    "w": 3.527,
+    "h": 11.029,
+    "base": 33.5,
+    "foot": [
+     37,
+     30.5,
+     39.7,
+     33.5
+    ]
+   },
+   {
+    "id": "plant-center-n1",
+    "src": "assets/layers/nyc-up/plant-center-n1.png",
+    "x": 42.462,
+    "y": 25.919,
+    "w": 3.043,
+    "h": 8.088,
+    "base": 33.5,
+    "foot": [
+     43,
+     31,
+     45.3,
+     33.5
+    ]
+   },
+   {
+    "id": "plant-center-n2",
+    "src": "assets/layers/nyc-up/plant-center-n2.png",
+    "x": 54.495,
+    "y": 25.919,
+    "w": 2.974,
+    "h": 8.088,
+    "base": 33.5,
+    "foot": [
+     54.7,
+     31,
+     57,
+     33.5
+    ]
+   },
+   {
+    "id": "plant-center-ne",
+    "src": "assets/layers/nyc-up/plant-center-ne.png",
+    "x": 59.959,
+    "y": 22.978,
+    "w": 3.527,
+    "h": 11.029,
+    "base": 33.5,
+    "foot": [
+     60.3,
+     30.5,
+     63,
+     33.5
+    ]
+   },
+   {
+    "id": "plant-center-w",
+    "src": "assets/layers/nyc-up/plant-center-w.png",
+    "x": 36.445,
+    "y": 32.996,
+    "w": 3.527,
+    "h": 9.007,
+    "base": 41.5,
+    "foot": null
+   },
+   {
+    "id": "plant-center-e",
+    "src": "assets/layers/nyc-up/plant-center-e.png",
+    "x": 59.959,
+    "y": 32.996,
+    "w": 3.527,
+    "h": 9.007,
+    "base": 41.5,
+    "foot": null
+   },
+   {
+    "id": "balusters-w",
+    "src": "assets/layers/nyc-up/balusters-w.png",
+    "x": 41.494,
+    "y": 35.938,
+    "w": 3.527,
+    "h": 20.037,
+    "base": 55.5,
+    "foot": null
+   },
+   {
+    "id": "balusters-e",
+    "src": "assets/layers/nyc-up/balusters-e.png",
+    "x": 54.979,
+    "y": 35.938,
+    "w": 3.527,
+    "h": 20.037,
+    "base": 55.5,
+    "foot": null
+   },
+   {
+    "id": "plant-center-w2",
+    "src": "assets/layers/nyc-up/plant-center-w2.png",
+    "x": 35.961,
+    "y": 46.967,
+    "w": 4.011,
+    "h": 7.996,
+    "base": 54.5,
+    "foot": [
+     36.5,
+     52,
+     39.7,
+     54.5
+    ]
+   },
+   {
+    "id": "plant-center-e2",
+    "src": "assets/layers/nyc-up/plant-center-e2.png",
+    "x": 59.959,
+    "y": 46.967,
+    "w": 4.011,
+    "h": 7.996,
+    "base": 54.5,
+    "foot": [
+     60.3,
+     52,
+     63.5,
+     54.5
+    ]
+   },
+   {
+    "id": "chair-w",
+    "src": "assets/layers/nyc-up/chair-w.png",
+    "x": 38.451,
+    "y": 63.971,
+    "w": 4.08,
+    "h": 11.029,
+    "base": 74.5,
+    "foot": [
+     39,
+     67,
+     42.2,
+     74.5
+    ]
+   },
+   {
+    "id": "chair-e",
+    "src": "assets/layers/nyc-up/chair-e.png",
+    "x": 57.469,
+    "y": 63.971,
+    "w": 4.011,
+    "h": 11.029,
+    "base": 74.5,
+    "foot": [
+     57.8,
+     67,
+     61,
+     74.5
+    ]
+   },
+   {
+    "id": "sidetable-w",
+    "src": "assets/layers/nyc-up/sidetable-w.png",
+    "x": 35.961,
+    "y": 63.971,
+    "w": 3.043,
+    "h": 9.007,
+    "base": 72.5,
+    "foot": [
+     36.3,
+     69,
+     38.8,
+     72.5
+    ]
+   },
+   {
+    "id": "sidetable-e",
+    "src": "assets/layers/nyc-up/sidetable-e.png",
+    "x": 60.996,
+    "y": 63.971,
+    "w": 2.974,
+    "h": 9.007,
+    "base": 72.5,
+    "foot": [
+     61.2,
+     69,
+     63.8,
+     72.5
+    ]
+   },
+   {
+    "id": "plant-landing-w",
+    "src": "assets/layers/nyc-up/plant-landing-w.png",
+    "x": 35.961,
+    "y": 73.989,
+    "w": 4.011,
+    "h": 6.985,
+    "base": 80,
+    "foot": null
+   },
+   {
+    "id": "plant-landing-e",
+    "src": "assets/layers/nyc-up/plant-landing-e.png",
+    "x": 59.959,
+    "y": 73.989,
+    "w": 4.011,
+    "h": 6.985,
+    "base": 80,
+    "foot": null
+   },
+   {
+    "id": "display",
+    "src": "assets/layers/nyc-up/display.png",
+    "x": 71.992,
+    "y": 42.923,
+    "w": 17.012,
+    "h": 14.062,
+    "base": 56.5,
+    "foot": [
+     72.5,
+     47,
+     88.5,
+     56.5
+    ]
+   },
+   {
+    "id": "plant-trophy-nw",
+    "src": "assets/layers/nyc-up/plant-trophy-nw.png",
+    "x": 64.454,
+    "y": 30.974,
+    "w": 4.08,
+    "h": 9.007,
+    "base": 39.5,
+    "foot": null
+   },
+   {
+    "id": "plant-trophy-n1",
+    "src": "assets/layers/nyc-up/plant-trophy-n1.png",
+    "x": 70.47,
+    "y": 33.915,
+    "w": 3.527,
+    "h": 6.066,
+    "base": 39.5,
+    "foot": [
+     71,
+     37.5,
+     73.7,
+     39.5
+    ]
+   },
+   {
+    "id": "plant-trophy-n2",
+    "src": "assets/layers/nyc-up/plant-trophy-n2.png",
+    "x": 85.961,
+    "y": 33.915,
+    "w": 3.527,
+    "h": 6.066,
+    "base": 39.5,
+    "foot": [
+     86.3,
+     37.5,
+     89.2,
+     39.5
+    ]
+   },
+   {
+    "id": "lamp-trophy",
+    "src": "assets/layers/nyc-up/lamp-trophy.png",
+    "x": 66.459,
+    "y": 46.967,
+    "w": 2.559,
+    "h": 7.996,
+    "base": 54.5,
+    "foot": [
+     67,
+     52,
+     68.8,
+     54.5
+    ]
+   },
+   {
+    "id": "plant-trophy-sw",
+    "src": "assets/layers/nyc-up/plant-trophy-sw.png",
+    "x": 70.954,
+    "y": 55.974,
+    "w": 3.043,
+    "h": 6.985,
+    "base": 62.5,
+    "foot": [
+     71.5,
+     60,
+     73.7,
+     62.5
+    ]
+   },
+   {
+    "id": "plant-trophy-se",
+    "src": "assets/layers/nyc-up/plant-trophy-se.png",
+    "x": 88.451,
+    "y": 55.974,
+    "w": 3.527,
+    "h": 6.985,
+    "base": 62.5,
+    "foot": [
+     88.8,
+     60,
+     91.7,
+     62.5
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     7,
+     30
+    ],
+    [
+     32.5,
+     30
+    ],
+    [
+     32.5,
+     62
+    ],
+    [
+     7,
+     62
+    ]
+   ],
+   [
+    [
+     31,
+     38
+    ],
+    [
+     37,
+     38
+    ],
+    [
+     37,
+     43
+    ],
+    [
+     31,
+     43
+    ]
+   ],
+   [
+    [
+     36,
+     27
+    ],
+    [
+     64,
+     27
+    ],
+    [
+     64,
+     80
+    ],
+    [
+     36,
+     80
+    ]
+   ],
+   [
+    [
+     63,
+     39
+    ],
+    [
+     67,
+     39
+    ],
+    [
+     67,
+     44
+    ],
+    [
+     63,
+     44
+    ]
+   ],
+   [
+    [
+     67,
+     38
+    ],
+    [
+     93,
+     38
+    ],
+    [
+     93,
+     62
+    ],
+    [
+     67,
+     62
+    ]
+   ]
+  ],
+  "blocks": [
+   [
+    41.5,
+    36,
+    44.8,
+    56
+   ],
+   [
+    55.2,
+    36,
+    58.5,
+    56
+   ]
+  ]
+ },
+ "vie-up": {
+  "props": [
+   {
+    "id": "sofa",
+    "src": "assets/layers/vie-up/sofa.png",
+    "x": 12.448,
+    "y": 26.93,
+    "w": 14.523,
+    "h": 10.57,
+    "base": 37,
+    "foot": [
+     13,
+     31,
+     26.5,
+     37
+    ]
+   },
+   {
+    "id": "bust-lounge",
+    "src": "assets/layers/vie-up/bust-lounge.png",
+    "x": 4.979,
+    "y": 30.974,
+    "w": 3.043,
+    "h": 7.996,
+    "base": 38.5,
+    "foot": [
+     5.5,
+     36,
+     7.8,
+     38.5
+    ]
+   },
+   {
+    "id": "armchair-nw",
+    "src": "assets/layers/vie-up/armchair-nw.png",
+    "x": 7.953,
+    "y": 31.985,
+    "w": 6.57,
+    "h": 9.007,
+    "base": 40.5,
+    "foot": [
+     8.5,
+     35,
+     14,
+     40.5
+    ]
+   },
+   {
+    "id": "armchair-sw",
+    "src": "assets/layers/vie-up/armchair-sw.png",
+    "x": 8.99,
+    "y": 39.982,
+    "w": 6.501,
+    "h": 10.018,
+    "base": 49.5,
+    "foot": [
+     9.5,
+     43,
+     15,
+     49.5
+    ]
+   },
+   {
+    "id": "coffee",
+    "src": "assets/layers/vie-up/coffee.png",
+    "x": 13.485,
+    "y": 34.926,
+    "w": 10.512,
+    "h": 10.11,
+    "base": 44.5,
+    "foot": [
+     14,
+     38,
+     23.5,
+     44.5
+    ]
+   },
+   {
+    "id": "armchair-e",
+    "src": "assets/layers/vie-up/armchair-e.png",
+    "x": 23.444,
+    "y": 34.926,
+    "w": 6.57,
+    "h": 10.11,
+    "base": 44.5,
+    "foot": [
+     24,
+     38,
+     29.5,
+     44.5
+    ]
+   },
+   {
+    "id": "plant-lounge-ne",
+    "src": "assets/layers/vie-up/plant-lounge-ne.png",
+    "x": 24.965,
+    "y": 19.945,
+    "w": 6.017,
+    "h": 15.074,
+    "base": 34.5,
+    "foot": [
+     25.5,
+     31,
+     30.5,
+     34.5
+    ]
+   },
+   {
+    "id": "plant-lounge-e",
+    "src": "assets/layers/vie-up/plant-lounge-e.png",
+    "x": 29.461,
+    "y": 28.952,
+    "w": 3.527,
+    "h": 9.007,
+    "base": 37.5,
+    "foot": [
+     30,
+     35,
+     32.8,
+     37.5
+    ]
+   },
+   {
+    "id": "game-table",
+    "src": "assets/layers/vie-up/game-table.png",
+    "x": 13.485,
+    "y": 50.919,
+    "w": 10.028,
+    "h": 13.051,
+    "base": 63.5,
+    "foot": [
+     14,
+     55,
+     23,
+     63.5
+    ]
+   },
+   {
+    "id": "lamp-lounge-w",
+    "src": "assets/layers/vie-up/lamp-lounge-w.png",
+    "x": 3.942,
+    "y": 44.945,
+    "w": 3.043,
+    "h": 10.018,
+    "base": 54.5,
+    "foot": [
+     4.5,
+     52,
+     6.8,
+     54.5
+    ]
+   },
+   {
+    "id": "lamp-lounge-se",
+    "src": "assets/layers/vie-up/lamp-lounge-se.png",
+    "x": 25.934,
+    "y": 53.952,
+    "w": 3.596,
+    "h": 8.088,
+    "base": 61.5,
+    "foot": [
+     26.5,
+     59,
+     29.2,
+     61.5
+    ]
+   },
+   {
+    "id": "plant-lounge-se",
+    "src": "assets/layers/vie-up/plant-lounge-se.png",
+    "x": 29.461,
+    "y": 50.0,
+    "w": 3.527,
+    "h": 9.007,
+    "base": 58.5,
+    "foot": [
+     30,
+     55,
+     32.8,
+     58.5
+    ]
+   },
+   {
+    "id": "plant-lounge-sw",
+    "src": "assets/layers/vie-up/plant-lounge-sw.png",
+    "x": 5.463,
+    "y": 55.974,
+    "w": 4.564,
+    "h": 7.996,
+    "base": 63.5,
+    "foot": [
+     6,
+     60,
+     9.7,
+     63.5
+    ]
+   },
+   {
+    "id": "lamp-upper-w",
+    "src": "assets/layers/vie-up/lamp-upper-w.png",
+    "x": 38.451,
+    "y": 31.985,
+    "w": 2.559,
+    "h": 5.974,
+    "base": 37.5,
+    "foot": null
+   },
+   {
+    "id": "lamp-upper-e",
+    "src": "assets/layers/vie-up/lamp-upper-e.png",
+    "x": 58.99,
+    "y": 31.985,
+    "w": 2.49,
+    "h": 5.974,
+    "base": 37.5,
+    "foot": null
+   },
+   {
+    "id": "plant-upper-w",
+    "src": "assets/layers/vie-up/plant-upper-w.png",
+    "x": 34.44,
+    "y": 29.963,
+    "w": 4.08,
+    "h": 9.007,
+    "base": 38.5,
+    "foot": null
+   },
+   {
+    "id": "plant-upper-e",
+    "src": "assets/layers/vie-up/plant-upper-e.png",
+    "x": 61.48,
+    "y": 29.963,
+    "w": 4.011,
+    "h": 9.007,
+    "base": 38.5,
+    "foot": null
+   },
+   {
+    "id": "railing-top",
+    "src": "assets/layers/vie-up/railing-top.png",
+    "x": 37.967,
+    "y": 38.419,
+    "w": 24.066,
+    "h": 6.618,
+    "base": 44.5,
+    "foot": null
+   },
+   {
+    "id": "lamp-well-w",
+    "src": "assets/layers/vie-up/lamp-well-w.png",
+    "x": 38.935,
+    "y": 61.949,
+    "w": 2.559,
+    "h": 7.077,
+    "base": 68.5,
+    "foot": null
+   },
+   {
+    "id": "lamp-well-e",
+    "src": "assets/layers/vie-up/lamp-well-e.png",
+    "x": 58.437,
+    "y": 61.949,
+    "w": 2.559,
+    "h": 7.077,
+    "base": 68.5,
+    "foot": null
+   },
+   {
+    "id": "plant-aisle-w",
+    "src": "assets/layers/vie-up/plant-aisle-w.png",
+    "x": 34.993,
+    "y": 56.985,
+    "w": 4.011,
+    "h": 9.007,
+    "base": 65.5,
+    "foot": [
+     35.5,
+     62,
+     38.7,
+     65.5
+    ]
+   },
+   {
+    "id": "plant-aisle-e",
+    "src": "assets/layers/vie-up/plant-aisle-e.png",
+    "x": 60.996,
+    "y": 56.985,
+    "w": 4.011,
+    "h": 9.007,
+    "base": 65.5,
+    "foot": [
+     61.3,
+     62,
+     64.5,
+     65.5
+    ]
+   },
+   {
+    "id": "railing-mid",
+    "src": "assets/layers/vie-up/railing-mid.png",
+    "x": 40.941,
+    "y": 67.923,
+    "w": 18.05,
+    "h": 7.077,
+    "base": 74.5,
+    "foot": null
+   },
+   {
+    "id": "plant-lower-w",
+    "src": "assets/layers/vie-up/plant-lower-w.png",
+    "x": 36.445,
+    "y": 70.956,
+    "w": 4.08,
+    "h": 8.088,
+    "base": 78.5,
+    "foot": [
+     37,
+     76,
+     40.2,
+     78.5
+    ]
+   },
+   {
+    "id": "plant-lower-e",
+    "src": "assets/layers/vie-up/plant-lower-e.png",
+    "x": 59.474,
+    "y": 70.956,
+    "w": 4.011,
+    "h": 8.088,
+    "base": 78.5,
+    "foot": [
+     59.8,
+     76,
+     63.2,
+     78.5
+    ]
+   },
+   {
+    "id": "lamp-bottom-w",
+    "src": "assets/layers/vie-up/lamp-bottom-w.png",
+    "x": 37.483,
+    "y": 81.985,
+    "w": 2.49,
+    "h": 6.985,
+    "base": 88,
+    "foot": null
+   },
+   {
+    "id": "lamp-bottom-e",
+    "src": "assets/layers/vie-up/lamp-bottom-e.png",
+    "x": 59.959,
+    "y": 81.985,
+    "w": 2.559,
+    "h": 6.985,
+    "base": 88,
+    "foot": null
+   },
+   {
+    "id": "display",
+    "src": "assets/layers/vie-up/display.png",
+    "x": 75.45,
+    "y": 35.938,
+    "w": 12.517,
+    "h": 18.107,
+    "base": 53.5,
+    "foot": [
+     76,
+     40,
+     87.5,
+     53.5
+    ]
+   },
+   {
+    "id": "bust-trophy-e",
+    "src": "assets/layers/vie-up/bust-trophy-e.png",
+    "x": 92.462,
+    "y": 43.934,
+    "w": 3.043,
+    "h": 9.099,
+    "base": 52.5,
+    "foot": [
+     92.7,
+     49,
+     94,
+     52.5
+    ]
+   },
+   {
+    "id": "plant-trophy-w2",
+    "src": "assets/layers/vie-up/plant-trophy-w2.png",
+    "x": 66.459,
+    "y": 50.0,
+    "w": 4.011,
+    "h": 9.007,
+    "base": 58.5,
+    "foot": [
+     67,
+     55,
+     70.2,
+     58.5
+    ]
+   },
+   {
+    "id": "lamp-trophy",
+    "src": "assets/layers/vie-up/lamp-trophy.png",
+    "x": 69.433,
+    "y": 53.952,
+    "w": 2.559,
+    "h": 6.066,
+    "base": 59.5,
+    "foot": [
+     69.8,
+     57.5,
+     71.8,
+     59.5
+    ]
+   },
+   {
+    "id": "chair-trophy-w",
+    "src": "assets/layers/vie-up/chair-trophy-w.png",
+    "x": 72.476,
+    "y": 54.963,
+    "w": 6.501,
+    "h": 9.007,
+    "base": 63.5,
+    "foot": [
+     73,
+     58,
+     78.5,
+     63.5
+    ]
+   },
+   {
+    "id": "chair-trophy-e",
+    "src": "assets/layers/vie-up/chair-trophy-e.png",
+    "x": 83.472,
+    "y": 54.963,
+    "w": 6.501,
+    "h": 9.007,
+    "base": 63.5,
+    "foot": [
+     84,
+     58,
+     89.5,
+     63.5
+    ]
+   },
+   {
+    "id": "globe",
+    "src": "assets/layers/vie-up/globe.png",
+    "x": 90.456,
+    "y": 52.941,
+    "w": 4.564,
+    "h": 10.018,
+    "base": 62.5,
+    "foot": [
+     91,
+     58,
+     94,
+     62.5
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     6,
+     30
+    ],
+    [
+     33,
+     30
+    ],
+    [
+     33,
+     64
+    ],
+    [
+     6,
+     64
+    ]
+   ],
+   [
+    [
+     31,
+     40
+    ],
+    [
+     37,
+     40
+    ],
+    [
+     37,
+     45
+    ],
+    [
+     31,
+     45
+    ]
+   ],
+   [
+    [
+     35,
+     30
+    ],
+    [
+     65,
+     30
+    ],
+    [
+     65,
+     87
+    ],
+    [
+     35,
+     87
+    ]
+   ],
+   [
+    [
+     63,
+     40
+    ],
+    [
+     69,
+     40
+    ],
+    [
+     69,
+     45
+    ],
+    [
+     63,
+     45
+    ]
+   ],
+   [
+    [
+     67,
+     37
+    ],
+    [
+     94,
+     37
+    ],
+    [
+     94,
+     64
+    ],
+    [
+     67,
+     64
+    ]
+   ]
+  ],
+  "blocks": [
+   [
+    38,
+    39,
+    62,
+    44.5
+   ],
+   [
+    40,
+    44.5,
+    60,
+    74.5
+   ]
+  ]
+ },
+ "ist-up": {
+  "props": [
+   {
+    "id": "sofa",
+    "src": "assets/layers/ist-up/sofa.png",
+    "x": 9.461,
+    "y": 26.944,
+    "w": 15.539,
+    "h": 10.093,
+    "base": 36.5,
+    "foot": [
+     10,
+     32,
+     24.5,
+     36.5
+    ]
+   },
+   {
+    "id": "armchair-w",
+    "src": "assets/layers/ist-up/armchair-w.png",
+    "x": 7.459,
+    "y": 38.981,
+    "w": 7.044,
+    "h": 8.981,
+    "base": 47.5,
+    "foot": [
+     8,
+     42,
+     14,
+     47.5
+    ]
+   },
+   {
+    "id": "coffee",
+    "src": "assets/layers/ist-up/coffee.png",
+    "x": 11.948,
+    "y": 35.0,
+    "w": 9.53,
+    "h": 10.0,
+    "base": 44.5,
+    "foot": [
+     12.5,
+     38,
+     21,
+     44.5
+    ]
+   },
+   {
+    "id": "armchair-e",
+    "src": "assets/layers/ist-up/armchair-e.png",
+    "x": 22.445,
+    "y": 36.944,
+    "w": 8.08,
+    "h": 10.093,
+    "base": 46.5,
+    "foot": [
+     23,
+     40,
+     30,
+     46.5
+    ]
+   },
+   {
+    "id": "game-table",
+    "src": "assets/layers/ist-up/game-table.png",
+    "x": 12.5,
+    "y": 50.0,
+    "w": 9.53,
+    "h": 12.037,
+    "base": 61.5,
+    "foot": [
+     13,
+     54,
+     21.5,
+     61.5
+    ]
+   },
+   {
+    "id": "plant-lounge-sw",
+    "src": "assets/layers/ist-up/plant-lounge-sw.png",
+    "x": 4.489,
+    "y": 51.944,
+    "w": 4.006,
+    "h": 10.093,
+    "base": 61.5,
+    "foot": [
+     6,
+     58,
+     8.2,
+     61.5
+    ]
+   },
+   {
+    "id": "plant-lounge-se",
+    "src": "assets/layers/ist-up/plant-lounge-se.png",
+    "x": 27.486,
+    "y": 51.944,
+    "w": 4.006,
+    "h": 10.093,
+    "base": 61.5,
+    "foot": [
+     27.8,
+     58,
+     31,
+     61.5
+    ]
+   },
+   {
+    "id": "railing-stair-w",
+    "src": "assets/layers/ist-up/railing-stair-w.png",
+    "x": 39.986,
+    "y": 27.963,
+    "w": 4.006,
+    "h": 13.056,
+    "base": 40.5,
+    "foot": null
+   },
+   {
+    "id": "railing-stair-e",
+    "src": "assets/layers/ist-up/railing-stair-e.png",
+    "x": 55.939,
+    "y": 27.963,
+    "w": 4.075,
+    "h": 13.056,
+    "base": 40.5,
+    "foot": null
+   },
+   {
+    "id": "plant-center-w",
+    "src": "assets/layers/ist-up/plant-center-w.png",
+    "x": 35.981,
+    "y": 35.926,
+    "w": 4.006,
+    "h": 11.111,
+    "base": 46.5,
+    "foot": [
+     36.5,
+     43,
+     39.7,
+     46.5
+    ]
+   },
+   {
+    "id": "plant-center-e",
+    "src": "assets/layers/ist-up/plant-center-e.png",
+    "x": 59.945,
+    "y": 35.926,
+    "w": 4.075,
+    "h": 11.111,
+    "base": 46.5,
+    "foot": [
+     60.3,
+     43,
+     63.5,
+     46.5
+    ]
+   },
+   {
+    "id": "lamp-center-w",
+    "src": "assets/layers/ist-up/lamp-center-w.png",
+    "x": 35.497,
+    "y": 47.963,
+    "w": 2.97,
+    "h": 8.056,
+    "base": 55.5,
+    "foot": [
+     36,
+     53,
+     38.2,
+     55.5
+    ]
+   },
+   {
+    "id": "lamp-center-e",
+    "src": "assets/layers/ist-up/lamp-center-e.png",
+    "x": 61.464,
+    "y": 47.963,
+    "w": 3.039,
+    "h": 8.056,
+    "base": 55.5,
+    "foot": [
+     61.8,
+     53,
+     64,
+     55.5
+    ]
+   },
+   {
+    "id": "plant-center-sw",
+    "src": "assets/layers/ist-up/plant-center-sw.png",
+    "x": 33.978,
+    "y": 53.981,
+    "w": 5.041,
+    "h": 8.056,
+    "base": 61.5,
+    "foot": [
+     34.5,
+     58,
+     38.7,
+     61.5
+    ]
+   },
+   {
+    "id": "plant-center-se",
+    "src": "assets/layers/ist-up/plant-center-se.png",
+    "x": 60.981,
+    "y": 53.981,
+    "w": 5.041,
+    "h": 8.056,
+    "base": 61.5,
+    "foot": [
+     61.3,
+     58,
+     65,
+     61.5
+    ]
+   },
+   {
+    "id": "lamp-bal-w",
+    "src": "assets/layers/ist-up/lamp-bal-w.png",
+    "x": 38.467,
+    "y": 60.0,
+    "w": 3.039,
+    "h": 7.963,
+    "base": 67.5,
+    "foot": [
+     39,
+     65.5,
+     41.3,
+     67
+    ]
+   },
+   {
+    "id": "lamp-bal-e",
+    "src": "assets/layers/ist-up/lamp-bal-e.png",
+    "x": 58.494,
+    "y": 60.0,
+    "w": 3.039,
+    "h": 7.963,
+    "base": 67.5,
+    "foot": [
+     58.7,
+     65.5,
+     61,
+     67
+    ]
+   },
+   {
+    "id": "balustrade",
+    "src": "assets/layers/ist-up/balustrade.png",
+    "x": 33.978,
+    "y": 65.0,
+    "w": 32.044,
+    "h": 7.963,
+    "base": 72.5,
+    "foot": null
+   },
+   {
+    "id": "plant-trophy-n",
+    "src": "assets/layers/ist-up/plant-trophy-n.png",
+    "x": 68.992,
+    "y": 31.944,
+    "w": 4.006,
+    "h": 8.056,
+    "base": 39.5,
+    "foot": [
+     69.5,
+     36.5,
+     72.7,
+     39.5
+    ]
+   },
+   {
+    "id": "plant-trophy-n2",
+    "src": "assets/layers/ist-up/plant-trophy-n2.png",
+    "x": 72.997,
+    "y": 35.926,
+    "w": 4.006,
+    "h": 7.037,
+    "base": 42.5,
+    "foot": [
+     73.3,
+     40,
+     76.7,
+     42.5
+    ]
+   },
+   {
+    "id": "display",
+    "src": "assets/layers/ist-up/display.png",
+    "x": 75.967,
+    "y": 35.926,
+    "w": 13.536,
+    "h": 12.037,
+    "base": 47.5,
+    "foot": [
+     76.5,
+     40,
+     89,
+     47.5
+    ]
+   },
+   {
+    "id": "plant-trophy-ne",
+    "src": "assets/layers/ist-up/plant-trophy-ne.png",
+    "x": 87.5,
+    "y": 35.926,
+    "w": 4.006,
+    "h": 7.037,
+    "base": 42.5,
+    "foot": [
+     87.8,
+     40,
+     91.2,
+     42.5
+    ]
+   },
+   {
+    "id": "table-trophy-w",
+    "src": "assets/layers/ist-up/table-trophy-w.png",
+    "x": 72.445,
+    "y": 48.981,
+    "w": 8.564,
+    "h": 13.056,
+    "base": 61.5,
+    "foot": [
+     73,
+     53,
+     80.5,
+     61.5
+    ]
+   },
+   {
+    "id": "table-trophy-e",
+    "src": "assets/layers/ist-up/table-trophy-e.png",
+    "x": 83.978,
+    "y": 48.981,
+    "w": 8.494,
+    "h": 13.056,
+    "base": 61.5,
+    "foot": [
+     84.5,
+     53,
+     92,
+     61.5
+    ]
+   },
+   {
+    "id": "lamp-trophy-w",
+    "src": "assets/layers/ist-up/lamp-trophy-w.png",
+    "x": 68.992,
+    "y": 50.926,
+    "w": 2.486,
+    "h": 7.037,
+    "base": 57.5,
+    "foot": [
+     69.3,
+     55.5,
+     71.3,
+     57.5
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     6,
+     32
+    ],
+    [
+     31,
+     32
+    ],
+    [
+     31,
+     62
+    ],
+    [
+     6,
+     62
+    ]
+   ],
+   [
+    [
+     29,
+     40
+    ],
+    [
+     37,
+     40
+    ],
+    [
+     37,
+     45
+    ],
+    [
+     29,
+     45
+    ]
+   ],
+   [
+    [
+     35,
+     38
+    ],
+    [
+     65,
+     38
+    ],
+    [
+     65,
+     67
+    ],
+    [
+     35,
+     67
+    ]
+   ],
+   [
+    [
+     44,
+     30
+    ],
+    [
+     56,
+     30
+    ],
+    [
+     56,
+     39
+    ],
+    [
+     44,
+     39
+    ]
+   ],
+   [
+    [
+     63,
+     40
+    ],
+    [
+     70,
+     40
+    ],
+    [
+     70,
+     45
+    ],
+    [
+     63,
+     45
+    ]
+   ],
+   [
+    [
+     69,
+     36
+    ],
+    [
+     94,
+     36
+    ],
+    [
+     94,
+     62
+    ],
+    [
+     69,
+     62
+    ]
+   ]
+  ],
+  "blocks": [
+   [
+    40,
+    29,
+    44,
+    40
+   ],
+   [
+    56,
+    29,
+    60,
+    40
+   ]
+  ]
+ },
+ "wen-up": {
+  "props": [
+   {
+    "id": "sofa",
+    "src": "assets/layers/wen-up/sofa.png",
+    "x": 13.476,
+    "y": 27.967,
+    "w": 12.509,
+    "h": 10.028,
+    "base": 37.5,
+    "foot": [
+     14,
+     31,
+     25.5,
+     37.5
+    ]
+   },
+   {
+    "id": "armchair-w",
+    "src": "assets/layers/wen-up/armchair-w.png",
+    "x": 8.431,
+    "y": 36.983,
+    "w": 7.049,
+    "h": 11.04,
+    "base": 47.5,
+    "foot": [
+     9,
+     41,
+     15,
+     47.5
+    ]
+   },
+   {
+    "id": "tea-table",
+    "src": "assets/layers/wen-up/tea-table.png",
+    "x": 14.997,
+    "y": 36.983,
+    "w": 9.537,
+    "h": 8.004,
+    "base": 44.5,
+    "foot": [
+     15.5,
+     39,
+     24,
+     44.5
+    ]
+   },
+   {
+    "id": "armchair-e",
+    "src": "assets/layers/wen-up/armchair-e.png",
+    "x": 24.464,
+    "y": 36.983,
+    "w": 6.565,
+    "h": 11.04,
+    "base": 47.5,
+    "foot": [
+     25,
+     41,
+     29.5,
+     46.5
+    ]
+   },
+   {
+    "id": "sideboard",
+    "src": "assets/layers/wen-up/sideboard.png",
+    "x": 3.455,
+    "y": 37.994,
+    "w": 4.561,
+    "h": 12.971,
+    "base": 50.5,
+    "foot": [
+     5,
+     43,
+     7.8,
+     50.5
+    ]
+   },
+   {
+    "id": "game-table",
+    "src": "assets/layers/wen-up/game-table.png",
+    "x": 12.992,
+    "y": 47.93,
+    "w": 12.025,
+    "h": 12.052,
+    "base": 59.5,
+    "foot": [
+     13.5,
+     51,
+     24.5,
+     59.5
+    ]
+   },
+   {
+    "id": "plant-lounge-sw",
+    "src": "assets/layers/wen-up/plant-lounge-sw.png",
+    "x": 5.46,
+    "y": 48.942,
+    "w": 4.008,
+    "h": 11.04,
+    "base": 59.5,
+    "foot": [
+     6,
+     55,
+     9.2,
+     59.5
+    ]
+   },
+   {
+    "id": "plant-lounge-sw2",
+    "src": "assets/layers/wen-up/plant-lounge-sw2.png",
+    "x": 8.431,
+    "y": 55.934,
+    "w": 4.077,
+    "h": 8.096,
+    "base": 63.5,
+    "foot": [
+     9,
+     60,
+     12.2,
+     63.5
+    ]
+   },
+   {
+    "id": "plant-lounge-e",
+    "src": "assets/layers/wen-up/plant-lounge-e.png",
+    "x": 28.473,
+    "y": 53.91,
+    "w": 4.008,
+    "h": 10.12,
+    "base": 63.5,
+    "foot": [
+     29,
+     59,
+     31.2,
+     63.5
+    ]
+   },
+   {
+    "id": "railing-stair-w",
+    "src": "assets/layers/wen-up/railing-stair-w.png",
+    "x": 40.981,
+    "y": 19.963,
+    "w": 3.525,
+    "h": 19.043,
+    "base": 38.5,
+    "foot": null
+   },
+   {
+    "id": "railing-stair-e",
+    "src": "assets/layers/wen-up/railing-stair-e.png",
+    "x": 55.494,
+    "y": 19.963,
+    "w": 3.525,
+    "h": 19.043,
+    "base": 38.5,
+    "foot": null
+   },
+   {
+    "id": "pole-lantern-w",
+    "src": "assets/layers/wen-up/pole-lantern-w.png",
+    "x": 33.449,
+    "y": 23.919,
+    "w": 3.525,
+    "h": 22.079,
+    "base": 45.5,
+    "foot": null
+   },
+   {
+    "id": "pole-lantern-e",
+    "src": "assets/layers/wen-up/pole-lantern-e.png",
+    "x": 62.958,
+    "y": 23.919,
+    "w": 3.525,
+    "h": 22.079,
+    "base": 45.5,
+    "foot": null
+   },
+   {
+    "id": "plant-center-w",
+    "src": "assets/layers/wen-up/plant-center-w.png",
+    "x": 35.453,
+    "y": 43.974,
+    "w": 3.041,
+    "h": 8.004,
+    "base": 51.5,
+    "foot": [
+     35.8,
+     49,
+     38.2,
+     51.5
+    ]
+   },
+   {
+    "id": "plant-center-e",
+    "src": "assets/layers/wen-up/plant-center-e.png",
+    "x": 61.437,
+    "y": 43.974,
+    "w": 3.041,
+    "h": 8.004,
+    "base": 51.5,
+    "foot": [
+     61.8,
+     49,
+     64.2,
+     51.5
+    ]
+   },
+   {
+    "id": "lantern-mid-w",
+    "src": "assets/layers/wen-up/lantern-mid-w.png",
+    "x": 31.997,
+    "y": 49.954,
+    "w": 2.972,
+    "h": 8.004,
+    "base": 57.5,
+    "foot": null
+   },
+   {
+    "id": "lantern-mid-e",
+    "src": "assets/layers/wen-up/lantern-mid-e.png",
+    "x": 64.962,
+    "y": 49.954,
+    "w": 3.041,
+    "h": 8.004,
+    "base": 57.5,
+    "foot": null
+   },
+   {
+    "id": "post-w",
+    "src": "assets/layers/wen-up/post-w.png",
+    "x": 35.453,
+    "y": 56.946,
+    "w": 3.041,
+    "h": 24.011,
+    "base": 80.5,
+    "foot": [
+     36.5,
+     76,
+     38.5,
+     80
+    ]
+   },
+   {
+    "id": "post-e",
+    "src": "assets/layers/wen-up/post-e.png",
+    "x": 61.437,
+    "y": 56.946,
+    "w": 3.041,
+    "h": 24.011,
+    "base": 80.5,
+    "foot": [
+     61.5,
+     76,
+     63.5,
+     80
+    ]
+   },
+   {
+    "id": "plant-lower-w",
+    "src": "assets/layers/wen-up/plant-lower-w.png",
+    "x": 36.973,
+    "y": 67.985,
+    "w": 3.525,
+    "h": 10.028,
+    "base": 77.5,
+    "foot": [
+     37.3,
+     74,
+     40.2,
+     77.5
+    ]
+   },
+   {
+    "id": "plant-lower-e",
+    "src": "assets/layers/wen-up/plant-lower-e.png",
+    "x": 59.433,
+    "y": 67.985,
+    "w": 3.594,
+    "h": 10.028,
+    "base": 77.5,
+    "foot": [
+     59.8,
+     74,
+     62.7,
+     77.5
+    ]
+   },
+   {
+    "id": "railing-lower-w",
+    "src": "assets/layers/wen-up/railing-lower-w.png",
+    "x": 28.473,
+    "y": 68.997,
+    "w": 3.041,
+    "h": 18.031,
+    "base": 86.5,
+    "foot": null
+   },
+   {
+    "id": "railing-lower-e",
+    "src": "assets/layers/wen-up/railing-lower-e.png",
+    "x": 68.487,
+    "y": 68.997,
+    "w": 3.041,
+    "h": 18.031,
+    "base": 86.5,
+    "foot": null
+   },
+   {
+    "id": "plant-corner-w",
+    "src": "assets/layers/wen-up/plant-corner-w.png",
+    "x": 29.993,
+    "y": 76.909,
+    "w": 4.008,
+    "h": 10.12,
+    "base": 86.5,
+    "foot": [
+     30.5,
+     82,
+     33.7,
+     84
+    ]
+   },
+   {
+    "id": "plant-corner-e",
+    "src": "assets/layers/wen-up/plant-corner-e.png",
+    "x": 65.999,
+    "y": 76.909,
+    "w": 4.008,
+    "h": 10.12,
+    "base": 86.5,
+    "foot": [
+     66.3,
+     82,
+     69.5,
+     84
+    ]
+   },
+   {
+    "id": "railing-bottom",
+    "src": "assets/layers/wen-up/railing-bottom.png",
+    "x": 32.965,
+    "y": 83.993,
+    "w": 34.001,
+    "h": 8.004,
+    "base": 91.5,
+    "foot": null
+   },
+   {
+    "id": "plant-trophy-nw",
+    "src": "assets/layers/wen-up/plant-trophy-nw.png",
+    "x": 67.45,
+    "y": 32.935,
+    "w": 4.077,
+    "h": 8.096,
+    "base": 40.5,
+    "foot": [
+     68,
+     38,
+     71.2,
+     40.5
+    ]
+   },
+   {
+    "id": "plant-trophy-n",
+    "src": "assets/layers/wen-up/plant-trophy-n.png",
+    "x": 85.971,
+    "y": 32.935,
+    "w": 4.008,
+    "h": 8.096,
+    "base": 40.5,
+    "foot": [
+     86.3,
+     38,
+     89.7,
+     40.5
+    ]
+   },
+   {
+    "id": "lamp-trophy",
+    "src": "assets/layers/wen-up/lamp-trophy.png",
+    "x": 90.947,
+    "y": 34.959,
+    "w": 3.525,
+    "h": 7.084,
+    "base": 41.5,
+    "foot": [
+     91.3,
+     39,
+     94,
+     41.5
+    ]
+   },
+   {
+    "id": "display",
+    "src": "assets/layers/wen-up/display.png",
+    "x": 71.458,
+    "y": 36.983,
+    "w": 15.549,
+    "h": 20.055,
+    "base": 56.5,
+    "foot": [
+     72,
+     42,
+     86.5,
+     56.5
+    ]
+   },
+   {
+    "id": "sideboard-trophy",
+    "src": "assets/layers/wen-up/sideboard-trophy.png",
+    "x": 90.463,
+    "y": 39.926,
+    "w": 5.529,
+    "h": 11.04,
+    "base": 50.5,
+    "foot": [
+     91,
+     44,
+     95,
+     50.5
+    ]
+   },
+   {
+    "id": "plant-trophy-se",
+    "src": "assets/layers/wen-up/plant-trophy-se.png",
+    "x": 89.496,
+    "y": 51.978,
+    "w": 4.492,
+    "h": 10.028,
+    "base": 61.5,
+    "foot": [
+     90,
+     57,
+     93.7,
+     61.5
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     5,
+     31
+    ],
+    [
+     31,
+     31
+    ],
+    [
+     31,
+     64
+    ],
+    [
+     5,
+     64
+    ]
+   ],
+   [
+    [
+     29,
+     46
+    ],
+    [
+     38,
+     46
+    ],
+    [
+     38,
+     51
+    ],
+    [
+     29,
+     51
+    ]
+   ],
+   [
+    [
+     37,
+     38
+    ],
+    [
+     63,
+     38
+    ],
+    [
+     63,
+     68
+    ],
+    [
+     69,
+     68
+    ],
+    [
+     69,
+     84
+    ],
+    [
+     31,
+     84
+    ],
+    [
+     31,
+     68
+    ],
+    [
+     37,
+     68
+    ]
+   ],
+   [
+    [
+     62,
+     46
+    ],
+    [
+     70,
+     46
+    ],
+    [
+     70,
+     51
+    ],
+    [
+     62,
+     51
+    ]
+   ],
+   [
+    [
+     68,
+     38
+    ],
+    [
+     95,
+     38
+    ],
+    [
+     95,
+     64
+    ],
+    [
+     68,
+     64
+    ]
+   ]
+  ],
+  "blocks": [
+   [
+    41,
+    20,
+    44.5,
+    39
+   ],
+   [
+    55.5,
+    20,
+    59,
+    39
+   ]
+  ]
+ },
+ "mad-int": {
+  "props": [
+   {
+    "id": "stage",
+    "src": "assets/layers/mad-int/stage.png",
+    "x": 34.948,
+    "y": 10.938,
+    "w": 30.035,
+    "h": 14.062,
+    "base": 24.5,
+    "foot": null
+   },
+   {
+    "id": "stairs-w",
+    "src": "assets/layers/mad-int/stairs-w.png",
+    "x": 28.997,
+    "y": 23.989,
+    "w": 15.017,
+    "h": 23.989,
+    "base": 47.5,
+    "foot": null
+   },
+   {
+    "id": "stairs-e",
+    "src": "assets/layers/mad-int/stairs-e.png",
+    "x": 55.986,
+    "y": 23.989,
+    "w": 15.017,
+    "h": 23.989,
+    "base": 47.5,
+    "foot": null
+   },
+   {
+    "id": "statue-w",
+    "src": "assets/layers/mad-int/statue-w.png",
+    "x": 33.495,
+    "y": 37.96,
+    "w": 4.983,
+    "h": 14.062,
+    "base": 51.5,
+    "foot": [
+     34,
+     48,
+     38,
+     51.5
+    ]
+   },
+   {
+    "id": "statue-e",
+    "src": "assets/layers/mad-int/statue-e.png",
+    "x": 61.453,
+    "y": 37.96,
+    "w": 5.052,
+    "h": 14.062,
+    "base": 51.5,
+    "foot": [
+     62,
+     48,
+     66,
+     51.5
+    ]
+   },
+   {
+    "id": "plant-tl",
+    "src": "assets/layers/mad-int/plant-tl.png",
+    "x": 26.436,
+    "y": 28.952,
+    "w": 3.045,
+    "h": 8.088,
+    "base": 36.5,
+    "foot": [
+     27,
+     33.5,
+     29.2,
+     36.5
+    ]
+   },
+   {
+    "id": "plant-tr",
+    "src": "assets/layers/mad-int/plant-tr.png",
+    "x": 70.45,
+    "y": 28.952,
+    "w": 3.045,
+    "h": 8.088,
+    "base": 36.5,
+    "foot": [
+     70.8,
+     33.5,
+     73,
+     36.5
+    ]
+   },
+   {
+    "id": "stanchions-top-w",
+    "src": "assets/layers/mad-int/stanchions-top-w.png",
+    "x": 18.478,
+    "y": 32.996,
+    "w": 12.042,
+    "h": 4.504,
+    "base": 37,
+    "foot": [
+     19,
+     35.5,
+     30,
+     37
+    ]
+   },
+   {
+    "id": "stanchions-top-e",
+    "src": "assets/layers/mad-int/stanchions-top-e.png",
+    "x": 69.481,
+    "y": 32.996,
+    "w": 12.042,
+    "h": 4.504,
+    "base": 37,
+    "foot": [
+     70,
+     35.5,
+     81,
+     37
+    ]
+   },
+   {
+    "id": "plant-lower-w",
+    "src": "assets/layers/mad-int/plant-lower-w.png",
+    "x": 38.962,
+    "y": 54.963,
+    "w": 4.567,
+    "h": 10.018,
+    "base": 64.5,
+    "foot": [
+     39.5,
+     61,
+     43.2,
+     64.5
+    ]
+   },
+   {
+    "id": "plant-lower-e",
+    "src": "assets/layers/mad-int/plant-lower-e.png",
+    "x": 56.471,
+    "y": 54.963,
+    "w": 4.498,
+    "h": 10.018,
+    "base": 64.5,
+    "foot": [
+     56.8,
+     61,
+     60.5,
+     64.5
+    ]
+   },
+   {
+    "id": "rope-center",
+    "src": "assets/layers/mad-int/rope-center.png",
+    "x": 43.46,
+    "y": 56.985,
+    "w": 13.01,
+    "h": 5.974,
+    "base": 62.5,
+    "foot": [
+     44,
+     60,
+     56,
+     62.5
+    ]
+   },
+   {
+    "id": "plant-low-w2",
+    "src": "assets/layers/mad-int/plant-low-w2.png",
+    "x": 37.993,
+    "y": 69.945,
+    "w": 4.498,
+    "h": 9.099,
+    "base": 78.5,
+    "foot": [
+     38.5,
+     75,
+     42.2,
+     78
+    ]
+   },
+   {
+    "id": "plant-low-e2",
+    "src": "assets/layers/mad-int/plant-low-e2.png",
+    "x": 57.439,
+    "y": 69.945,
+    "w": 4.567,
+    "h": 9.099,
+    "base": 78.5,
+    "foot": [
+     57.8,
+     75,
+     61.5,
+     78
+    ]
+   },
+   {
+    "id": "lamp-low-w",
+    "src": "assets/layers/mad-int/lamp-low-w.png",
+    "x": 43.46,
+    "y": 69.945,
+    "w": 2.007,
+    "h": 8.088,
+    "base": 77.5,
+    "foot": [
+     43.7,
+     75,
+     45.3,
+     77.5
+    ]
+   },
+   {
+    "id": "lamp-low-e",
+    "src": "assets/layers/mad-int/lamp-low-e.png",
+    "x": 54.464,
+    "y": 69.945,
+    "w": 2.007,
+    "h": 8.088,
+    "base": 77.5,
+    "foot": [
+     54.7,
+     75,
+     56.3,
+     77.5
+    ]
+   },
+   {
+    "id": "plant-wing-w",
+    "src": "assets/layers/mad-int/plant-wing-w.png",
+    "x": 6.99,
+    "y": 57.996,
+    "w": 2.976,
+    "h": 7.996,
+    "base": 65.5,
+    "foot": [
+     7.3,
+     62,
+     9.7,
+     65.5
+    ]
+   },
+   {
+    "id": "plant-wing-w2",
+    "src": "assets/layers/mad-int/plant-wing-w2.png",
+    "x": 6.99,
+    "y": 67.923,
+    "w": 3.529,
+    "h": 8.088,
+    "base": 75.5,
+    "foot": [
+     7.3,
+     72,
+     10.2,
+     75.5
+    ]
+   },
+   {
+    "id": "plant-wing-e",
+    "src": "assets/layers/mad-int/plant-wing-e.png",
+    "x": 89.965,
+    "y": 57.996,
+    "w": 3.045,
+    "h": 7.996,
+    "base": 65.5,
+    "foot": [
+     90.3,
+     62,
+     92.7,
+     65.5
+    ]
+   },
+   {
+    "id": "plant-wing-e2",
+    "src": "assets/layers/mad-int/plant-wing-e2.png",
+    "x": 89.481,
+    "y": 67.923,
+    "w": 3.529,
+    "h": 8.088,
+    "base": 75.5,
+    "foot": [
+     89.8,
+     72,
+     92.7,
+     75.5
+    ]
+   },
+   {
+    "id": "pillar-exit-w",
+    "src": "assets/layers/mad-int/pillar-exit-w.png",
+    "x": 41.453,
+    "y": 77.941,
+    "w": 3.529,
+    "h": 11.029,
+    "base": 88.5,
+    "foot": null
+   },
+   {
+    "id": "pillar-exit-e",
+    "src": "assets/layers/mad-int/pillar-exit-e.png",
+    "x": 54.948,
+    "y": 77.941,
+    "w": 3.529,
+    "h": 11.029,
+    "base": 88.5,
+    "foot": null
+   },
+   {
+    "id": "plant-exit-w",
+    "src": "assets/layers/mad-int/plant-exit-w.png",
+    "x": 37.993,
+    "y": 84.926,
+    "w": 4.014,
+    "h": 9.099,
+    "base": 93.5,
+    "foot": null
+   },
+   {
+    "id": "plant-exit-e",
+    "src": "assets/layers/mad-int/plant-exit-e.png",
+    "x": 57.993,
+    "y": 84.926,
+    "w": 4.014,
+    "h": 9.099,
+    "base": 93.5,
+    "foot": null
+   },
+   {
+    "id": "rope-lower-w",
+    "src": "assets/layers/mad-int/rope-lower-w.png",
+    "x": 29.965,
+    "y": 75.0,
+    "w": 8.512,
+    "h": 4.963,
+    "base": 79.5,
+    "foot": null
+   },
+   {
+    "id": "rope-lower-e",
+    "src": "assets/layers/mad-int/rope-lower-e.png",
+    "x": 61.453,
+    "y": 75.0,
+    "w": 8.512,
+    "h": 4.963,
+    "base": 79.5,
+    "foot": null
+   },
+   {
+    "id": "tl-01",
+    "src": "assets/layers/mad-int/tl-01.png",
+    "x": 10.45,
+    "y": 19.945,
+    "w": 7.059,
+    "h": 8.088,
+    "base": 27.7,
+    "foot": [
+     11.0,
+     22.5,
+     17.0,
+     27.7
+    ]
+   },
+   {
+    "id": "tl-02",
+    "src": "assets/layers/mad-int/tl-02.png",
+    "x": 10.45,
+    "y": 27.941,
+    "w": 7.059,
+    "h": 8.088,
+    "base": 35.7,
+    "foot": [
+     11.0,
+     30.5,
+     17.0,
+     35.7
+    ]
+   },
+   {
+    "id": "tl-11",
+    "src": "assets/layers/mad-int/tl-11.png",
+    "x": 19.446,
+    "y": 19.945,
+    "w": 7.059,
+    "h": 8.088,
+    "base": 27.7,
+    "foot": [
+     20.0,
+     22.5,
+     26.0,
+     27.7
+    ]
+   },
+   {
+    "id": "tl-12",
+    "src": "assets/layers/mad-int/tl-12.png",
+    "x": 19.446,
+    "y": 27.941,
+    "w": 7.059,
+    "h": 8.088,
+    "base": 35.7,
+    "foot": [
+     20.0,
+     30.5,
+     26.0,
+     35.7
+    ]
+   },
+   {
+    "id": "tr-01",
+    "src": "assets/layers/mad-int/tr-01.png",
+    "x": 73.495,
+    "y": 19.945,
+    "w": 6.99,
+    "h": 8.088,
+    "base": 27.7,
+    "foot": [
+     74.0,
+     22.5,
+     80.0,
+     27.7
+    ]
+   },
+   {
+    "id": "tr-02",
+    "src": "assets/layers/mad-int/tr-02.png",
+    "x": 73.495,
+    "y": 27.941,
+    "w": 6.99,
+    "h": 8.088,
+    "base": 35.7,
+    "foot": [
+     74.0,
+     30.5,
+     80.0,
+     35.7
+    ]
+   },
+   {
+    "id": "tr-11",
+    "src": "assets/layers/mad-int/tr-11.png",
+    "x": 82.491,
+    "y": 19.945,
+    "w": 6.99,
+    "h": 8.088,
+    "base": 27.7,
+    "foot": [
+     83.0,
+     22.5,
+     89.0,
+     27.7
+    ]
+   },
+   {
+    "id": "tr-12",
+    "src": "assets/layers/mad-int/tr-12.png",
+    "x": 82.491,
+    "y": 27.941,
+    "w": 6.99,
+    "h": 8.088,
+    "base": 35.7,
+    "foot": [
+     83.0,
+     30.5,
+     89.0,
+     35.7
+    ]
+   },
+   {
+    "id": "ll-01",
+    "src": "assets/layers/mad-int/ll-01.png",
+    "x": 9.965,
+    "y": 57.996,
+    "w": 7.059,
+    "h": 7.996,
+    "base": 65.7,
+    "foot": [
+     10.5,
+     60.5,
+     16.5,
+     65.7
+    ]
+   },
+   {
+    "id": "ll-02",
+    "src": "assets/layers/mad-int/ll-02.png",
+    "x": 9.965,
+    "y": 65.993,
+    "w": 7.059,
+    "h": 8.548,
+    "base": 74.2,
+    "foot": [
+     10.5,
+     68.5,
+     16.5,
+     74.2
+    ]
+   },
+   {
+    "id": "ll-11",
+    "src": "assets/layers/mad-int/ll-11.png",
+    "x": 20.484,
+    "y": 57.996,
+    "w": 6.99,
+    "h": 7.996,
+    "base": 65.7,
+    "foot": [
+     21.0,
+     60.5,
+     27.0,
+     65.7
+    ]
+   },
+   {
+    "id": "ll-12",
+    "src": "assets/layers/mad-int/ll-12.png",
+    "x": 20.484,
+    "y": 65.993,
+    "w": 6.99,
+    "h": 8.548,
+    "base": 74.2,
+    "foot": [
+     21.0,
+     68.5,
+     27.0,
+     74.2
+    ]
+   },
+   {
+    "id": "ll-21",
+    "src": "assets/layers/mad-int/ll-21.png",
+    "x": 30.45,
+    "y": 57.996,
+    "w": 6.574,
+    "h": 7.996,
+    "base": 65.7,
+    "foot": [
+     31.0,
+     60.5,
+     36.5,
+     65.7
+    ]
+   },
+   {
+    "id": "ll-22",
+    "src": "assets/layers/mad-int/ll-22.png",
+    "x": 30.45,
+    "y": 65.993,
+    "w": 6.574,
+    "h": 8.548,
+    "base": 74.2,
+    "foot": [
+     31.0,
+     68.5,
+     36.5,
+     74.2
+    ]
+   },
+   {
+    "id": "lr-01",
+    "src": "assets/layers/mad-int/lr-01.png",
+    "x": 62.976,
+    "y": 57.996,
+    "w": 6.505,
+    "h": 7.996,
+    "base": 65.7,
+    "foot": [
+     63.5,
+     60.5,
+     69.0,
+     65.7
+    ]
+   },
+   {
+    "id": "lr-02",
+    "src": "assets/layers/mad-int/lr-02.png",
+    "x": 62.976,
+    "y": 65.993,
+    "w": 6.505,
+    "h": 8.548,
+    "base": 74.2,
+    "foot": [
+     63.5,
+     68.5,
+     69.0,
+     74.2
+    ]
+   },
+   {
+    "id": "lr-11",
+    "src": "assets/layers/mad-int/lr-11.png",
+    "x": 72.457,
+    "y": 57.996,
+    "w": 7.059,
+    "h": 7.996,
+    "base": 65.7,
+    "foot": [
+     73.0,
+     60.5,
+     79.0,
+     65.7
+    ]
+   },
+   {
+    "id": "lr-12",
+    "src": "assets/layers/mad-int/lr-12.png",
+    "x": 72.457,
+    "y": 65.993,
+    "w": 7.059,
+    "h": 8.548,
+    "base": 74.2,
+    "foot": [
+     73.0,
+     68.5,
+     79.0,
+     74.2
+    ]
+   },
+   {
+    "id": "lr-21",
+    "src": "assets/layers/mad-int/lr-21.png",
+    "x": 82.976,
+    "y": 57.996,
+    "w": 6.99,
+    "h": 7.996,
+    "base": 65.7,
+    "foot": [
+     83.5,
+     60.5,
+     89.5,
+     65.7
+    ]
+   },
+   {
+    "id": "lr-22",
+    "src": "assets/layers/mad-int/lr-22.png",
+    "x": 82.976,
+    "y": 65.993,
+    "w": 6.99,
+    "h": 8.548,
+    "base": 74.2,
+    "foot": [
+     83.5,
+     68.5,
+     89.5,
+     74.2
+    ]
+   }
+  ],
+  "floor": [
+   [
+    [
+     7,
+     19
+    ],
+    [
+     93,
+     19
+    ],
+    [
+     93,
+     37
+    ],
+    [
+     7,
+     37
+    ]
+   ],
+   [
+    [
+     43.5,
+     24
+    ],
+    [
+     56.5,
+     24
+    ],
+    [
+     56.5,
+     53
+    ],
+    [
+     43.5,
+     53
+    ]
+   ],
+   [
+    [
+     37,
+     47
+    ],
+    [
+     63,
+     47
+    ],
+    [
+     63,
+     53
+    ],
+    [
+     37,
+     53
+    ]
+   ],
+   [
+    [
+     5,
+     52
+    ],
+    [
+     95,
+     52
+    ],
+    [
+     95,
+     78
+    ],
+    [
+     5,
+     78
+    ]
+   ],
+   [
+    [
+     45,
+     77
+    ],
+    [
+     55,
+     77
+    ],
+    [
+     55,
+     95
+    ],
+    [
+     45,
+     95
+    ]
+   ]
+  ],
+  "blocks": [
+   [
+    36,
+    13,
+    64,
+    24
+   ],
+   [
+    29.5,
+    26,
+    43.5,
+    47
+   ],
+   [
+    56.5,
+    26,
+    70.5,
+    47
+   ]
+  ]
+ },
  "mad-ext": {
   "props": [
    {

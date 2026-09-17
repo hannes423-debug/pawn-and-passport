@@ -179,7 +179,7 @@ export async function sceneScreen(app, params) {
     if (!npc) continue;
     if (npc.kind === 'rivals') {
       STAR_PLAYERS.slice(0, 6).forEach((star, i) => {
-        const at = [npc.at[0] + (i % 3) * 5, npc.at[1] + Math.floor(i / 3) * 9];
+        const at = npc.spread ? [npc.at[0] + i * npc.spread[0], npc.at[1] + i * npc.spread[1]] : [npc.at[0] + (i % 3) * 5, npc.at[1] + Math.floor(i / 3) * 9];
         makeActor(star.look, at, { dir: i % 2 ? 'right' : 'left' });
       });
       continue;

@@ -131,8 +131,8 @@ add({ ...hallA('nyc-int', 'assets/scenes/nyc-int.webp', {
   pracDoor: [34, 60], practice: [18.2, 66], practiceNpc: [18.2, 58.5],
   hallDoor: [64, 40], hall: [80.5, 46], hallNpc: [80.5, 35]
 }), actorHeight: 0.07 });
-add(upstairs('nyc-up', 'assets/scenes/nyc-up.webp',
-  { stairs: [50, 45], hub: [50, 70], lounge: [22, 58], loungeNpc: [16, 50], trophies: [78, 55] }));
+add({ ...upstairs('nyc-up', 'assets/scenes/nyc-up.webp',
+  { stairs: [50, 40], hub: [50, 32], lounge: [22, 39.5], loungeNpc: [18, 39.5], trophies: [80, 59.5] }), actorHeight: 0.07 });
 add({
   id: 'nyc-venue', image: 'assets/scenes/nyc-venue.webp', actorHeight: 0.113, kind: 'venue', placeholder: false,
   spawn: { default: 'arrive' },
@@ -145,16 +145,16 @@ add({
 });
 
 /* London */
-add(garden('lon-ext', 'assets/scenes/lon-ext.webp',
-  { gate: [50, 86], path: [50, 62], porch: [50, 46], door: [50, 38] }));
+add({ ...garden('lon-ext', 'assets/scenes/lon-ext.webp',
+  { gate: [50, 90], path: [50, 66], porch: [50, 42], door: [50, 36] }), actorHeight: 0.08 });
 add({
-  id: 'lon-int', image: 'assets/scenes/lon-int.webp', kind: 'interior', spawn: { default: 'entrance', entrance: 'entrance' },
-  nodes: { entrance: [50, 90], lobby: [50, 70], stairs: [50, 52], hall: [50, 30], dirDoor: [36, 70], director: [22, 62], studyDoor: [64, 70], study: [76, 64] },
+  id: 'lon-int', image: 'assets/scenes/lon-int.webp', actorHeight: 0.07, kind: 'interior', spawn: { default: 'entrance', entrance: 'entrance' },
+  nodes: { entrance: [50, 92], lobby: [50, 70], stairs: [50, 50], hall: [50, 30], dirDoor: [34, 70], director: [28, 62], studyDoor: [66, 70], study: [78, 76.5] },
   links: [['entrance', 'lobby'], ['lobby', 'stairs'], ['stairs', 'hall'], ['lobby', 'dirDoor'], ['dirDoor', 'director'], ['lobby', 'studyDoor'], ['studyDoor', 'study']],
   hotspots: [
-    { id: 'tournament', node: 'hall', label: 'Tournament hall', verb: 'Play', action: { type: 'tournament' }, npc: { kind: 'regular', index: 0, at: [60, 22] } },
-    { id: 'star', node: 'director', label: "Director's office", verb: 'Talk', action: { type: 'star' }, npc: { kind: 'star', at: [20, 53] } },
-    { id: 'friendly', node: 'study', label: 'Study and practice', verb: 'Practice', action: { type: 'friendly' }, npc: { kind: 'regular', index: 1, at: [84, 58] } },
+    { id: 'tournament', node: 'hall', label: 'Tournament hall', verb: 'Play', action: { type: 'tournament' }, npc: { kind: 'regular', index: 0, at: [50, 22] } },
+    { id: 'star', node: 'director', label: "Director's office", verb: 'Talk', action: { type: 'star' }, npc: { kind: 'star', at: [20, 53.5] } },
+    { id: 'friendly', node: 'study', label: 'Study and practice', verb: 'Practice', action: { type: 'friendly' }, npc: { kind: 'regular', index: 1, at: [80, 60] } },
     { id: 'exit', node: 'entrance', label: 'Garden', verb: 'Exit', action: { type: 'scene', to: 'lon-ext', spawn: 'door' } }
   ]
 });
@@ -170,16 +170,16 @@ add({
 });
 
 /* Vienna */
-add(garden('vie-ext', 'assets/scenes/vie-ext.webp',
-  { gate: [50, 88], path: [50, 66], porch: [50, 52], door: [50, 44] }));
+add({ ...garden('vie-ext', 'assets/scenes/vie-ext.webp',
+  { gate: [50, 92], path: [50, 65], porch: [50, 45], door: [50, 39] }), actorHeight: 0.09 });
 add({ ...hallA('vie-int', 'assets/scenes/vie-int.webp', {
   entrance: [50, 91], lobby: [50, 78], mid: [50, 33], stairs: [50, 12],
   dirDoor: [34, 35], director: [27.5, 34], starNpc: [18.3, 23],
   pracDoor: [34, 60], practice: [29.2, 60], practiceNpc: [17.9, 58],
   hallDoor: [65, 36], hall: [81.3, 47], hallNpc: [81.3, 37]
 }), actorHeight: 0.07 });
-add(upstairs('vie-up', 'assets/scenes/vie-up.webp',
-  { stairs: [50, 86], hub: [50, 30], lounge: [22, 46], loungeNpc: [14, 40], trophies: [80, 50] }));
+add({ ...upstairs('vie-up', 'assets/scenes/vie-up.webp',
+  { stairs: [50, 37], hub: [50, 33], lounge: [21, 48], loungeNpc: [24, 48.5], trophies: [81, 57] }), actorHeight: 0.07 });
 add({
   // Café Wien: in over the doormat, between the plants, to the table under the cathedral window.
   id: 'vie-venue', image: 'assets/scenes/vie-venue.webp', actorHeight: 0.27, kind: 'venue', spawn: { default: 'arrive' },
@@ -192,16 +192,16 @@ add({
 });
 
 /* Istanbul */
-add(garden('ist-ext', 'assets/scenes/ist-ext.webp',
-  { gate: [50, 84], path: [50, 64], porch: [50, 48], door: [50, 40] }));
-add(hallA('ist-int', 'assets/scenes/ist-int.webp', {
-  entrance: [50, 90], lobby: [50, 68], mid: [50, 38], stairs: [50, 16],
-  dirDoor: [33, 32], director: [19, 34], starNpc: [18, 24],
-  pracDoor: [33, 60], practice: [18, 63], practiceNpc: [12, 57],
-  hallDoor: [67, 45], hall: [80, 48], hallNpc: [86, 42]
-}));
-add(upstairs('ist-up', 'assets/scenes/ist-up.webp',
-  { stairs: [50, 30], hub: [50, 62], lounge: [22, 50], loungeNpc: [15, 44], trophies: [78, 56] }));
+add({ ...garden('ist-ext', 'assets/scenes/ist-ext.webp',
+  { gate: [50, 89], path: [50, 66], porch: [50, 48], door: [50, 42] }), actorHeight: 0.08 });
+add({ ...hallA('ist-int', 'assets/scenes/ist-int.webp', {
+  entrance: [50, 91], lobby: [50, 78], mid: [50, 38], stairs: [50, 12],
+  dirDoor: [34, 33.5], director: [27, 34], starNpc: [18.5, 23],
+  pracDoor: [34, 60.5], practice: [17.5, 63.5], practiceNpc: [17.5, 57],
+  hallDoor: [66, 44.5], hall: [80.5, 50], hallNpc: [80.5, 36]
+}), actorHeight: 0.07 });
+add({ ...upstairs('ist-up', 'assets/scenes/ist-up.webp',
+  { stairs: [50, 37], hub: [50, 48], lounge: [21, 48.5], loungeNpc: [18, 49], trophies: [82.5, 50] }), actorHeight: 0.07 });
 add({
   // Bosphorus tea terrace: up the steps, round the sign, to the middle table.
   id: 'ist-venue', image: 'assets/scenes/ist-venue.webp', actorHeight: 0.17, kind: 'venue', spawn: { default: 'arrive' },
@@ -239,16 +239,16 @@ add({
 });
 
 /* Wenzhou */
-add(garden('wen-ext', 'assets/scenes/wen-ext.webp',
-  { gate: [50, 86], path: [50, 64], porch: [50, 50], door: [50, 42] }));
-add(hallA('wen-int', 'assets/scenes/wen-int.webp', {
-  entrance: [50, 90], lobby: [40, 60], mid: [50, 40], stairs: [50, 14],
-  dirDoor: [33, 28], director: [19, 30], starNpc: [16, 22],
-  pracDoor: [33, 62], practice: [18, 66], practiceNpc: [12, 60],
-  hallDoor: [68, 50], hall: [82, 54], hallNpc: [88, 46]
-}));
-add(upstairs('wen-up', 'assets/scenes/wen-up.webp',
-  { stairs: [50, 32], hub: [50, 58], lounge: [24, 52], loungeNpc: [16, 44], trophies: [78, 54] }));
+add({ ...garden('wen-ext', 'assets/scenes/wen-ext.webp',
+  { gate: [50, 91], path: [50, 66], porch: [50, 52], door: [50, 46] }), actorHeight: 0.08 });
+add({ ...hallA('wen-int', 'assets/scenes/wen-int.webp', {
+  entrance: [50, 91], lobby: [50, 78], mid: [50, 50], stairs: [50, 8],
+  dirDoor: [33, 30.5], director: [26, 31], starNpc: [17, 21],
+  pracDoor: [33, 62.5], practice: [17, 66], practiceNpc: [17, 62],
+  hallDoor: [67, 50.5], hall: [82.5, 56], hallNpc: [82.5, 34.5]
+}), actorHeight: 0.07 });
+add({ ...upstairs('wen-up', 'assets/scenes/wen-up.webp',
+  { stairs: [50, 40], hub: [50, 52], lounge: [20, 47.5], loungeNpc: [17, 48], trophies: [79, 60] }), actorHeight: 0.07 });
 add({
   // Ou River pavilion: down the old-town steps, across the quay, to the riverside table.
   id: 'wen-venue', image: 'assets/scenes/wen-venue.webp', actorHeight: 0.166, kind: 'venue', spawn: { default: 'arrive' },
@@ -271,12 +271,12 @@ add({
   ]
 });
 add({
-  id: 'mad-int', image: 'assets/scenes/mad-int.webp', kind: 'finale', spawn: { default: 'entrance', entrance: 'entrance' },
-  nodes: { entrance: [50, 92], lobby: [50, 66], leftStair: [40, 42], stage: [50, 24], lounge: [20, 64] },
+  id: 'mad-int', image: 'assets/scenes/mad-int.webp', actorHeight: 0.06, kind: 'finale', spawn: { default: 'entrance', entrance: 'entrance' },
+  nodes: { entrance: [50, 92], lobby: [50, 68], leftStair: [40, 50], stage: [50, 26], lounge: [22, 56.5] },
   links: [['entrance', 'lobby'], ['lobby', 'leftStair'], ['leftStair', 'stage'], ['lobby', 'lounge']],
   hotspots: [
     { id: 'finale', node: 'stage', label: 'Championship stage', verb: 'Compete', action: { type: 'finale' } },
-    { id: 'rivals', node: 'lounge', label: 'Players\' lounge', verb: 'Talk', action: { type: 'rivals' }, npc: { kind: 'rivals', at: [14, 58] } },
+    { id: 'rivals', node: 'lounge', label: 'Players\' lounge', verb: 'Talk', action: { type: 'rivals' }, npc: { kind: 'rivals', at: [9, 54], spread: [5, 0] } },
     { id: 'exit', node: 'entrance', label: 'Courtyard', verb: 'Exit', action: { type: 'scene', to: 'mad-ext', spawn: 'door' } }
   ]
 });

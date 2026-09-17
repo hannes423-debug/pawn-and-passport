@@ -105,8 +105,8 @@ node tools/opening-research/stats.mjs          # -> js/data/openingStats.js (gam
 
 ## Depth layers and free walking
 
-Scenes listed in `tools/build_layers.py` (so far: the six casual venues, the
-Madrid courtyard, and the New York and Chennai clubs plus the Vienna club interior) are walked freely: joystick, arrow keys or WASD move the
+Every walkable scene (all 24: club gardens, interiors and upper floors, the
+six casual venues and both Madrid scenes) is listed in `tools/build_layers.py` and are walked freely: joystick, arrow keys or WASD move the
 player anywhere on the floor with collision, and a tap walks there along an A*
 path (`js/core/freeWalk.js`). Every object a character can pass behind (lamps,
 trees, tables, signs, the pavilion, the fountain) is cut out of the scene art
@@ -123,7 +123,6 @@ each scene has floor polygons and extra blocks. To use hand-made layers
 instead of GrabCut, put a transparent PNG the size of the scene at
 `<City folder>/layers/<scene>.png` (for example `London/layers/lon-venue.png`)
 and rebuild: each prop then takes that file's pixels inside its rect.
-Scenes not in the list keep their waypoint paths.
 
 ## Build for itch.io
 
