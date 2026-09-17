@@ -21,8 +21,7 @@
  *   rivals     the returning Star Players in Madrid
  *   talk       a flavour line
  *
- * Central Park has its own venue art. The other five casual venues walk on
- * their city card (`placeholder: true`) until their own art arrives.
+ * Every casual venue has its own art (Madrid has none: it is the finale).
  */
 
 const link = (...chain) => chain.slice(1).map((id, i) => [chain[i], id]);
@@ -153,9 +152,16 @@ add({
     { id: 'exit', node: 'entrance', label: 'Garden', verb: 'Exit', action: { type: 'scene', to: 'lon-ext', spawn: 'door' } }
   ]
 });
-add(venue('lon-venue', 'assets/cities/lon.webp', {
-  arrive: [62, 92], via: [76, 84], host: [86, 80], hostNpc: [91, 72], exit: [50, 96], hostLabel: 'The pavement board'
-}, { placeholder: true }));
+add({
+  // Covent Garden Chess Courtyard: in from the street, along the benches, up the west aisle.
+  id: 'lon-venue', image: 'assets/scenes/lon-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
+  nodes: { arrive: [50, 86], aisle: [50, 74], west: [21, 74], host: [21, 57], exit: [50, 93] },
+  links: [['arrive', 'aisle'], ['aisle', 'west'], ['west', 'host'], ['arrive', 'exit']],
+  hotspots: [
+    { id: 'mission', node: 'host', label: 'Courtyard chess tables', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [27, 50] } },
+    { id: 'exit', node: 'exit', label: 'Leave the courtyard', verb: 'Travel', action: { type: 'leave' } }
+  ]
+});
 
 /* Vienna */
 add(garden('vie-ext', 'assets/scenes/vie-ext.webp',
@@ -168,9 +174,16 @@ add(hallA('vie-int', 'assets/scenes/vie-int.webp', {
 }));
 add(upstairs('vie-up', 'assets/scenes/vie-up.webp',
   { stairs: [50, 86], hub: [50, 30], lounge: [22, 46], loungeNpc: [14, 40], trophies: [80, 50] }));
-add(venue('vie-venue', 'assets/cities/vie.webp', {
-  arrive: [74, 92], via: [60, 88], host: [50, 84], hostNpc: [56, 76], exit: [92, 94], hostLabel: 'Cafe table'
-}, { placeholder: true }));
+add({
+  // Café Wien: in over the doormat, between the plants, to the table under the cathedral window.
+  id: 'vie-venue', image: 'assets/scenes/vie-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
+  nodes: { arrive: [50, 87], floor: [50, 72], host: [47, 62], exit: [50, 95] },
+  links: [['arrive', 'floor'], ['floor', 'host'], ['arrive', 'exit']],
+  hotspots: [
+    { id: 'mission', node: 'host', label: 'Cafe chess table', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [39, 54] } },
+    { id: 'exit', node: 'exit', label: 'Leave the cafe', verb: 'Travel', action: { type: 'leave' } }
+  ]
+});
 
 /* Istanbul */
 add(garden('ist-ext', 'assets/scenes/ist-ext.webp',
@@ -183,9 +196,16 @@ add(hallA('ist-int', 'assets/scenes/ist-int.webp', {
 }));
 add(upstairs('ist-up', 'assets/scenes/ist-up.webp',
   { stairs: [50, 30], hub: [50, 62], lounge: [22, 50], loungeNpc: [15, 44], trophies: [78, 56] }));
-add(venue('ist-venue', 'assets/cities/ist.webp', {
-  arrive: [62, 93], via: [52, 86], host: [40, 84], hostNpc: [44, 74], exit: [86, 95], hostLabel: 'Tea garden table'
-}, { placeholder: true }));
+add({
+  // Bosphorus tea terrace: up the steps, round the sign, to the middle table.
+  id: 'ist-venue', image: 'assets/scenes/ist-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
+  nodes: { arrive: [50, 90], steps: [50, 80], west: [30, 64], host: [38, 58], exit: [50, 97] },
+  links: [['arrive', 'steps'], ['steps', 'west'], ['west', 'host'], ['arrive', 'exit']],
+  hotspots: [
+    { id: 'mission', node: 'host', label: 'Tea terrace table', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [55, 57] } },
+    { id: 'exit', node: 'exit', label: 'Down to the water', verb: 'Travel', action: { type: 'leave' } }
+  ]
+});
 
 /* Chennai */
 add(garden('che-ext', 'assets/scenes/che-ext.webp',
@@ -201,9 +221,16 @@ add({
     { id: 'exit', node: 'entrance', label: 'Temple garden', verb: 'Exit', action: { type: 'scene', to: 'che-ext', spawn: 'door' } }
   ]
 });
-add(venue('che-venue', 'assets/cities/che.webp', {
-  arrive: [66, 92], via: [78, 86], host: [88, 84], hostNpc: [92, 76], exit: [56, 96], hostLabel: 'Filter coffee stall'
-}, { placeholder: true }));
+add({
+  // Marina Beach promenade: along the east walk past the palm, to the tables by the tea stall.
+  id: 'che-venue', image: 'assets/scenes/che-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
+  nodes: { arrive: [77, 87], walk: [77, 62], host: [62, 55], exit: [60, 93] },
+  links: [['arrive', 'walk'], ['walk', 'host'], ['arrive', 'exit']],
+  hotspots: [
+    { id: 'mission', node: 'host', label: 'Chess corner', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [57, 48] } },
+    { id: 'exit', node: 'exit', label: 'Leave the promenade', verb: 'Travel', action: { type: 'leave' } }
+  ]
+});
 
 /* Wenzhou */
 add(garden('wen-ext', 'assets/scenes/wen-ext.webp',
@@ -216,9 +243,16 @@ add(hallA('wen-int', 'assets/scenes/wen-int.webp', {
 }));
 add(upstairs('wen-up', 'assets/scenes/wen-up.webp',
   { stairs: [50, 32], hub: [50, 58], lounge: [24, 52], loungeNpc: [16, 44], trophies: [78, 54] }));
-add(venue('wen-venue', 'assets/cities/wen.webp', {
-  arrive: [70, 92], via: [56, 88], host: [46, 84], hostNpc: [50, 76], exit: [88, 95], hostLabel: 'Riverside table'
-}, { placeholder: true }));
+add({
+  // Ou River pavilion: down the old-town steps, across the quay, to the riverside table.
+  id: 'wen-venue', image: 'assets/scenes/wen-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
+  nodes: { arrive: [80, 42], quay: [70, 63], host: [52, 64], exit: [86, 30] },
+  links: [['arrive', 'quay'], ['quay', 'host'], ['arrive', 'exit']],
+  hotspots: [
+    { id: 'mission', node: 'host', label: 'Riverside chess table', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [45, 66] } },
+    { id: 'exit', node: 'exit', label: 'Up to the old town', verb: 'Travel', action: { type: 'leave' } }
+  ]
+});
 
 /* Madrid: the Grand Finale */
 add({

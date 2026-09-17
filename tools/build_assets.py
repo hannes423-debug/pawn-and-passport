@@ -32,6 +32,8 @@ OUT = os.path.join(ROOT, 'assets')
 # published name -> (source path relative to ROOT, max width)
 UI = {
     'ui/title-bg': ('Pawn & Passport_ Matkailijan pelipöytä.png', 1672),
+    # The portrait (phone held upright) title: no painted logo or menu, the game draws those.
+    'ui/title-bg-portrait': ('ChatGPT Image 17.9.2026 klo 04.54.38.png', 1024),
     'ui/logo': ('Pixel Chess Travel Logo.png', 1200),
     'ui/logo-sub': ('A Chess Career RPG retrotekstilogo.png', 1100),
     'ui/world-map': ('Pikselitaiteinen maailman kartta(1).png', 1672),
@@ -43,13 +45,15 @@ UI = {
 SCENES = {
     'nyc-ext': 'NYC/New Yorkin shakkiklubin palatsi.png',
     'nyc-int': 'NYC/New Yorki malekerhon ylellinen pohjapiirros.png',
-    # Filed in London/ but its sign reads "Upstairs - Chess Club New York".
-    'nyc-up': 'London/Yläkerran ylellinen shakkiklubi.png',
+    'nyc-up': 'NYC/Yläkerran ylellinen shakkiklubi.png',
     'nyc-venue': 'NYC/Tyhjä Bethesda Terrace pikselitaiteena.png',
     'lon-ext': 'London/Symmetrinen shakkiklubin kartanopiha.png',
-    # The generic "CHESS CLUB" floor plan (no city on its sign) stands in as
-    # London's interior until London gets its own.
-    'lon-int': 'NYC/Ylellinen shakkiklubin pohjapiirros(1)(1).png',
+    'lon-int': 'London/Ylellinen shakkiklubin pohjapiirros(1)(1).png',
+    'lon-venue': 'London/Lontoon shakkikeidas Covent Gardenissa.png',
+    'vie-venue': 'Vienna/Wieniläinen shakkikahvila.png',
+    'ist-venue': 'Istanbul/Istanbulin iltateen shakki_terassi vedellä.png',
+    'che-venue': 'Chennai/Marinan rantabulevardin shakkikulma.png',
+    'wen-venue': 'Wenzhou/Värikäs jokirannan kiinalainen shakkipaviljonki.png',
     'vie-ext': 'Vienna/Wienin elegantti shakkikerho puutarhoineen.png',
     'vie-int': 'Vienna/Wienin ylellinen shakkiklubin pohjapiirros.png',
     'vie-up': 'Vienna/Wienin shakkiklubin yläkerta.png',
@@ -124,7 +128,6 @@ def build_scenes():
             continue
         img = Image.open(path).convert('RGB')
         save_webp(img, 'cities/' + name, 1672)
-        # A casual venue without its own art walks on the city card.
         sizes[name + '-card'] = (min(1672, img.width), round(img.height * min(1672, img.width) / img.width))
     return sizes
 

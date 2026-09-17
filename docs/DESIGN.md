@@ -45,9 +45,9 @@ See `README.md`.
 | City | Club | Casual venue | Opening | Star Player | Trophy |
 |------|------|--------------|---------|-------------|--------|
 | New York | Manhattan Chess Club | Bethesda Terrace, Central Park | Italian Game (W) | Maya Castellano | The Liberty Cup |
-| London | Royal Chess Club | South Bank Embankment | London System (W) | Oliver Pembrook | The Big Ben Shield |
+| London | Royal Chess Club | Covent Garden Chess Courtyard | London System (W) | Oliver Pembrook | The Big Ben Shield |
 | Vienna | Vienna Chess Club | Café Stephansplatz | Vienna Game (W) | Clara Vogelsang | The Golden Waltz |
-| Istanbul | Istanbul Chess Club | Galata Tea Garden | Sicilian Defence (B) | Emre Kaplan | The Crescent Trophy |
+| Istanbul | Istanbul Chess Club | Bosphorus Tea Garden | Sicilian Defence (B) | Emre Kaplan | The Crescent Trophy |
 | Chennai | Chennai Chess Club | Marina Beach Promenade | Caro-Kann Defence (B) | Priya Raghavan | The Temple Lamp |
 | Wenzhou | Wenzhou Chess Club | Ou River Pavilion | French Defence (B) | Zhou Lan | The Jade Dragon |
 | Madrid | Palacio del Ajedrez | none (finale only) | none | all six return | The Big League Qualifier |
@@ -201,9 +201,9 @@ immediate mate, and every reply is the engine's best defence. 7 of the first
 | Venue | Mission | Theme | Puzzles |
 |-------|---------|-------|---------|
 | Central Park | The Fountain Hustle (Marcus "Two-Minute" Bell) | Forks | Royal fork, Family fork, Check then fork, The pawn fork |
-| South Bank | Mind the Back Rank (Nell the Busker) | Back-rank mates | The open file, Doubled rooks, Queen for the win, Deflection |
+| Covent Garden | Mind the Back Rank (Nell the Busker) | Back-rank mates | The open file, Doubled rooks, Queen for the win, Deflection |
 | Café Stephansplatz | The Coffeehouse Traps (Herr Anton) | Opening traps | Scholar's mate, Legal's mate, Fool's mate, The Petrov trap |
-| Galata Tea Garden | Lines over Tea (Aunt Selin) | Pins, skewers, discoveries | Pin the queen, Skewer, Double check, Knight unmasks |
+| Bosphorus Tea Garden | Lines over Tea (Aunt Selin) | Pins, skewers, discoveries | Pin the queen, Skewer, Double check, Knight unmasks |
 | Marina Beach | Endgames by the Sea (Coach Vel) | Endgame technique | Take the opposition, Breakthrough, Queen and king, Rook on the seventh |
 | Ou River | Offerings at the River (Old Master Hu) | Sacrifices and mating patterns | Smothered, Philidor's legacy, Arabian mate, Pawn-supported queen |
 
@@ -345,17 +345,24 @@ Nothing player-visible. Code that is inert or unused:
 `characters/*.png` (supplied sheets, never edited) are sliced by
 `python3 tools/build_characters.py` into `assets/characters/<id>.png`: 12 x 4
 cells of 72x108 (idle 0-3, walk 4-11; rows down/left/right/up), feet on one
-baseline. Frames are detected, not hand-measured. Fixes applied while slicing:
-the older man's left row on the combined sheet is a different man, so it is
-mirrored from his right row; the student-with-board sheet's left idle faces
-right, so it is mirrored too. Ten NPC variants are hue-rotated jackets.
+baseline. Frames are detected, not hand-measured. The large illustration in the
+top-left corner of each sheet is cut out as the character's dialogue portrait,
+`assets/characters/portraits/<id>.png`, so the person talking is the person
+walking. Only the artist's sheets are used: no recolours, no generated variants
+(stale files from older builds are deleted on every run).
 
-- Player: `boy` (chess student boy) or `girl` (chess student girl). No NPC uses them
-  (a test enforces it).
-- Everyone else names a sheet in `look.sprite` (stars, 24 regulars, 6 venue hosts).
-  Characters without a sheet fall back to the procedural sprite in `js/ui/sprites.js`.
-- Scene actors play the idle loop standing and the 8-frame walk while moving;
-  portraits are cropped from the first idle frame.
+Seven characters (2026-09-17): `boy`, `girl` (the player choices), `young-blue`,
+`young-red`, `old-green`, `old-scarf`, `woman`.
+
+- Every NPC names one of them in `look.sprite` (6 stars, 24 regulars, 6 venue
+  hosts, the guide). With 37 roles and seven characters they repeat; roles are
+  matched by gender and age, and within one club floor the star and the two
+  regulars shown there are all different.
+- An NPC never wears the player's own sprite: `setPlayerAvatar` swaps `boy` for
+  `young-blue` and `girl` for `woman` on NPCs (tested).
+- A look naming a sheet that does not exist draws `young-blue`, never the old
+  procedural painter.
+- Scene actors play the idle loop standing and the 8-frame walk while moving.
 
 ## 25. Grading fixes (2026-09-15, from playtest)
 

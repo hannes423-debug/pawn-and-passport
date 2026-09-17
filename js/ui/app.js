@@ -9,7 +9,7 @@
 import { h, clear, wait } from './dom.js';
 import { sfx, unlockAudio, configureAudio } from './audio.js';
 import { configureTouch, installTouchDetection, tapWord, canFullscreen, toggleFullscreen } from './touch.js';
-import { portraitUrl, PLAYER_LOOKS } from './sprites.js';
+import { portraitUrl, PLAYER_LOOKS, setPlayerAvatar } from './sprites.js';
 import * as Save from '../core/save.js';
 import { xpProgress, maxFocus, trophyCount, postcardCount, migrateCareer } from '../core/career.js';
 import { clubById, FINALE } from '../data/clubs.js';
@@ -32,6 +32,7 @@ export function createApp(root, screens) {
 
     async go(name, params = {}) {
       const factory = screens[name];
+      setPlayerAvatar(app.career?.avatar);
       if (!factory) throw new Error(`no screen ${name}`);
       try { app.current?.destroy?.(); } catch (error) { console.error(error); }
       clear(root);
@@ -60,6 +61,7 @@ export function createApp(root, screens) {
 
     setCareer(career) {
       app.career = career;
+      setPlayerAvatar(career?.avatar);
       app.save();
     },
 

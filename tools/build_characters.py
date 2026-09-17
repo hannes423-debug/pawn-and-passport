@@ -20,9 +20,13 @@ border on the white sheets, alpha on the transparent ones), soft drop shadows
 are dropped, and every remaining blob taller than a label becomes a frame,
 grouped into rows by height on the page and sorted left to right.
 
-Some characters exist only once, so a few NPC variants are recolours: pixels
-in one hue band (the jacket) are rotated to another hue. Skin and hair sit
-outside the bands used.
+Every sheet also carries one large illustration of its character (top left
+of the page). That figure is cut out as the character's DIALOGUE PORTRAIT:
+assets/characters/portraits/<id>.png, so a conversation shows the same person
+who walks around the scene.
+
+Only the artist's sheets are used: there are no recoloured or generated
+variants (the NPC roster repeats characters instead, see js/data/).
 """
 import json
 import os
@@ -44,41 +48,20 @@ BODY_H = 96            # the tallest frame of a character is scaled to this
 A = ['down', 'right', 'up', 'left']      # "IDLE 1-4 | WALK 1-8", rows down/right/up/left
 C = ['down', 'left', 'up', 'right']      # "IDLE | WALK 1-8", rows down/left/up/right
 
-# id -> source, layout, region (fractions of the page: x0, y0, x1, y1)
+# id -> source, layout, idle frames, frame region, hero-figure region
+# (regions are fractions of the page: x0, y0, x1, y1)
+HERO = (0.0, 0.0, 0.2, 0.36)
 SHEETS = {
-    'boy':          ('Shakkipojan pikselitaidean spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95)),
-    'girl':         ('Shakkia opiskeleva tyttö – spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95)),
-    'young-blue':   ('Nuoren shakinpelaajan pikselianimaatiot.png', A, 4, (0.27, 0.12, 1.0, 0.95)),
-    'young-red':    ('Nuoren shakinpelaajan pikselisprite-sheet.png', A, 4, (0.27, 0.12, 1.0, 0.95)),
-    'old-green':    ('Vanhan shakinpelaajan pikselihahmolevy.png', A, 4, (0.27, 0.12, 1.0, 0.95)),
-    'old-scarf':    ('Vanhan shakinpelaajan pikselisprite-sheet.png', A, 4, (0.27, 0.12, 1.0, 0.95)),
-    'student-board': ('Shakkipojan pikselihahmosprite Sheet.png', C, 1, (0.08, 0.22, 1.0, 1.0)),
-    # One page, three characters stacked in thirds.
-    'girl-red':     ('Pikselitaidehahmojen animaatiotaulukko.png', A, 4, (0.23, 0.03, 1.0, 0.335)),
-    'older-brown':  ('Pikselitaidehahmojen animaatiotaulukko.png', A, 4, (0.23, 0.36, 1.0, 0.665)),
-    'adult-navy':   ('Pikselitaidehahmojen animaatiotaulukko.png', A, 4, (0.23, 0.69, 1.0, 1.0)),
+    'boy':          ('Shakkipojan pikselitaidean spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'girl':         ('Shakkia opiskeleva tyttö – spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'young-blue':   ('Nuoren shakinpelaajan pikselianimaatiot.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'young-red':    ('Nuoren shakinpelaajan pikselisprite-sheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'old-green':    ('Vanhan shakinpelaajan pikselihahmolevy.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'old-scarf':    ('Vanhan shakinpelaajan pikselisprite-sheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'woman':        ('Aikuisen naisen pikselihahmojen spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
 }
 
-# The older man's LEFT row on the combined page is drawn as a different,
-# dark-haired man, so his left-facing frames are mirrored from the right row.
-MIRROR_LEFT_FROM_RIGHT = {'older-brown'}
-# The student-with-board sheet has ONE idle per row, and its left row's idle
-# faces right; mirror the right row's idle instead.
-MIRROR_LEFT_IDLE_FROM_RIGHT = {'student-board'}
-
-# Recolours: id -> (base, [(hue_from_deg, hue_to_deg, min_sat), ...], hue_shift_deg)
-RECOLOURS = {
-    'girl-teal':    ('girl-red', (348, 6, 0.50), 180),
-    'girl-purple':  ('girl-red', (348, 6, 0.50), 285),
-    'girl-green':   ('girl-red', (348, 6, 0.50), 120),
-    'girl-gold':    ('girl-red', (348, 6, 0.50), 42),
-    'girl-plum':    ('girl', (195, 245, 0.30), 90),
-    'young-green':  ('young-blue', (200, 245, 0.25), -85),
-    'young-purple': ('young-red', (348, 6, 0.50), 280),
-    'adult-brown':  ('adult-navy', (200, 250, 0.20), 170),
-    'old-bluescarf': ('old-scarf', (348, 6, 0.50), 215),
-    'old-plum':     ('old-green', (70, 160, 0.15), 180),
-}
+PORTRAIT_H = 320       # the hero figure is scaled to this height
 
 
 def foreground(img):
@@ -181,6 +164,26 @@ def find_frames(img, layout, idle_count, region):
     return out
 
 
+def hero_figure(img, region):
+    """The large illustration of the character: the biggest blob in its corner of the page."""
+    W, H = img.size
+    box = (int(region[0] * W), int(region[1] * H), int(region[2] * W), int(region[3] * H))
+    crop = img.crop(box)
+    mask = foreground(crop)
+    labels, n = ndimage.label(ndimage.binary_closing(mask, iterations=3), structure=np.ones((3, 3)))
+    if not n:
+        raise RuntimeError('no hero figure found')
+    sizes = ndimage.sum(np.ones_like(labels), labels, index=range(1, n + 1))
+    biggest = int(np.argmax(sizes)) + 1
+    sl = ndimage.find_objects(labels)[biggest - 1]
+    rgba = np.asarray(crop.convert('RGBA')).copy()
+    keep = (labels == biggest) & mask
+    rgba[..., 3] = np.where(keep, 255, 0)
+    figure = Image.fromarray(rgba[sl[0], sl[1]].astype(np.uint8), 'RGBA')
+    scale = PORTRAIT_H / figure.height
+    return figure.resize((max(1, round(figure.width * scale)), PORTRAIT_H), Image.LANCZOS)
+
+
 def body_centre(frame):
     """x of the torso's centre: the head and shoulders, not the swinging legs."""
     a = np.asarray(frame)[..., 3] > 0
@@ -280,29 +283,28 @@ def main():
     manifest = {'cell': [CELL_W, CELL_H], 'baseline': BASELINE, 'columns': {'idle': [0, 4], 'walk': [4, 12]},
                 'rows': ['down', 'left', 'right', 'up'], 'sprites': {}}
     built = {}
-    for sid, (file, layout, idle, region) in SHEETS.items():
+    # Sheets from an older build (recolours, removed source pages) must not linger.
+    for stale in os.listdir(OUT):
+        if stale.endswith('.png'):
+            os.remove(os.path.join(OUT, stale))
+    os.makedirs(os.path.join(OUT, 'portraits'), exist_ok=True)
+    for stale in os.listdir(os.path.join(OUT, 'portraits')):
+        os.remove(os.path.join(OUT, 'portraits', stale))
+    for sid, (file, layout, idle, region, hero) in SHEETS.items():
         path = os.path.join(SRC, file)
         if not os.path.exists(path):
             print(f'  MISSING {file}', file=sys.stderr)
             continue
-        frames = find_frames(Image.open(path), layout, idle, region)
-        if sid in MIRROR_LEFT_FROM_RIGHT:
-            frames['left'] = [f.transpose(Image.FLIP_LEFT_RIGHT) for f in frames['right']]
-        if sid in MIRROR_LEFT_IDLE_FROM_RIGHT:
-            frames['left'][:4] = [f.transpose(Image.FLIP_LEFT_RIGHT) for f in frames['right'][:4]]
+        page = Image.open(path)
+        frames = find_frames(page, layout, idle, region)
         sheet = assemble(frames)
         built[sid] = sheet
         sheet.save(os.path.join(OUT, f'{sid}.png'), optimize=True)
-        manifest['sprites'][sid] = {'src': f'assets/characters/{sid}.png', 'from': file}
-        print(f'  {sid}: {file}')
-    for sid, (base, band, shift) in RECOLOURS.items():
-        if base not in built:
-            continue
-        sheet = recolour(built[base], band, shift)
-        sheet.save(os.path.join(OUT, f'{sid}.png'), optimize=True)
-        manifest['sprites'][sid] = {'src': f'assets/characters/{sid}.png', 'from': f'recolour of {base}'}
-        built[sid] = sheet
-        print(f'  {sid}: recolour of {base}')
+        portrait = hero_figure(page, hero)
+        portrait.save(os.path.join(OUT, 'portraits', f'{sid}.png'), optimize=True)
+        manifest['sprites'][sid] = {'src': f'assets/characters/{sid}.png', 'portrait': f'assets/characters/portraits/{sid}.png',
+                                    'portraitSize': list(portrait.size), 'from': file}
+        print(f'  {sid}: {file} (portrait {portrait.size[0]}x{portrait.size[1]})')
     with open(os.path.join(OUT, 'manifest.json'), 'w') as fh:
         json.dump(manifest, fh, indent=2)
     if DEBUG:

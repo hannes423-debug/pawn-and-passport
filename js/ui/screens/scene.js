@@ -27,7 +27,7 @@ import { createTouchpad, tapWord } from '../touch.js';
 import { openOpeningStudy } from '../openingStudy.js';
 import { learnFromTutorial } from '../../core/career.js';
 
-const GUIDE_LOOK = { sprite: 'adult-navy', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
+const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
 const WALK_SPEED = 42;           // percent of the stage height per second
 
 export async function sceneScreen(app, params) {

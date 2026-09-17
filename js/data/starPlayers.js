@@ -10,7 +10,7 @@
  * js/core/dialogue.js picks one sequence with a few simple conditions and
  * never branches on player choices.
  *
- * `look` feeds the procedural pixel sprite (js/ui/sprites.js).
+ * `look.sprite` names the drawn character (assets/characters/, js/ui/sprites.js).
  */
 
 export const STAR_PLAYERS = Object.freeze([
@@ -18,7 +18,7 @@ export const STAR_PLAYERS = Object.freeze([
     id: 'maya', name: 'Maya Castellano', clubId: 'nyc', openingId: 'italian', style: 'aggressive',
     title: 'The Bethesda Blitz Queen',
     personality: 'Seventeen, fast-talking and faster-moving. Learned chess taking dollars off tourists by the fountain and never lost the habit of attacking f7.',
-    look: { sprite: 'girl-red', skin: '#c68a5e', hair: '#2a1a14', hairStyle: 'curly', top: '#d8433b', bottom: '#2e3a57', accent: '#f3c34a' },
+    look: { sprite: 'girl', skin: '#c68a5e', hair: '#2a1a14', hairStyle: 'curly', top: '#d8433b', bottom: '#2e3a57', accent: '#f3c34a' },
     lines: {
       intro: ['Another tourist with a pocket set? Cute.', 'I\'m Maya. I run this club\'s top board, and I don\'t do slow games.', 'Win the tournament and I\'ll be waiting at the end of it.'],
       challenge: ['Clock\'s not running, but I am. Italian Game, if you\'re brave enough to let me.'],
@@ -52,7 +52,7 @@ export const STAR_PLAYERS = Object.freeze([
     id: 'clara', name: 'Clara Vogelsang', clubId: 'vie', openingId: 'vienna', style: 'tactical',
     title: 'The Conservatory Tactician',
     personality: 'A violin student who hears openings as music. The Vienna Game is her favourite overture: quiet first bars, then f4.',
-    look: { sprite: 'girl-purple', skin: '#f3d0b5', hair: '#a8452c', hairStyle: 'bun', top: '#6b2c43', bottom: '#2b2b33', accent: '#e8d9a8' },
+    look: { sprite: 'woman', skin: '#f3d0b5', hair: '#a8452c', hairStyle: 'bun', top: '#6b2c43', bottom: '#2b2b33', accent: '#e8d9a8' },
     lines: {
       intro: ['Shh, listen. Every opening has a tempo.', 'I am Clara. The Vienna Game is the first piece I ever learned by heart.', 'Play the tournament. I will hear you coming.'],
       challenge: ['Knight to c3, and then the f-pawn sings. Shall we begin?'],
@@ -86,7 +86,7 @@ export const STAR_PLAYERS = Object.freeze([
     id: 'priya', name: 'Priya Raghavan', clubId: 'che', openingId: 'caro', style: 'defensive',
     title: 'The Unbreakable Wall',
     personality: 'An engineering student who treats every game like a structure under load. Almost never loses a pawn; almost never lets you have one either.',
-    look: { sprite: 'girl-green', skin: '#8d5a3b', hair: '#141013', hairStyle: 'braid', top: '#1f6b5a', bottom: '#5a3d6b', accent: '#f0c14a' },
+    look: { sprite: 'woman', skin: '#8d5a3b', hair: '#141013', hairStyle: 'braid', top: '#1f6b5a', bottom: '#5a3d6b', accent: '#f0c14a' },
     lines: {
       intro: ['Hello. Please do not lean on the tables, they are antiques.', 'Priya. I play the Caro-Kann because I like knowing exactly where my weaknesses are.', 'Finish the tournament. I will be here. I am always here.'],
       challenge: ['c6, then d5. Solid first, clever second.'],
@@ -103,7 +103,7 @@ export const STAR_PLAYERS = Object.freeze([
     id: 'zhou', name: 'Zhou Lan', clubId: 'wen', openingId: 'french', style: 'practical',
     title: 'The River Counter-Puncher',
     personality: 'Quiet, patient and a little mischievous. Lets you build a big centre on purpose, then knocks the bottom brick out with c5.',
-    look: { sprite: 'girl-teal', skin: '#e8c29c', hair: '#15151c', hairStyle: 'long', top: '#8a2a2a', bottom: '#23303f', accent: '#d9b25a' },
+    look: { sprite: 'girl', skin: '#e8c29c', hair: '#15151c', hairStyle: 'long', top: '#8a2a2a', bottom: '#23303f', accent: '#d9b25a' },
     lines: {
       intro: ['You walked all the way from the gate. Good. Patience is the first lesson.', 'I am Zhou Lan. I play the French Defence.', 'The tournament first. Then the river decides.'],
       challenge: ['e6, d5, and then I wait for your centre to grow too tall.'],

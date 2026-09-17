@@ -8,6 +8,7 @@
  */
 
 import { OPENINGS } from '../js/data/openings.js';
+import { spriteId, setPlayerAvatar, PLAYER_LOOKS } from '../js/ui/sprites.js';
 import { CLUBS, FINALE } from '../js/data/clubs.js';
 import { STAR_PLAYERS } from '../js/data/starPlayers.js';
 import { POSTCARDS, BEYOND_THE_TOUR } from '../js/data/postcards.js';
@@ -136,8 +137,21 @@ test('every character look names a sliced sprite sheet', () => {
     assert(existsSync(path.join(ROOT, manifest.sprites[look.sprite].src)), `${who}: file`);
   }
   for (const id of ['boy', 'girl']) assert(manifest.sprites[id], `player sprite ${id}`);
-  const npcSprites = new Set(looks.map(([, l]) => l.sprite));
-  assert(!npcSprites.has('boy') && !npcSprites.has('girl'), 'the player sprites stay the player\'s');
+  for (const [id, entry] of Object.entries(manifest.sprites)) {
+    assert(entry.portrait && existsSync(path.join(ROOT, entry.portrait)), `${id}: dialogue portrait`);
+    assert(!/recolour/.test(entry.from), `${id}: only the artist's sheets, no recolours`);
+  }
+});
+
+test('an NPC never wears the player\'s own sprite', () => {
+  setPlayerAvatar('girl');
+  eq(spriteId({ sprite: 'girl' }), 'woman');
+  eq(spriteId(PLAYER_LOOKS.girl), 'girl');
+  eq(spriteId({ sprite: 'boy' }), 'boy');
+  setPlayerAvatar('boy');
+  eq(spriteId({ sprite: 'boy' }), 'young-blue');
+  eq(spriteId({ sprite: 'girl' }), 'girl');
+  setPlayerAvatar(null);
 });
 
 test('no Aura, attributes, perks or DNA reach the jam code', () => {

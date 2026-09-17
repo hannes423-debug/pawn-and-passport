@@ -80,7 +80,7 @@ export function drillScreen(app, params) {
 
   const panel = h('aside.pp-match__left', null,
     h('div.pp-panel.pp-player.pp-match__opp', null,
-      h('img', { alt: '', src: portraitUrl(coach || { sprite: 'adult-navy' }) }),
+      h('img', { alt: '', src: portraitUrl(coach || { sprite: 'woman' }) }),
       h('div', null, h('div.pp-player__name', { text: `${opening.name} drills` }),
         h('div.pp-small', { text: `${club?.clubName || 'Practice room'} · ${career.openings[opening.id] ?? 0}% ${masteryState(career.openings[opening.id] ?? 0).label}` }))),
     h('div.pp-panel.pp-col.pp-match__focus', null,

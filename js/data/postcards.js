@@ -19,7 +19,7 @@ export const POSTCARDS = Object.freeze([
   },
   {
     id: 'pc-lon', clubId: 'lon', order: 2, letter: 'E', image: 'assets/postcards/lon.webp',
-    front: 'Greetings from the South Bank',
+    front: 'Greetings from Covent Garden',
     stamp: 'LON', from: 'Nell, the busker',
     secret: 'Every club you have visited sits on a much larger map. Past the amateur circuit the boards are ranked, and the rankings travel with you.'
   },
@@ -31,7 +31,7 @@ export const POSTCARDS = Object.freeze([
   },
   {
     id: 'pc-ist', clubId: 'ist', order: 4, letter: 'O', image: 'assets/postcards/ist.webp',
-    front: 'Greetings from Galata',
+    front: 'Greetings from the Bosphorus',
     stamp: 'IST', from: 'Aunt Selin',
     secret: 'Out past the Bosphorus a tournament is not always one board. Sometimes it is five boards, one flag, and a team that wins or loses together.'
   },

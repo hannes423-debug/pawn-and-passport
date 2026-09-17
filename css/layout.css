@@ -303,28 +303,38 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
 .pp-title__item { font-size: clamp(10px, 3.9cqh, 26px); white-space: nowrap; overflow: hidden; }
 .pp-title__logo, .pp-title__logo-sub { display: none; }
 
-/* A window taller than the art: the art becomes a backdrop, the menu is real. */
+/* A window taller than the art: the portrait title art (no painted logo or
+   menu) fills the screen. The logo sits over the wall map at the top and the
+   real menu over the empty parchment in the middle of the desk. */
 @media (max-aspect-ratio: 13/10) {
   .pp-title__stage {
-    width: 100%; height: 100%; aspect-ratio: auto; container-type: normal;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.2dvh;
-    padding: max(16px, env(safe-area-inset-top)) 20px max(16px, env(safe-area-inset-bottom));
-    background: #1a1110; overflow: hidden;
+    width: 100%; height: 100%; aspect-ratio: auto; container-type: normal; overflow: hidden;
+    background: #2a1a10 url('../assets/ui/title-bg-portrait.webp') 50% 45% / cover no-repeat;
   }
+  /* A soft shade behind the logo only, so it reads over the busy map. */
   .pp-title__stage::before {
-    content: ''; position: absolute; inset: 0; z-index: 0;
-    background: url('../assets/ui/title-bg.webp') 50% 50% / cover no-repeat;
-    filter: blur(7px) brightness(0.32) saturate(1.1); transform: scale(1.08);
+    content: ''; position: absolute; left: 0; right: 0; top: 0; height: 36%; z-index: 0;
+    background: linear-gradient(rgba(20, 12, 6, 0.55), rgba(20, 12, 6, 0));
   }
-  .pp-title__stage > * { position: relative; z-index: 1; }
-  .pp-title__logo { display: block; width: min(86vw, 460px); }
-  .pp-title__logo-sub { display: block; width: min(72vw, 380px); margin-top: -1dvh; }
-  .pp-title__menu { position: relative; left: auto; top: auto; width: min(80vw, 360px); height: auto; display: flex; flex-direction: column; gap: 12px; margin-top: 2dvh; }
+  .pp-title__stage > * { z-index: 1; }
+  .pp-title__logo {
+    display: block; position: absolute; left: 50%; transform: translateX(-50%);
+    top: max(3.5dvh, calc(env(safe-area-inset-top) + 8px)); width: min(80vw, 440px);
+    filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.45));
+  }
+  .pp-title__logo-sub { display: block; position: absolute; left: 50%; transform: translateX(-50%); top: calc(max(3.5dvh, calc(env(safe-area-inset-top) + 8px)) + min(80vw, 440px) * 0.5); width: min(66vw, 360px); }
+  .pp-title__menu {
+    position: absolute; left: 50%; top: 40dvh; transform: translateX(-50%);
+    width: min(74vw, 340px); height: auto; display: flex; flex-direction: column; gap: 1.6dvh;
+  }
   .pp-title__item {
-    position: static; width: 100%; height: auto; min-height: 58px; padding: 0 22px; gap: 16px;
-    font-size: 22px; border-width: 3px; border-radius: 8px; box-shadow: 0 5px 0 rgba(0, 0, 0, 0.45);
+    position: static; width: 100%; height: auto; min-height: min(58px, 6.6dvh); padding: 0 20px; gap: 16px;
+    font-size: min(22px, 2.7dvh); border-width: 3px; border-radius: 8px; box-shadow: 0 5px 0 rgba(0, 0, 0, 0.45);
   }
-  .pp-title__continue-note { position: static; left: auto; top: auto; font-size: 17px; text-align: center; }
+  .pp-title__continue-note {
+    position: absolute; left: 50%; top: calc(40dvh + 4 * min(58px, 6.6dvh) + 3 * 1.6dvh + 14px); transform: translateX(-50%);
+    width: min(86vw, 420px); font-size: 17px; text-align: center; padding: 4px 10px; border-radius: 6px; background: rgba(20, 12, 6, 0.6);
+  }
   .pp-title__version { position: absolute; right: max(10px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); font-size: 12px; }
 }
 

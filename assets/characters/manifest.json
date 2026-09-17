@@ -23,83 +23,66 @@
   "sprites": {
     "boy": {
       "src": "assets/characters/boy.png",
+      "portrait": "assets/characters/portraits/boy.png",
+      "portraitSize": [
+        135,
+        320
+      ],
       "from": "Shakkipojan pikselitaidean spritesheet.png"
     },
     "girl": {
       "src": "assets/characters/girl.png",
+      "portrait": "assets/characters/portraits/girl.png",
+      "portraitSize": [
+        154,
+        320
+      ],
       "from": "Shakkia opiskeleva tytt\u00f6 \u2013 spritesheet.png"
     },
     "young-blue": {
       "src": "assets/characters/young-blue.png",
+      "portrait": "assets/characters/portraits/young-blue.png",
+      "portraitSize": [
+        134,
+        320
+      ],
       "from": "Nuoren shakinpelaajan pikselianimaatiot.png"
     },
     "young-red": {
       "src": "assets/characters/young-red.png",
+      "portrait": "assets/characters/portraits/young-red.png",
+      "portraitSize": [
+        134,
+        320
+      ],
       "from": "Nuoren shakinpelaajan pikselisprite-sheet.png"
     },
     "old-green": {
       "src": "assets/characters/old-green.png",
+      "portrait": "assets/characters/portraits/old-green.png",
+      "portraitSize": [
+        136,
+        320
+      ],
       "from": "Vanhan shakinpelaajan pikselihahmolevy.png"
     },
     "old-scarf": {
       "src": "assets/characters/old-scarf.png",
+      "portrait": "assets/characters/portraits/old-scarf.png",
+      "portraitSize": [
+        139,
+        320
+      ],
       "from": "Vanhan shakinpelaajan pikselisprite-sheet.png"
     },
-    "student-board": {
-      "src": "assets/characters/student-board.png",
-      "from": "Shakkipojan pikselihahmosprite Sheet.png"
-    },
-    "girl-red": {
-      "src": "assets/characters/girl-red.png",
-      "from": "Pikselitaidehahmojen animaatiotaulukko.png"
-    },
-    "older-brown": {
-      "src": "assets/characters/older-brown.png",
-      "from": "Pikselitaidehahmojen animaatiotaulukko.png"
-    },
-    "adult-navy": {
-      "src": "assets/characters/adult-navy.png",
-      "from": "Pikselitaidehahmojen animaatiotaulukko.png"
-    },
-    "girl-teal": {
-      "src": "assets/characters/girl-teal.png",
-      "from": "recolour of girl-red"
-    },
-    "girl-purple": {
-      "src": "assets/characters/girl-purple.png",
-      "from": "recolour of girl-red"
-    },
-    "girl-green": {
-      "src": "assets/characters/girl-green.png",
-      "from": "recolour of girl-red"
-    },
-    "girl-gold": {
-      "src": "assets/characters/girl-gold.png",
-      "from": "recolour of girl-red"
-    },
-    "girl-plum": {
-      "src": "assets/characters/girl-plum.png",
-      "from": "recolour of girl"
-    },
-    "young-green": {
-      "src": "assets/characters/young-green.png",
-      "from": "recolour of young-blue"
-    },
-    "young-purple": {
-      "src": "assets/characters/young-purple.png",
-      "from": "recolour of young-red"
-    },
-    "adult-brown": {
-      "src": "assets/characters/adult-brown.png",
-      "from": "recolour of adult-navy"
-    },
-    "old-bluescarf": {
-      "src": "assets/characters/old-bluescarf.png",
-      "from": "recolour of old-scarf"
-    },
-    "old-plum": {
-      "src": "assets/characters/old-plum.png",
-      "from": "recolour of old-green"
+    "woman": {
+      "src": "assets/characters/woman.png",
+      "portrait": "assets/characters/portraits/woman.png",
+      "portraitSize": [
+        124,
+        320
+      ],
+      "from": "Aikuisen naisen pikselihahmojen spritesheet.png"
     }
   }
 }

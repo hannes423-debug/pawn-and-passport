@@ -210,7 +210,7 @@ def match():
         c.eval(NEW_CAREER % ("boy", "ist"), await_promise=True)
         c.eval("""window.__pap.go('match', { kind: 'friendly', colour: 'w', clubId: 'ist', returnScene: 'ist-int',
                  opponent: { id: 'ist-deniz', name: 'Deniz Arslan', elo: 650, style: 'aggressive', openingId: 'sicilian',
-                             look: { sprite: 'adult-brown' } } }).then(() => 1)""", await_promise=True)
+                             look: { sprite: 'young-red' } } }).then(() => 1)""", await_promise=True)
         c.wait_for("document.querySelectorAll('.cwt-piece').length === 32", timeout=20)
         c.pump(1)
         print("start", c.shot("40-match-start"))

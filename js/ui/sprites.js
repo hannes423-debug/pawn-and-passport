@@ -3,7 +3,7 @@
  *
  * Two kinds of character, one API:
  *
- *   look.sprite = 'boy' | 'girl-red' | ...   a drawn sprite sheet from
+ *   look.sprite = 'boy' | 'woman' | ...      a drawn sprite sheet from
  *       assets/characters/ (sliced by tools/build_characters.py): 12 columns
  *       (0-3 idle, 4-11 walk) x 4 rows (down, left, right, up), 72x108 cells.
  *   no sprite                                 the procedural 16x24 fallback,
@@ -12,6 +12,12 @@
  *
  * Sheets are preloaded once at boot (loadCharacterSprites) so every draw and
  * portrait below can stay synchronous.
+ *
+ * Portraits (dialogue boxes, player cards, HUD) come from each sheet's large
+ * character illustration, assets/characters/portraits/<id>.png, so the person
+ * talking is the person walking around. There are only a handful of drawn
+ * characters, so NPCs share them; an NPC never wears the player's own sprite
+ * (setPlayerAvatar swaps it for its closest counterpart).
  */
 
 const W = 16;
@@ -30,6 +36,24 @@ export const PLAYER_LOOKS = Object.freeze({
 export const CELL = Object.freeze({ W: 72, H: 108, idle: 4, walk: 8 });
 const ROW = { down: 0, left: 1, right: 2, up: 3 };
 const images = new Map();
+const portraits = new Map();
+
+/* The player's avatar and what an NPC wearing the same sprite shows instead. */
+const TWIN = { boy: 'young-blue', girl: 'woman' };
+let playerSprite = null;
+export function setPlayerAvatar(avatar) { playerSprite = PLAYER_LOOKS[avatar]?.sprite || null; }
+const isPlayerLook = (look) => look === PLAYER_LOOKS.boy || look === PLAYER_LOOKS.girl;
+/* Once sheets are loaded, a look naming a sheet that does not exist (an old
+   save, a typo) still draws a real character instead of crashing into the
+   procedural painter with half its colours missing. */
+const FALLBACK_SPRITE = 'young-blue';
+/** The sheet id a look really draws with. */
+export function spriteId(look) {
+  let id = look?.sprite;
+  if (images.size && (!id || !images.has(id))) id = FALLBACK_SPRITE;
+  if (!id || isPlayerLook(look)) return id;
+  return id === playerSprite && TWIN[id] ? TWIN[id] : id;
+}
 
 /** Load every sheet named in assets/characters/manifest.json. Never rejects. */
 export async function loadCharacterSprites(base = 'assets/characters/') {
@@ -38,16 +62,17 @@ export async function loadCharacterSprites(base = 'assets/characters/') {
     const manifest = await fetch(`${base}manifest.json`).then((r) => r.json());
     ids = Object.keys(manifest.sprites || {});
   } catch { return images; }
-  await Promise.all(ids.map((id) => new Promise((resolve) => {
+  const load = (map, id, src) => new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => { images.set(id, img); resolve(); };
+    img.onload = () => { map.set(id, img); resolve(); };
     img.onerror = () => resolve();
-    img.src = `${base}${id}.png`;
-  })));
+    img.src = src;
+  });
+  await Promise.all(ids.flatMap((id) => [load(images, id, `${base}${id}.png`), load(portraits, id, `${base}portraits/${id}.png`)]));
   return images;
 }
 
-export const hasSheet = (look) => !!(look?.sprite && images.get(look.sprite));
+export const hasSheet = (look) => !!(spriteId(look) && images.get(spriteId(look)));
 
 function shade(hex, amount) {
   const n = parseInt(hex.slice(1), 16);
@@ -209,7 +234,7 @@ export function drawCharacter(ctx, look, { dir = 'down', frame = 0, walking = fa
   const h = height || SPRITE.H * scale;
   const w = Math.round(h * CELL.W / CELL.H);
   ctx.imageSmoothingEnabled = false;
-  const sheet = hasSheet(look) ? images.get(look.sprite) : null;
+  const sheet = hasSheet(look) ? images.get(spriteId(look)) : null;
   if (sheet) {
     // Downscaling a 108px cell with nearest-neighbour drops whole pixel rows
     // unevenly; smooth when shrinking, stay crisp when enlarging.
@@ -236,7 +261,7 @@ export function spriteCanvas(look, { dir = 'down', frame = 0, walking = false, s
 
 /** Head-and-shoulders portrait on a round medallion, as a data URL. */
 export function portraitUrl(look, { size = 96, ring = '#e8b04a', ground = '#f3e3bf' } = {}) {
-  const key = `portrait:${JSON.stringify(look)}:${size}:${ring}:${ground}:${hasSheet(look)}`;
+  const key = `portrait:${JSON.stringify(look)}:${spriteId(look)}:${size}:${ring}:${ground}:${hasSheet(look)}`;
   if (cache.has(key)) return cache.get(key);
   const canvas = document.createElement('canvas');
   canvas.width = size; canvas.height = size;
@@ -246,9 +271,16 @@ export function portraitUrl(look, { size = 96, ring = '#e8b04a', ground = '#f3e3
   c.fillStyle = ground; c.beginPath(); c.arc(size / 2, size / 2, size / 2 - size * 0.06, 0, Math.PI * 2); c.fill();
   c.save();
   c.beginPath(); c.arc(size / 2, size / 2, size / 2 - size * 0.06, 0, Math.PI * 2); c.clip();
-  if (hasSheet(look)) {
+  const art = portraits.get(spriteId(look));
+  if (art) {
+    // Head and shoulders of the character's illustration: a square as wide as
+    // the figure, from the top of the head down.
+    const side = Math.min(art.width, art.height * 0.5);
+    const sx = (art.width - side) / 2;
+    c.drawImage(art, sx, 0, side, side, size * 0.08, size * 0.1, size * 0.84, size * 0.84);
+  } else if (hasSheet(look)) {
     // Head and shoulders of the front-facing first idle frame.
-    c.drawImage(images.get(look.sprite), 8, 4, 56, 56, size * 0.06, size * 0.1, size * 0.88, size * 0.88);
+    c.drawImage(images.get(spriteId(look)), 8, 4, 56, 56, size * 0.06, size * 0.1, size * 0.88, size * 0.88);
   } else {
     const scale = Math.floor(size / 13);
     // Crop rows 0..15 (head and shoulders) of the front-facing stand frame.
@@ -260,4 +292,4 @@ export function portraitUrl(look, { size = 96, ring = '#e8b04a', ground = '#f3e3
   return url;
 }
 
-export default { characterSheet, drawCharacter, spriteCanvas, portraitUrl, loadCharacterSprites, hasSheet, PLAYER_LOOKS, SPRITE, CELL };
+export default { characterSheet, drawCharacter, spriteCanvas, portraitUrl, loadCharacterSprites, hasSheet, spriteId, setPlayerAvatar, PLAYER_LOOKS, SPRITE, CELL };

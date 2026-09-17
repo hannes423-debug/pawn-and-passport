@@ -146,7 +146,7 @@ def run_viewport(spec, failures):
         check("puzzle")
 
         go("""window.__pap.go('match', { kind: 'friendly', colour: 'w', clubId: 'nyc', returnScene: 'nyc-int',
-              opponent: { id: 'nyc-x', name: 'Grace Whitfield', elo: 650, style: 'aggressive', openingId: 'italian', look: { sprite: 'adult-brown' } } })""",
+              opponent: { id: 'nyc-x', name: 'Grace Whitfield', elo: 650, style: 'aggressive', openingId: 'italian', look: { sprite: 'young-red' } } })""",
            "document.querySelector('.cwt-board')?.dataset.interactive === 'true'", settle=1.5)
         check("match")
         rect = lambda: c.eval("JSON.stringify(document.querySelector('.pp-boardframe').getBoundingClientRect())")
