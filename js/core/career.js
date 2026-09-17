@@ -394,6 +394,19 @@ export function missionProgress(career, missionId) {
  * A puzzle solved. The last one of a mission pays the postcard, once.
  * @returns {{firstSolve:boolean, xp:Object|null, missionComplete:boolean, postcard:Object|null, allPostcards:boolean}}
  */
+/** A club practice-room puzzle: its own record, never a postcard. */
+export function recordClubPuzzleSolved(career, puzzleId) {
+  career.clubPuzzlesSolved = career.clubPuzzlesSolved || {};
+  const firstSolve = !career.clubPuzzlesSolved[puzzleId];
+  let xp = null;
+  if (firstSolve) {
+    career.clubPuzzlesSolved[puzzleId] = true;
+    career.stats.practicePuzzles = (career.stats.practicePuzzles || 0) + 1;
+    xp = grantXp(career, XP.clubPuzzleSolved);
+  }
+  return { firstSolve, xp };
+}
+
 export function recordPuzzleSolved(career, puzzleId, now = Date.now()) {
   const puzzle = PUZZLES.find((p) => p.id === puzzleId);
   if (!puzzle) return { firstSolve: false, xp: null, missionComplete: false, postcard: null, allPostcards: false };

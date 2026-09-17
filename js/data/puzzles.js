@@ -259,15 +259,15 @@ export const PUZZLES = [
   {
     "id": "ist-4",
     "mission": "ist",
-    "title": "Knight unmasks",
-    "hint": "Collect what the discovery won.",
-    "fen": "rnbqk2r/ppppbppp/2N2n2/8/8/8/PPPPQPPP/RNB1KB1R w KQkq - 4 6",
+    "title": "Discovered check",
+    "hint": "Move the knight and the rook behind it gives check.",
+    "fen": "4k3/8/3q4/8/4N3/8/5PPP/4R1K1 w - - 0 1",
     "sideToMove": "w",
     "solution": [
-      "c6d8"
+      "e4d6"
     ],
     "solutionSan": [
-      "Nxd8"
+      "Nxd6+"
     ],
     "verifiedDepth": 18
   },

@@ -29,6 +29,7 @@ export const XP = Object.freeze({
   trophy: 250,
   finaleWin: 600,
   puzzleSolved: 25,        // first solve only
+  clubPuzzleSolved: 15,    // a practice-room puzzle, first solve only
   missionComplete: 120
 });
 

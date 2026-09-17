@@ -16,25 +16,27 @@ import { HIGHLIGHT } from '../../chess/render/boardRenderer.js';
 import { missionById } from '../../data/missions.js';
 import { clubById } from '../../data/clubs.js';
 import { PUZZLES } from '../../data/puzzles.js';
-import { recordPuzzleSolved, missionProgress } from '../../core/career.js';
+import { recordPuzzleSolved, recordClubPuzzleSolved, missionProgress } from '../../core/career.js';
+import { puzzlesForClub } from '../../data/clubPuzzles.js';
 import { postcardFlip } from './journal.js';
 import { tapWord } from '../touch.js';
 
 export function puzzleScreen(app, params) {
   const career = app.career;
-  /* Practice mode (a club's practice room): every puzzle from every city, no
-     XP and no postcard, so the venues keep their reward. */
+  /* Practice mode (a club's practice room): the club's OWN set, mined from
+     real games in its opening (js/data/clubPuzzles.js). No postcard: those
+     belong to the venues, whose puzzles are a different set. */
   const practice = !!params.practice;
   const mission = practice ? null : missionById(params.missionId);
   const club = clubById(practice ? params.clubId : mission.clubId);
+  const solvedHere = (p) => (practice ? !!career.clubPuzzlesSolved?.[p.id] : !!career.puzzlesSolved[p.id]);
   const puzzles = practice
-    ? [...PUZZLES].sort((a, b) => Number(!!career.puzzlesSolved[a.id]) - Number(!!career.puzzlesSolved[b.id]))
+    ? [...puzzlesForClub(params.clubId)].sort((a, b) => Number(solvedHere(a)) - Number(solvedHere(b)))
     : PUZZLES.filter((p) => p.mission === mission.clubId);
   const host = practice
     ? { name: 'Practice room', look: club.regularOpponentPool[1 % club.regularOpponentPool.length].look, place: club.clubName }
     : { name: mission.host.name, look: mission.host.look, place: club.casualLocationName };
   let index = practice ? 0 : Math.max(0, puzzles.findIndex((p) => !career.puzzlesSolved[p.id]));
-  const practiceDone = new Set();
   let rules = null;
   let step = 0;
   let locked = false;
@@ -53,25 +55,28 @@ export function puzzleScreen(app, params) {
   const status = h('p');
   const dots = h('div.pp-dots');
   const hintText = h('p.pp-small.pp-muted');
+  const source = h('p.pp-small.pp-muted');
   const nextBtn = button('Next puzzle', () => load(index + 1), { cls: 'pp-btn--gold', icon: '▶' });
   const panel = h('aside.pp-match__left', null,
     h('div.pp-panel.pp-player.pp-match__opp', null,
       h('img', { alt: '', src: portraitUrl(host.look) }),
       h('div', null, h('div.pp-player__name', { text: host.name }), h('div.pp-small', { text: host.place }))),
-    h('div.pp-panel.pp-col.pp-match__focus', null,
-      h('div.pp-h3', { text: practice ? `Puzzle practice · ${puzzles.length} puzzles` : `${mission.title} · ${mission.theme}` }),
-      dots, title, status, hintText,
-      h('div.pp-row', null,
-        button('Hint (free)', () => giveHint(), { cls: 'pp-btn--small pp-btn--blue', icon: '💡' }),
-        button('Retry', () => load(index), { cls: 'pp-btn--small' })),
-      nextBtn,
-      button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small' })));
+    h('div.pp-panel.pp-col.pp-match__focus.pp-puzzle__panel', null,
+      // The text may scroll on a small screen; the buttons below it never do.
+      h('div.pp-puzzle__info', null,
+        h('div.pp-h3', { text: practice ? `${club.clubName} puzzles · ${puzzles.length}` : `${mission.title} · ${mission.theme}` }),
+        dots, title, status, hintText, source),
+      h('div.pp-row.pp-puzzle__actions', null,
+        nextBtn,
+        button('Hint', () => giveHint(), { cls: 'pp-btn--small pp-btn--blue', icon: '💡' }),
+        button('Retry', () => load(index), { cls: 'pp-btn--small' }),
+        button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small' }))));
   if (practice) dots.classList.add('pp-dots--many');
   const el = h('div.pp-screen.pp-match.pp-match--puzzle', null, panel, h('main.pp-match__board', null, board.frame), h('aside.pp-match__right'));
 
   function paintDots() {
     dots.replaceChildren(...puzzles.map((p, i) => h('span.pp-dot', {
-      class: `${(practice ? practiceDone.has(p.id) : career.puzzlesSolved[p.id]) ? 'is-done' : ''} ${i === index ? 'is-current' : ''}`, title: p.title
+      class: `${solvedHere(p) ? 'is-done' : ''} ${i === index ? 'is-current' : ''}`, title: p.title
     })));
   }
 
@@ -87,6 +92,8 @@ export function puzzleScreen(app, params) {
     board.input.setEnabled(true);
     title.textContent = `${index + 1}. ${p.title}`;
     status.textContent = `${p.sideToMove === 'w' ? 'White' : 'Black'} to move. Find the best line.`;
+    // Club puzzles come from real games: say which one.
+    source.textContent = p.source ? `From ${p.source}, move ${p.moveNumber}.` : '';
     hintText.textContent = '';
     nextBtn.hidden = true;
     paintDots();
@@ -139,11 +146,10 @@ export function puzzleScreen(app, params) {
     board.fx.word('SOLVED!', '#ffc341', mates ? 'Checkmate' : p.solutionSan.join(' '));
     sfx.brilliant();
     if (practice) {
-      practiceDone.add(p.id);
-      career.stats.practicePuzzles = (career.stats.practicePuzzles || 0) + 1;
+      const r = recordClubPuzzleSolved(career, p.id);
       app.save();
       paintDots();
-      status.textContent = 'Solved!';
+      status.textContent = r.firstSolve ? `Solved! +${r.xp.xp} XP` : 'Solved again!';
       nextBtn.hidden = false;
       nextBtn.querySelector('span:last-child').textContent = index >= puzzles.length - 1 ? 'Finish' : 'Next puzzle';
       return;

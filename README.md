@@ -30,6 +30,8 @@ Debug deep links (need an existing save): `?screen=map`, `?scene=nyc-int`,
 ```bash
 node tests/run.js                      # 25 rules/data/campaign tests, no browser
 node tools/verify-puzzles.mjs          # re-prove every puzzle with Stockfish, regenerate js/data/puzzles.js
+python3 tools/opening-research/mine-puzzles.py  # club puzzle candidates from real games in each club opening
+node tools/verify-club-puzzles.mjs     # prove them with Stockfish -> js/data/clubPuzzles.js (6 per club)
 python3 tools/serve.py 8123 &          # then, one at a time:
 python3 tools/cdp.py smoke             # every screen and all 24 scenes, screenshots, console errors
 python3 tools/cdp.py match             # a real game through the board: hint, live grades, result card, save

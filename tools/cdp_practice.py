@@ -9,7 +9,7 @@ tools/cdp_practice.py - the practice room, opening study, drills and engine fall
   2. tutorial for an UNKNOWN opening: stepping line 0 to its end unlocks it (MASTERY.tutorialGrant)
   3. journal study at 40%: later moves stay locked
   4. a drill set answered correctly passes and teaches (+drillGain)
-  5. puzzle practice holds every puzzle and pays no postcard
+  5. puzzle practice holds the club's own set (not the venue puzzles)
   6. ?engine=asm boots the compatibility build and it analyses
 """
 import json
@@ -112,8 +112,14 @@ try:
     c.eval("window.__pap.go('puzzle', { practice: true, clubId: 'nyc', returnScene: 'nyc-int' }).then(() => 1)", await_promise=True)
     c.pump(1)
     dots = c.eval("document.querySelectorAll('.pp-dot').length")
-    total = c.eval("import('./js/data/puzzles.js').then(m => m.PUZZLES.length)", await_promise=True)
-    check(dots == total, f"puzzle practice holds all {total} puzzles ({dots} dots)")
+    total = c.eval("import('./js/data/clubPuzzles.js').then(m => m.puzzlesForClub('nyc').length)", await_promise=True)
+    check(dots == total and total >= 4, f"puzzle practice holds the club's own {total} puzzles ({dots} dots)")
+    shown = c.eval("[...document.querySelectorAll('.pp-dot')].map(d => d.title).join('|')")
+    club_titles = c.eval("import('./js/data/clubPuzzles.js').then(m => m.puzzlesForClub('nyc').map(p => p.title).join('|'))", await_promise=True)
+    check(sorted(shown.split('|')) == sorted(club_titles.split('|')), "the dots are the club's puzzles")
+    board_fen = c.eval("import('./js/data/clubPuzzles.js').then(m => m.puzzlesForClub('nyc').map(p => p.fen.split(' ')[0]))", await_promise=True)
+    venue_fens = c.eval("import('./js/data/puzzles.js').then(m => m.PUZZLES.map(p => p.fen.split(' ')[0]))", await_promise=True)
+    check(not set(board_fen) & set(venue_fens), "no club puzzle position is a venue puzzle position")
     c.shot(f"p6-puzzles-{spec}")
 
     for e in c.errors():

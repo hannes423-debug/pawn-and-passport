@@ -24,7 +24,7 @@ export const PUZZLE_SEEDS = [
   { mission: 'nyc', id: 'nyc-4', title: 'The pawn fork', fen: '8/p4k2/8/2n1b3/8/3PK3/P7/7R w - - 0 1',
     line: ['d4'], hint: 'The humblest piece can attack two at once.' },
 
-  /* ------------------------------------ London: back rank (South Bank board) */
+  /* ---------------------------- London: back rank (Covent Garden courtyard) */
   { mission: 'lon', id: 'lon-1', title: 'The open file', fen: '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1',
     line: ['Rd8#'], hint: 'The king has no air.' },
   { mission: 'lon', id: 'lon-2', title: 'Doubled rooks', fen: '1r4k1/5ppp/8/8/8/8/3R1PPP/3R2K1 w - - 0 1',
@@ -51,8 +51,8 @@ export const PUZZLE_SEEDS = [
     line: ['Bc4+', 'Kd6', 'Bxg8'], hint: 'Check the king, and look at what stands behind it.' },
   { mission: 'ist', id: 'ist-3', title: 'Double check', fen: '2q1k3/8/8/8/4N3/8/8/4R1K1 w - - 0 1',
     line: ['Nd6+'], hint: 'Two checks at once cannot be blocked.' },
-  { mission: 'ist', id: 'ist-4', title: 'Knight unmasks', moves: ['e4', 'e5', 'Nf3', 'Nf6', 'Nxe5', 'Nxe4', 'Qe2', 'Nf6', 'Nc6+', 'Be7'],
-    line: ['Nxd8'], hint: 'Collect what the discovery won.' },
+  { mission: 'ist', id: 'ist-4', title: 'Discovered check', fen: '4k3/8/3q4/8/4N3/8/5PPP/4R1K1 w - - 0 1',
+    line: ['Nxd6+'], hint: 'Move the knight and the rook behind it gives check.' },
 
   /* ---------------------------------- Chennai: endgame technique (Marina) */
   { mission: 'che', id: 'che-1', title: 'Take the opposition', fen: '4k3/8/3K4/4P3/8/8/8/8 w - - 0 1',

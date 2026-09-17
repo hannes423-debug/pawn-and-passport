@@ -83,11 +83,11 @@ export function drillScreen(app, params) {
       h('img', { alt: '', src: portraitUrl(coach || { sprite: 'woman' }) }),
       h('div', null, h('div.pp-player__name', { text: `${opening.name} drills` }),
         h('div.pp-small', { text: `${club?.clubName || 'Practice room'} · ${career.openings[opening.id] ?? 0}% ${masteryState(career.openings[opening.id] ?? 0).label}` }))),
-    h('div.pp-panel.pp-col.pp-match__focus', null,
-      dots, title, history, status,
-      h('div.pp-row', null,
-        button('Show answer', () => reveal(), { cls: 'pp-btn--small pp-btn--blue', icon: '💡' }),
+    h('div.pp-panel.pp-col.pp-match__focus.pp-puzzle__panel', null,
+      h('div.pp-puzzle__info', null, dots, title, history, status),
+      h('div.pp-row.pp-puzzle__actions', null,
         nextBtn,
+        button('Show answer', () => reveal(), { cls: 'pp-btn--small pp-btn--blue', icon: '💡' }),
         button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small' }))));
   const el = h('div.pp-screen.pp-match.pp-match--puzzle', null, panel, h('main.pp-match__board', null, board.frame), h('aside.pp-match__right'));
 

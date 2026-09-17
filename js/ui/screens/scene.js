@@ -61,7 +61,7 @@ export async function sceneScreen(app, params) {
   const ACTOR_H = scene.actorHeight ?? (scene.placeholder ? 0.15 : 0.1);
   // Walking pace in proportion to the character's size, within limits.
   const SPEED = WALK_SPEED * Math.min(1.8, Math.max(0.9, ACTOR_H / 0.1));
-  const hotspotLayer = h('div', { style: { position: 'absolute', inset: '0' } });
+  const hotspotLayer = h('div.pp-scene__labels', { style: { position: 'absolute', inset: '0' } });
   const stage = h('div.pp-scene__stage', null, bg, actors, hotspotLayer);
   const viewport = h('div.pp-scene__viewport', null, stage);
   const dock = h('div.pp-scene__dock');
@@ -661,7 +661,7 @@ export async function sceneScreen(app, params) {
         h('p.pp-small', { text: `${host.name} runs the practice room. Nothing here changes your rating.` }),
         h('div.pp-col', null,
           option('friendly', '♞', 'Friendly game', 'Unrated. Play a club member as White or Black.'),
-          option('puzzles', '🧩', 'Puzzles', 'Tactics from all six cities. Practice only: postcards are won at the venues.'),
+          option('puzzles', '🧩', 'Puzzles', `This club's own set: positions from real ${opening.name} games. The venue puzzles are a different set.`),
           option('tutorial', '📖', `Tutorial: ${opening.name}`, tutored ? 'Walk through every line again.' : mastery > 0 ? 'Every line with notes.' : `Every line with notes. Finishing it unlocks the opening (${MASTERY.tutorialGrant}%).`, tutored ? '' : 'is-new'),
           option('drill', '🎯', `Drills: ${opening.name}`, mastery > 0 ? `Find the book move. Passing a set: +${MASTERY.drillGain}% (you know ${mastery}%).` : 'Do the tutorial first.')),
         h('div.pp-row', { style: { justifyContent: 'flex-end' } }, button('Leave', () => c(null), { cls: 'pp-btn--small' })));

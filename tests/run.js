@@ -12,6 +12,7 @@ import { spriteId, setPlayerAvatar, PLAYER_LOOKS } from '../js/ui/sprites.js';
 import { SCENE_LAYERS } from '../js/data/sceneLayers.js';
 import { createWalkGrid, walkerFor } from '../js/core/freeWalk.js';
 import { sceneById } from '../js/data/scenes.js';
+import { CLUB_PUZZLES } from '../js/data/clubPuzzles.js';
 import { CLUBS, FINALE } from '../js/data/clubs.js';
 import { STAR_PLAYERS } from '../js/data/starPlayers.js';
 import { POSTCARDS, BEYOND_THE_TOUR } from '../js/data/postcards.js';
@@ -378,6 +379,34 @@ test('game results move Elo, XP and opening knowledge', () => {
   eq(c.stats.grades.BRILLIANT, 1); eq(c.stats.careerScore, 2500);
   for (let i = 0; i < 30; i += 1) Career.learnFromPlay(c, 'french');
   eq(c.openings.french, 90, 'play alone never masters an opening');
+});
+
+/* ------------------------------------------------------------- puzzles */
+
+test('every venue and every club has its own puzzles: no position is used twice', () => {
+  const key = (fen) => fen.split(' ').slice(0, 4).join(' ');
+  const seen = new Map();
+  for (const p of [...PUZZLES, ...CLUB_PUZZLES]) {
+    const k = key(p.fen);
+    assert(!seen.has(k), `${p.id} repeats ${seen.get(k)}`);
+    seen.set(k, p.id);
+  }
+  for (const club of CLUBS) {
+    assert(PUZZLES.filter((p) => p.mission === club.clubId).length >= 4, `${club.clubId}: venue set`);
+    assert(CLUB_PUZZLES.filter((p) => p.club === club.clubId).length >= 4, `${club.clubId}: club set`);
+  }
+});
+
+test('club puzzle solutions are legal and mates end in mate', () => {
+  for (const p of CLUB_PUZZLES) {
+    const r = createRules(p.fen);
+    for (const uci of p.solution) {
+      const m = r.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.slice(4) || undefined });
+      assert(m, `${p.id}: illegal ${uci}`);
+    }
+    eq(p.solution.length % 2, 1, `${p.id}: ends on the player's move`);
+    if (p.title.startsWith('Mate')) assert(r.isCheckmate(), `${p.id}: "${p.title}" ends in mate`);
+  }
 });
 
 /* -------------------------------------------------------- free walking */
