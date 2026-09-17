@@ -613,7 +613,10 @@ export async function sceneScreen(app, params) {
       sfx.stamp();
       await app.overlay((close) => {
         const card = h('div.pp-arrival', { onclick: () => close() },
-          h('img', { src: `assets/cities/${clubId}.webp`, alt: isFinale ? 'Madrid' : club.city }),
+          // A phone held upright gets the portrait loading screen.
+          h('picture', null,
+            h('source', { media: '(max-aspect-ratio: 13/10)', srcset: `assets/cities/${clubId}-portrait.webp` }),
+            h('img', { src: `assets/cities/${clubId}.webp`, alt: isFinale ? 'Madrid' : club.city })),
           h('div.pp-arrival__tap', { text: `${tapWord()} to step off the plane` }));
         return card;
       });

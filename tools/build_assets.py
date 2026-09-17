@@ -12,7 +12,7 @@ is always safe.
 What it produces:
     assets/ui/        title background, logos, journal books, world map
     assets/scenes/    every walkable scene (club gardens, floor plans, venues)
-    assets/cities/    the six-plus-one city arrival cards
+    assets/cities/    the six-plus-one city arrival cards, landscape and <id>-portrait
     assets/postcards/ one postcard front per casual venue
     assets/pieces/pixel/  12 piece sprites sliced from the piece sheet
     assets/board/     the ornate board, resampled so its 8x8 grid is square
@@ -70,13 +70,25 @@ SCENES = {
 }
 
 CITIES = {
-    'nyc': 'NYC/ChatGPT Image 14.9.2026 klo 23.14.07 (4).png',
+    'nyc': 'NYC/ChatGPT Image 17.9.2026 klo 07.31.39.png',
     'lon': 'London/ChatGPT Image 14.9.2026 klo 23.14.07 (5).png',
     'vie': 'Vienna/ChatGPT Image 14.9.2026 klo 23.14.06 (1).png',
     'ist': 'Istanbul/ChatGPT Image 14.9.2026 klo 23.14.06 (3).png',
     'che': 'Chennai/ChatGPT Image 14.9.2026 klo 23.14.06 (2).png',
     'wen': 'Wenzhou/ChatGPT Image 14.9.2026 klo 23.17.28 (1).png',
     'mad': 'Spain Madrid/ChatGPT Image 14.9.2026 klo 23.17.28 (2).png',
+}
+
+# Portrait loading screens (phone held upright), cities/<id>-portrait.
+# NYC/ also keeps an earlier portrait draft, ChatGPT Image 17.9.2026 klo 07.32.57.png.
+CITIES_PORTRAIT = {
+    'nyc': 'NYC/ChatGPT Image 17.9.2026 klo 07.43.28 (3).png',
+    'lon': 'London/ChatGPT Image 17.9.2026 klo 07.43.27 (2).png',
+    'vie': 'Vienna/ChatGPT Image 17.9.2026 klo 07.43.30 (6).png',
+    'ist': 'Istanbul/ChatGPT Image 17.9.2026 klo 07.43.28 (4).png',
+    'che': 'Chennai/ChatGPT Image 17.9.2026 klo 07.43.29 (5).png',
+    'wen': 'Wenzhou/ChatGPT Image 17.9.2026 klo 07.35.27.png',
+    'mad': 'Spain Madrid/ChatGPT Image 17.9.2026 klo 07.43.26 (1).png',
 }
 
 PIECE_SHEET = 'ChatGPT Image 14.9.2026 klo 23.20.56.png'
@@ -129,6 +141,10 @@ def build_scenes():
         img = Image.open(path).convert('RGB')
         save_webp(img, 'cities/' + name, 1672)
         sizes[name + '-card'] = (min(1672, img.width), round(img.height * min(1672, img.width) / img.width))
+    for name, rel in CITIES_PORTRAIT.items():
+        path = src(rel)
+        if path:
+            save_webp(Image.open(path).convert('RGB'), 'cities/' + name + '-portrait', 941)
     return sizes
 
 
