@@ -33,16 +33,16 @@ import { createTouchpad, tapWord } from '../touch.js';
 import { openOpeningStudy } from '../openingStudy.js';
 import { learnFromTutorial } from '../../core/career.js';
 import { SCENE_LAYERS } from '../../data/sceneLayers.js';
-import { createWalkGrid } from '../../core/freeWalk.js';
+import { createWalkGrid, walkerFor } from '../../core/freeWalk.js';
 
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
 const WALK_SPEED = 42;           // percent of the stage height per second
 
 /* A walk grid takes a moment to bake on a phone: build each scene's once. */
 const walkGrids = new Map();
-function walkGridFor(id, layers, aspect) {
-  const key = `${id}:${aspect.toFixed(4)}`;
-  if (!walkGrids.has(key)) walkGrids.set(key, createWalkGrid(layers, { aspect }));
+function walkGridFor(id, layers, aspect, actorHeight) {
+  const key = `${id}:${aspect.toFixed(4)}:${actorHeight}`;
+  if (!walkGrids.has(key)) walkGrids.set(key, createWalkGrid(layers, { aspect, walker: walkerFor(actorHeight) }));
   return walkGrids.get(key);
 }
 
@@ -58,6 +58,9 @@ export async function sceneScreen(app, params) {
 
   const bg = h('img.pp-scene__bg', { src: scene.image, alt: '', draggable: 'false' });
   const actors = h('div.pp-scene__actors');
+  const ACTOR_H = scene.actorHeight ?? (scene.placeholder ? 0.15 : 0.1);
+  // Walking pace in proportion to the character's size, within limits.
+  const SPEED = WALK_SPEED * Math.min(1.8, Math.max(0.9, ACTOR_H / 0.1));
   const hotspotLayer = h('div', { style: { position: 'absolute', inset: '0' } });
   const stage = h('div.pp-scene__stage', null, bg, actors, hotspotLayer);
   const viewport = h('div.pp-scene__viewport', null, stage);
@@ -147,9 +150,9 @@ export async function sceneScreen(app, params) {
     const actor = {
       look, x, y, dir, frame: Math.floor(Math.random() * 4), walking: false, canvas, shadow, player,
       resize() {
-        // Characters stand about a tenth of the scene tall (bigger on the
-        // close-up city cards).
-        const height = Math.max(40, Math.round(stageH * (scene.placeholder ? 0.15 : 0.1)));
+        // Characters stand about a tenth of the scene tall; close-up scenes
+        // set their own measured height (scenes.js actorHeight).
+        const height = Math.max(40, Math.round(stageH * ACTOR_H));
         canvas.height = height;
         canvas.width = Math.round(height * CELL.W / CELL.H);
         shadow.style.width = `${canvas.width * 0.55}px`;
@@ -190,7 +193,7 @@ export async function sceneScreen(app, params) {
   /* Depth layers: each cut-out object sits in the actors layer, stacked by its ground line. */
   const layers = SCENE_LAYERS[scene.id] || null;
   const freeMode = !!layers;
-  const grid = freeMode ? walkGridFor(scene.id, layers, aspect) : null;
+  const grid = freeMode ? walkGridFor(scene.id, layers, aspect, ACTOR_H) : null;
   if (freeMode) {
     for (const prop of layers.props) {
       actors.append(h('img.pp-prop', {
@@ -249,7 +252,7 @@ export async function sceneScreen(app, params) {
         const dxPx = (tx - player.x) * aspect;
         const dy = ty - player.y;
         const dist = Math.hypot(dxPx, dy);
-        const step = WALK_SPEED * dt;
+        const step = SPEED * dt;
         if (dist <= step) { player.x = tx; player.y = ty; k += 1; }
         else { player.x += (dxPx / dist) * step / aspect; player.y += (dy / dist) * step; }
         animateStep(dxPx, dy, dt);
@@ -298,7 +301,7 @@ export async function sceneScreen(app, params) {
         const dxPx = (tx - player.x) * aspect;
         const dy = ty - player.y;
         const dist = Math.hypot(dxPx, dy);
-        const step = WALK_SPEED * dt;
+        const step = SPEED * dt;
         if (dist <= step) {
           player.x = tx; player.y = ty; playerNode = path[segment]; segment += 1;
         } else {
@@ -352,7 +355,8 @@ export async function sceneScreen(app, params) {
     const list = h('div.pp-row');
     scene.hotspots.forEach((spot, i) => {
       const [x, y] = scene.nodes[spot.node];
-      const labelY = spot.npc?.at ? Math.min(y, spot.npc.at[1]) - 9 : y - 7;
+      // Labels float just above a character's head, however tall characters are drawn here.
+      const labelY = spot.npc?.at ? Math.min(y, spot.npc.at[1]) - ACTOR_H * 95 - 1 : y - Math.max(7, ACTOR_H * 70);
       hotspotLayer.append(h('button.pp-hotspot', {
         type: 'button', class: spotState(spot),
         style: { left: `${spot.npc?.at ? spot.npc.at[0] : x}%`, top: `${Math.max(4, labelY)}%` },
@@ -459,7 +463,7 @@ export async function sceneScreen(app, params) {
           if (!stick) break;
           const mag = Math.min(1, Math.hypot(stick.x, stick.y));
           const len = Math.hypot(stick.x, stick.y) || 1;
-          const step = WALK_SPEED * dt * (0.35 + 0.65 * mag);
+          const step = SPEED * dt * (0.35 + 0.65 * mag);
           const dxPx = (stick.x / len) * step;
           const dy = (stick.y / len) * step;
           const r = grid.move(player.x, player.y, dxPx / aspect, dy);

@@ -22,6 +22,12 @@
  *   talk       a flavour line
  *
  * Every casual venue has its own art (Madrid has none: it is the finale).
+ *
+ * `actorHeight` is a character's sprite height as a share of the scene
+ * height (default 0.1). The venues are close-up views, so it is measured from
+ * the art: a person stands about 1.75 chair heights (chairs measured
+ * backrest-top to feet; Madrid from a bench), and the drawn body fills 89% of
+ * the sprite frame.
  */
 
 const link = (...chain) => chain.slice(1).map((id, i) => [chain[i], id]);
@@ -128,7 +134,7 @@ add(hallA('nyc-int', 'assets/scenes/nyc-int.webp', {
 add(upstairs('nyc-up', 'assets/scenes/nyc-up.webp',
   { stairs: [50, 45], hub: [50, 70], lounge: [22, 58], loungeNpc: [16, 50], trophies: [78, 55] }));
 add({
-  id: 'nyc-venue', image: 'assets/scenes/nyc-venue.webp', kind: 'venue', placeholder: false,
+  id: 'nyc-venue', image: 'assets/scenes/nyc-venue.webp', actorHeight: 0.113, kind: 'venue', placeholder: false,
   spawn: { default: 'arrive' },
   nodes: { arrive: [50, 92], plaza: [27, 86], stairFoot: [12, 69], stairTop: [9, 45], terrace: [15, 37], host: [21, 37], exit: [50, 96] },
   links: [['arrive', 'plaza'], ['plaza', 'stairFoot'], ['stairFoot', 'stairTop'], ['stairTop', 'terrace'], ['terrace', 'host'], ['arrive', 'exit']],
@@ -154,7 +160,7 @@ add({
 });
 add({
   // Covent Garden Chess Courtyard: in from the street, along the benches, up the west aisle.
-  id: 'lon-venue', image: 'assets/scenes/lon-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
+  id: 'lon-venue', image: 'assets/scenes/lon-venue.webp', actorHeight: 0.117, kind: 'venue', spawn: { default: 'arrive' },
   nodes: { arrive: [50, 86], aisle: [50, 74], west: [21, 74], host: [21, 57], exit: [50, 93] },
   links: [['arrive', 'aisle'], ['aisle', 'west'], ['west', 'host'], ['arrive', 'exit']],
   hotspots: [
@@ -176,7 +182,7 @@ add(upstairs('vie-up', 'assets/scenes/vie-up.webp',
   { stairs: [50, 86], hub: [50, 30], lounge: [22, 46], loungeNpc: [14, 40], trophies: [80, 50] }));
 add({
   // Café Wien: in over the doormat, between the plants, to the table under the cathedral window.
-  id: 'vie-venue', image: 'assets/scenes/vie-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
+  id: 'vie-venue', image: 'assets/scenes/vie-venue.webp', actorHeight: 0.27, kind: 'venue', spawn: { default: 'arrive' },
   nodes: { arrive: [50, 87], floor: [50, 72], host: [47, 62], exit: [50, 95] },
   links: [['arrive', 'floor'], ['floor', 'host'], ['arrive', 'exit']],
   hotspots: [
@@ -198,7 +204,7 @@ add(upstairs('ist-up', 'assets/scenes/ist-up.webp',
   { stairs: [50, 30], hub: [50, 62], lounge: [22, 50], loungeNpc: [15, 44], trophies: [78, 56] }));
 add({
   // Bosphorus tea terrace: up the steps, round the sign, to the middle table.
-  id: 'ist-venue', image: 'assets/scenes/ist-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
+  id: 'ist-venue', image: 'assets/scenes/ist-venue.webp', actorHeight: 0.17, kind: 'venue', spawn: { default: 'arrive' },
   nodes: { arrive: [62, 61], steps: [50, 63], west: [30, 61], host: [38, 58], exit: [50, 63] },
   links: [['arrive', 'steps'], ['steps', 'west'], ['west', 'host'], ['arrive', 'exit']],
   hotspots: [
@@ -223,7 +229,7 @@ add({
 });
 add({
   // Marina Beach promenade: along the east walk past the palm, to the tables by the tea stall.
-  id: 'che-venue', image: 'assets/scenes/che-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
+  id: 'che-venue', image: 'assets/scenes/che-venue.webp', actorHeight: 0.13, kind: 'venue', spawn: { default: 'arrive' },
   nodes: { arrive: [77, 87], walk: [77, 62], host: [62, 55], exit: [60, 93] },
   links: [['arrive', 'walk'], ['walk', 'host'], ['arrive', 'exit']],
   hotspots: [
@@ -245,7 +251,7 @@ add(upstairs('wen-up', 'assets/scenes/wen-up.webp',
   { stairs: [50, 32], hub: [50, 58], lounge: [24, 52], loungeNpc: [16, 44], trophies: [78, 54] }));
 add({
   // Ou River pavilion: down the old-town steps, across the quay, to the riverside table.
-  id: 'wen-venue', image: 'assets/scenes/wen-venue.webp', kind: 'venue', spawn: { default: 'arrive' },
+  id: 'wen-venue', image: 'assets/scenes/wen-venue.webp', actorHeight: 0.166, kind: 'venue', spawn: { default: 'arrive' },
   nodes: { arrive: [80, 42], quay: [70, 63], host: [52, 64], exit: [86, 30] },
   links: [['arrive', 'quay'], ['quay', 'host'], ['arrive', 'exit']],
   hotspots: [
@@ -256,8 +262,8 @@ add({
 
 /* Madrid: the Grand Finale */
 add({
-  id: 'mad-ext', image: 'assets/scenes/mad-ext.webp', kind: 'exterior', spawn: { default: 'gate', door: 'door' },
-  nodes: { gate: [50, 90], path: [50, 72], left: [38, 52], porch: [50, 40], door: [50, 34] },
+  id: 'mad-ext', image: 'assets/scenes/mad-ext.webp', actorHeight: 0.088, kind: 'exterior', spawn: { default: 'gate', door: 'door' },
+  nodes: { gate: [50, 95.5], path: [50, 72], left: [38, 52], porch: [50, 40], door: [50, 34] },
   links: [['gate', 'path'], ['path', 'left'], ['left', 'porch'], ['porch', 'door']],
   hotspots: [
     { id: 'door', node: 'door', label: 'Palacio del Ajedrez', verb: 'Enter', action: { type: 'scene', to: 'mad-int', spawn: 'entrance' } },

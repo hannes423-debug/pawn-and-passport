@@ -44,9 +44,10 @@ try:
         print(sid)
         expected = c.eval(f"import('./js/data/sceneLayers.js').then(m => m.SCENE_LAYERS['{sid}'].props.length)", await_promise=True)
         check(c.eval("document.querySelectorAll('.pp-prop').length") == expected, f"{sid}: all {expected} cut-outs on the stage")
-        grid_js = f"""Promise.all([import('./js/core/freeWalk.js'), import('./js/data/sceneLayers.js')]).then(([F, L]) => {{
+        grid_js = f"""Promise.all([import('./js/core/freeWalk.js'), import('./js/data/sceneLayers.js'), import('./js/data/scenes.js')]).then(([F, L, S]) => {{
             const img = document.querySelector('.pp-scene__bg');
-            window.__grid = F.createWalkGrid(L.SCENE_LAYERS['{sid}'], {{ aspect: img.naturalWidth / img.naturalHeight }}); return 1; }})"""
+            const walker = F.walkerFor(S.sceneById('{sid}').actorHeight ?? 0.1);
+            window.__grid = F.createWalkGrid(L.SCENE_LAYERS['{sid}'], {{ aspect: img.naturalWidth / img.naturalHeight, walker }}); return 1; }})"""
         c.eval(grid_js, await_promise=True)
         pos = lambda: json.loads(c.eval(f"JSON.stringify([parseFloat({PLAYER}.style.left), parseFloat({PLAYER}.style.top), +{PLAYER}.style.zIndex])"))
         start = pos()

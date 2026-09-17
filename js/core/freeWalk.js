@@ -23,6 +23,12 @@ export const GRID = Object.freeze({ cols: 200, rows: 150 });
    and half-depth (the feet are a flat ellipse, not a tall box). */
 export const WALKER = Object.freeze({ halfWidth: 1.6, halfDepth: 0.9 });
 
+/** Feet size for a character drawn at `actorHeight` (share of the scene height). */
+export function walkerFor(actorHeight = 0.1) {
+  const h = actorHeight * 100;
+  return { halfWidth: Math.max(1.0, h * 0.11), halfDepth: Math.max(0.6, h * 0.04) };
+}
+
 export function pointInPolygon(x, y, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i, i += 1) {
@@ -33,11 +39,11 @@ export function pointInPolygon(x, y, poly) {
   return inside;
 }
 
-export function createWalkGrid(layers, { aspect = 4 / 3, cols = GRID.cols, rows = GRID.rows } = {}) {
+export function createWalkGrid(layers, { aspect = 4 / 3, cols = GRID.cols, rows = GRID.rows, walker = WALKER } = {}) {
   const cw = 100 / cols;
   const ch = 100 / rows;
-  const padX = WALKER.halfWidth / aspect;   // screen-space width back to percent of scene width
-  const padY = WALKER.halfDepth;
+  const padX = walker.halfWidth / aspect;   // screen-space width back to percent of scene width
+  const padY = walker.halfDepth;
   const rects = [
     ...(layers.blocks || []),
     ...(layers.props || []).map((p) => p.foot).filter(Boolean)

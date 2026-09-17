@@ -10,7 +10,7 @@
 import { OPENINGS } from '../js/data/openings.js';
 import { spriteId, setPlayerAvatar, PLAYER_LOOKS } from '../js/ui/sprites.js';
 import { SCENE_LAYERS } from '../js/data/sceneLayers.js';
-import { createWalkGrid } from '../js/core/freeWalk.js';
+import { createWalkGrid, walkerFor } from '../js/core/freeWalk.js';
 import { sceneById } from '../js/data/scenes.js';
 import { CLUBS, FINALE } from '../js/data/clubs.js';
 import { STAR_PLAYERS } from '../js/data/starPlayers.js';
@@ -388,7 +388,7 @@ test('layered scenes: every hotspot reachable from the spawn, nothing walks thro
     const scene = sceneById(id);
     assert(scene, `${id}: scene exists`);
     const [w, h] = sizes[id];
-    const grid = createWalkGrid(layers, { aspect: w / h });
+    const grid = createWalkGrid(layers, { aspect: w / h, walker: walkerFor(scene.actorHeight ?? 0.1) });
     for (const prop of layers.props) assert(existsSync(path.join(ROOT, prop.src)), `${id}/${prop.id}: layer image`);
     const spawn = grid.nearestFree(...scene.nodes[scene.spawn.default]);
     assert(spawn, `${id}: spawn on the floor`);
