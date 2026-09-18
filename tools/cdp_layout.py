@@ -145,6 +145,13 @@ def run_viewport(spec, failures):
         go("window.__pap.go('puzzle', { missionId: 'm-lon', returnScene: 'lon-venue' })", "document.querySelectorAll('.cwt-piece').length > 0")
         check("puzzle")
 
+        go("window.__pap.go('practice', { clubId: 'nyc', returnScene: 'nyc-int' })", "!!document.querySelector('.pp-tree__lesson')")
+        check("practice-tree")
+        for step in ["read", "watch", "solve"]:
+            go(f"window.__pap.go('lesson', {{ lessonId: 'fork', clubId: 'nyc', returnScene: 'nyc-int', step: '{step}' }})",
+               "document.querySelectorAll('.cwt-piece').length > 0")
+            check(f"lesson-{step}")
+
         go("""window.__pap.go('match', { kind: 'friendly', colour: 'w', clubId: 'nyc', returnScene: 'nyc-int',
               opponent: { id: 'nyc-x', name: 'Grace Whitfield', elo: 650, style: 'aggressive', openingId: 'italian', look: { sprite: 'young-red' } } })""",
            "document.querySelector('.cwt-board')?.dataset.interactive === 'true'", settle=1.5)

@@ -460,3 +460,63 @@ img, canvas { image-rendering: pixelated; }
 .pp-tip__title:not(:first-child) { margin-top: 10px; padding-top: 8px; border-top: 2px dashed var(--paper-3); }
 .pp-tip__entry { margin-bottom: 6px; }
 .pp-tip__name { font-weight: 700; color: #1f140b; }
+
+/* ===================================================== practice tree ===== */
+/* The club practice tree (js/ui/screens/practice.js): tiers of lessons by
+   rating band. Only the list scrolls; the page never does. */
+.pp-tree { background: radial-gradient(circle at 50% 30%, #3f2a19, #120a06 75%); display: flex; flex-direction: column; padding-top: var(--hud-h, 56px); }
+.pp-tree__wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px 14px max(10px, env(safe-area-inset-bottom)); }
+.pp-tree__top { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; flex: none; }
+.pp-tree__top p { margin: 2px 0 0; max-width: 70ch; }
+.pp-tree__filters { flex: none; gap: 6px; }
+.pp-tree__filter {
+  font: inherit; font-size: 12px; cursor: pointer; padding: 3px 9px; border-radius: 999px;
+  background: rgba(255, 233, 196, 0.08); color: var(--paper); border: 1.5px solid rgba(255, 233, 196, 0.22);
+}
+.pp-tree__filter.is-active { background: var(--gold); color: #1f140b; border-color: var(--gold-hi); font-weight: 700; }
+.pp-tree__list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+.pp-tree__tier { background: rgba(20, 12, 7, 0.55); border: 2px solid rgba(255, 233, 196, 0.16); border-radius: 10px; padding: 8px 10px; }
+.pp-tree__tier.is-locked { opacity: 0.62; border-style: dashed; }
+.pp-tree__tier p { margin: 2px 0 6px; }
+.pp-tree__tierhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.pp-tree__tiername { font-family: var(--font-pixel); font-size: 12px; color: var(--gold-hi); }
+.pp-pill--locked { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.35); border: 1.5px solid rgba(255, 233, 196, 0.25); }
+.pp-tree__band { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; align-items: start; margin-top: 6px; }
+.pp-tree__bandlabel { font-family: var(--font-pixel); font-size: 11px; color: var(--gold-hi); text-align: right; padding-top: 8px; }
+.pp-tree__lessons { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
+.pp-tree__lesson {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 8px; align-items: center;
+  text-align: left; font: inherit; cursor: pointer; padding: 6px 8px; border-radius: 8px;
+  background: rgba(255, 233, 196, 0.06); color: var(--paper); border: 1.5px solid rgba(255, 233, 196, 0.18);
+}
+.pp-tree__lesson:hover, .pp-tree__lesson:focus-visible { background: rgba(255, 233, 196, 0.14); border-color: var(--gold); outline: none; }
+.pp-tree__lesson.is-started { border-color: rgba(54, 214, 214, 0.5); }
+.pp-tree__lesson.is-done { border-color: rgba(120, 220, 120, 0.55); background: rgba(120, 220, 120, 0.08); }
+.pp-tree__lesson.is-focus { box-shadow: 0 0 0 2px var(--gold-hi); }
+.pp-tree__icon { font-size: 16px; text-align: center; }
+.pp-tree__name { display: flex; flex-direction: column; min-width: 0; }
+.pp-tree__name b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-tree__marks { display: flex; gap: 4px; align-items: center; font-size: 11px; opacity: 0.45; }
+.pp-tree__marks .is-on { opacity: 1; }
+.pp-tree__count { font-variant-numeric: tabular-nums; }
+.pp-tree__tick { color: #8ce08c; font-weight: 700; }
+
+/* ========================================================= one lesson ==== */
+.pp-lesson { background: radial-gradient(circle at 50% 35%, #4a2e1c, #150c08 75%); display: flex; flex-direction: column; padding-top: var(--hud-h, 56px); }
+.pp-lesson > .pp-match { flex: 1; min-height: 0; }
+.pp-lesson .pp-match__board { --frame-w: min(calc(100vh - var(--hud-h, 56px) - 30px), calc(100vw - 660px)); }
+.pp-lesson__panel { gap: 8px; overflow-y: auto; overscroll-behavior: contain; }
+.pp-lesson__tabs { gap: 4px; }
+.pp-lesson__tab {
+  font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 1px; padding: 4px 7px;
+  border-radius: 8px; background: rgba(0, 0, 0, 0.18); border: 1.5px solid rgba(31, 20, 11, 0.25); color: inherit;
+}
+.pp-lesson__tab b { font-size: 11px; }
+.pp-lesson__tab.is-active { background: var(--gold); border-color: var(--gold-hi); }
+.pp-lesson__tab.is-done b::after { content: ' ✓'; color: #2e7d32; }
+.pp-lesson__text { margin: 0; line-height: 1.5; }
+.pp-lesson__frame { min-height: 4.5em; }
+.pp-lesson__verdict { margin: 2px 0 0; font-weight: 700; min-height: 1.2em; }
+.pp-lesson__verdict.is-good { color: #1b6b2a; }
+.pp-lesson__verdict.is-bad { color: #9c3a12; }
+.pp-lesson__actions { gap: 6px; }

@@ -32,6 +32,7 @@ import { starLines, loungeLines } from '../../core/dialogue.js';
 import { createTouchpad, tapWord } from '../touch.js';
 import { openOpeningStudy } from '../openingStudy.js';
 import { learnFromTutorial } from '../../core/career.js';
+import { practiceSummary } from '../../core/lessons.js';
 import { SCENE_LAYERS } from '../../data/sceneLayers.js';
 import { createWalkGrid, walkerFor } from '../../core/freeWalk.js';
 
@@ -660,6 +661,11 @@ export async function sceneScreen(app, params) {
     const mastery = career.openings[club.openingId] ?? 0;
     const tutored = !!career.tutorialsDone?.[club.openingId];
     const host = club.regularOpponentPool[1 % club.regularOpponentPool.length];
+    /* The practice tree: lessons by rating band, unlocked by Club Trophies. */
+    const tree = practiceSummary(career);
+    const treeLine = tree.next
+      ? `${tree.lessonsOpen} lessons open, ${tree.lessonsDone} complete. Read, watch, then solve. ${tree.next.tier.label} opens after ${tree.next.trophiesNeeded} more ${tree.next.trophiesNeeded === 1 ? 'trophy' : 'trophies'}.`
+      : `All ${tree.lessonsOpen} lessons open, ${tree.lessonsDone} complete. Read, watch, then solve.`;
     const option = (id, icon, label, sub, cls = '') => h('button.pp-practice__option', { type: 'button', class: cls, onclick: () => close(id) },
       h('span.pp-practice__icon', { text: icon }), h('span', null, h('b', { text: label }), h('span.pp-small.pp-muted', { text: sub })));
     let close;
@@ -669,12 +675,14 @@ export async function sceneScreen(app, params) {
         h('h2.pp-h2', { text: `${club.clubName}: practice room` }),
         h('p.pp-small', { text: `${host.name} runs the practice room. Nothing here changes your rating.` }),
         h('div.pp-col', null,
+          option('lessons', '🌱', 'Practice tree', treeLine, tree.lessonsDone < tree.lessonsOpen ? 'is-new' : ''),
           option('friendly', '♞', 'Friendly game', 'Unrated. Play a club member as White or Black.'),
           option('puzzles', '🧩', 'Puzzles', `This club's own set: positions from real ${opening.name} games. The venue puzzles are a different set.`),
           option('tutorial', '📖', `Tutorial: ${opening.name}`, tutored ? 'Walk through every line again.' : mastery > 0 ? 'Every line with notes.' : `Every line with notes. Finishing it unlocks the opening (${MASTERY.tutorialGrant}%).`, tutored ? '' : 'is-new'),
           option('drill', '🎯', `Drills: ${opening.name}`, mastery > 0 ? `Find the book move. Passing a set: +${MASTERY.drillGain}% (you know ${mastery}%).` : 'Do the tutorial first.')),
         h('div.pp-row', { style: { justifyContent: 'flex-end' } }, button('Leave', () => c(null), { cls: 'pp-btn--small' })));
     });
+    if (choice === 'lessons') return app.go('practice', { clubId, returnScene: scene.id });
     if (choice === 'friendly') return friendlyGame();
     if (choice === 'puzzles') return app.go('puzzle', { practice: true, clubId, returnScene: scene.id });
     if (choice === 'tutorial') {

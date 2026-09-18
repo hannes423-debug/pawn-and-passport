@@ -28,8 +28,9 @@ Debug deep links (need an existing save): `?screen=map`, `?scene=nyc-int`,
 ## Test it
 
 ```bash
-node tests/run.js                      # 25 rules/data/campaign tests, no browser
+node tests/run.js                      # 40 rules/data/campaign/practice tests, no browser
 node tools/verify-puzzles.mjs          # re-prove every puzzle with Stockfish, regenerate js/data/puzzles.js
+node tools/verify-lessons.mjs          # re-check the practice tree's 337 challenges against the rules
 python3 tools/opening-research/mine-puzzles.py  # club puzzle candidates from real games in each club opening
 node tools/verify-club-puzzles.mjs     # prove them with Stockfish -> js/data/clubPuzzles.js (6 per club)
 python3 tools/serve.py 8123 &          # then, one at a time:
@@ -40,6 +41,7 @@ python3 tools/cdp.py trophy            # Epic/Brilliant/Clutch effects, Star Pla
 python3 tools/cdp_touch.py             # phone: joystick walk + A button (landscape), tap-for-tip (portrait)
 python3 tools/cdp_layout.py            # 8 viewports x every screen: no page scroll, no unreachable button, board stays still
 python3 tools/cdp_practice.py [WxH]    # practice room, tutorial unlock, journal study depth, drills, puzzle practice, ASM.js engine
+python3 tools/cdp_lessons.py [WxH]     # practice tree: tiers, unlocking by trophy, read/watch/solve, XP, replay
 python3 tools/cdp_depth.py [scene]      # layered scenes: cut-outs, free walking with collision, depth order, hotspots
 python3 tools/cdp_undo.py               # Undo ability: cost, cap per level, cooldown, takeback; Hint+Undo visible at 8 viewports
 ```
@@ -85,12 +87,36 @@ forces the fallback for testing on a device.
 
 ## Practice room and openings
 
-Every club's practice room (the Practice hotspot) offers an unrated friendly,
-puzzle practice (all 24 puzzles, no postcard), the club opening's tutorial
-(every line with notes; finishing it unlocks an unknown opening at 25%) and
-drills (find the book move; a passed set teaches +3%, capped at 90%). The
-journal's Openings page has a Study button that replays the lines as deep as
-the player knows them.
+Every club's practice room (the Practice hotspot) offers the **practice tree**,
+an unrated friendly, puzzle practice (all 24 puzzles, no postcard), the club
+opening's tutorial (every line with notes; finishing it unlocks an unknown
+opening at 25%) and drills (find the book move; a passed set teaches +3%,
+capped at 90%). The journal's Openings page has a Study button that replays the
+lines as deep as the player knows them.
+
+### The practice tree
+
+85 lessons from the board and the pieces up to 1500, the game's Elo ceiling.
+Each one is **read it, watch it, do it**: instructions in words, an animated
+demonstration with arrows on the board, and challenges to solve (a move, or a
+square to tap). See `docs/DESIGN.md` section 26.
+
+Seven tiers open with the campaign: the beginner tier (up to 600) from the
+first visit, and one more per **Club Trophy**, so the 1500 tier opens with the
+sixth. Nothing is compulsory: inside the open tiers a player can start
+anywhere, skip a band and go back to an earlier lesson at any time, and a
+finished lesson can always be replayed.
+
+The content is generated from **Gambit Academy** (the same author's chess
+trainer), where every answer was verified with Stockfish at depth >= 14 or
+against the Syzygy tablebase, and each candidate move was pre-judged, so the
+game looks a move up rather than grading it - no engine is needed for a
+lesson.
+
+```bash
+node tools/build-lessons.mjs     # regenerate js/data/lessons.js from Gambit Academy
+node tools/verify-lessons.mjs    # re-check every position and answer with THIS game's rules
+```
 
 The opening lines are data-driven: `tools/opening-research/` counted 135,928
 games between 2200+ players (Lichess broadcast database, 2024-09..2026-08).

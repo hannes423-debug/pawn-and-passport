@@ -32,6 +32,9 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
     --frame-w: min(calc(100vh - 12px), calc(100vw - 2 * var(--rail) - 40px));
     --frame-w: min(calc(100dvh - 12px), calc(100vw - 2 * var(--rail) - 40px));
   }
+  .pp-lesson .pp-match__board {
+    --frame-w: min(calc(100dvh - var(--hud-h, 56px) - 12px), calc(100vw - 2 * var(--rail) - 40px));
+  }
   .pp-match__left, .pp-match__right { min-height: 0; max-width: none; gap: 6px; }
   .pp-match .pp-panel { padding: 6px 10px; flex: none; }
   .pp-match .pp-small { font-size: 15px; }
@@ -425,4 +428,32 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
   .pp-abilities { gap: 4px; }
   .pp-abilities .pp-btn { min-height: 44px; font-size: 15px; padding: 2px 3px; }
   .pp-abilities .pp-btn small { font-size: 10px; }
+}
+
+/* ------------------------------------------- practice tree and lessons -- */
+/* The tree's own scroller keeps the page still; the wrap only has to stay
+   clear of the rounded corners and the home bar. */
+.pp-tree__wrap {
+  padding-left: max(14px, env(safe-area-inset-left));
+  padding-right: max(14px, env(safe-area-inset-right));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+
+/* A phone held upright has no room for a rail beside the board: the board
+   goes on top and the lesson panel underneath, as the match screen does. */
+@media (orientation: portrait) and (max-width: 1100px) {
+  .pp-lesson .pp-match--lesson {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "board" "panel";
+    gap: 6px;
+    padding: 6px max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  }
+  .pp-lesson .pp-match--lesson .pp-match__left { display: flex; grid-area: panel; max-width: none; width: auto; justify-self: stretch; min-height: 0; }
+  .pp-lesson .pp-match--lesson .pp-match__right { display: none; }
+  .pp-lesson .pp-match--lesson .pp-match__board {
+    grid-area: board;
+    --frame-w: min(calc(100vw - 12px), calc(100dvh - var(--hud-h, 56px) - 250px));
+  }
+  .pp-lesson .pp-lesson__panel { max-height: none; }
 }

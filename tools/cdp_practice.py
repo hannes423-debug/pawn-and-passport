@@ -45,8 +45,8 @@ try:
     c.wait_for("!!document.querySelector('.pp-actor')", timeout=15)
     c.pump(1)
     c.eval("[...document.querySelectorAll('.pp-hotspot')].find(b => /Practice|Study/.test(b.getAttribute('aria-label'))).click()")
-    ok = c.wait_for("document.querySelectorAll('.pp-practice__option').length === 4", timeout=20)
-    check(ok, "practice room shows 4 options")
+    ok = c.wait_for("document.querySelectorAll('.pp-practice__option').length === 5", timeout=20)
+    check(ok, "practice room shows 5 options (tree, friendly, puzzles, tutorial, drills)")
     c.pump(0.5); c.shot(f"p1-practice-{spec}")
 
     # 2. tutorial

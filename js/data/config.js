@@ -33,6 +33,33 @@ export const XP = Object.freeze({
   missionComplete: 120
 });
 
+/* ================================================================ practice === */
+/* The club practice tree. Tiers open with campaign progress: the beginner tier
+   is open from the first visit, and every Club Trophy (one per tournament
+   completed) opens the next one, up to 1500 - the game's ceiling. A player is
+   never required to finish a tier: any unlocked lesson can be opened, in any
+   order, and earlier ones stay open forever. */
+export const PRACTICE = Object.freeze({
+  tiers: [
+    { id: 'beginner', label: 'Beginner', bands: [0, 100, 200, 300, 400, 500, 600], trophies: 0,
+      blurb: 'The board, the pieces, the rules and your first tactics.' },
+    { id: 'club', label: 'Club player', bands: [700, 800], trophies: 1,
+      blurb: 'Opening principles and how to calculate a short line.' },
+    { id: 'endgames', label: 'Endgames and plans', bands: [900, 1000], trophies: 2,
+      blurb: 'Basic mates, pawn endings, and your first strategic vocabulary.' },
+    { id: 'tactics', label: 'Sharper tactics', bands: [1100, 1200], trophies: 3,
+      blurb: 'The tactics behind sacrifices, and what pawn structures mean.' },
+    { id: 'planning', label: 'Planning', bands: [1300], trophies: 4,
+      blurb: 'Turning a position into a plan, and stopping theirs.' },
+    { id: 'depth', label: 'Exact calculation', bands: [1400], trophies: 5,
+      blurb: 'Candidate trees, quiet moves, only moves, visualisation.' },
+    { id: 'practical', label: 'Practical play', bands: [1500], trophies: 6,
+      blurb: 'Initiative, compensation, conversion, defending worse positions.' }
+  ],
+  xpChallenge: 6,   // first solve of one challenge
+  xpLesson: 40      // first time a lesson is fully complete
+});
+
 /* ====================================================================== elo === */
 export const ELO = Object.freeze({
   start: 600,
@@ -204,4 +231,4 @@ export const BOOK = Object.freeze({
   starPreference: 1.0
 });
 
-export default { GAME, LEVELS, XP, ELO, FOCUS, HINTS, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK };
+export default { GAME, LEVELS, XP, ELO, FOCUS, HINTS, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK, PRACTICE };

@@ -28,6 +28,12 @@ import { ClubBook, fullBook } from '../js/core/openingBook.js';
 import { hintQuote } from '../js/core/hints.js';
 import { matchScore } from '../js/core/scoring.js';
 import { gradeMove, isClutch } from '../js/core/grading.js';
+import * as Lessons from '../js/core/lessons.js';
+import { LESSONS as LESSON_LIST } from '../js/data/lessons.js';
+import { PRACTICE } from '../js/data/config.js';
+import { createRules as createRulesForChess } from '../js/chess/core/rules.js';
+
+const createRulesForTest = (fen) => { try { return createRulesForChess(fen); } catch { return null; } };
 import { strengthForElo, profileForOpponent } from '../js/core/difficulty.js';
 import { starLines } from '../js/core/dialogue.js';
 import * as Save from '../js/core/save.js';
@@ -472,6 +478,76 @@ test('free walking slides along obstacles instead of passing through', () => {
   assert(slide.x > 50 && slide.y < 70, 'a diagonal push slides along the edge');
   const route = grid.path([50, 80], [50, 20]);
   assert(route && route.length >= 2, 'a path goes around the block');
+});
+
+/* ------------------------------------------------- the practice tree ---- */
+
+test('the practice tree opens the beginner path first and 1500 last', () => {
+  const career = Career.newCareer({ name: 'Tree', avatar: 'boy', startClubId: 'nyc' });
+  const open = () => Lessons.TIERS.filter((t) => Lessons.isTierUnlocked(career, t));
+  assert(open().length === 1, `one tier at zero trophies (got ${open().length})`);
+  assert(open()[0].bands.join() === '0,100,200,300,400,500,600', `the first tier is the beginner path (${open()[0].bands})`);
+  const beginner = LESSON_LIST.filter((l) => Lessons.isLessonUnlocked(career, l));
+  assert(beginner.length > 20 && beginner.every((l) => l.band <= 600), `only lessons up to 600 are open (${beginner.length})`);
+  /* one tournament completed = one Club Trophy = one more tier */
+  CLUBS.forEach((club, i) => {
+    career.trophies[club.clubId] = { wonAt: Date.now(), starElo: 800, tier: i };
+    assert(open().length === i + 2, `${i + 1} trophies open ${i + 2} tiers (got ${open().length})`);
+  });
+  const all = LESSON_LIST.filter((l) => Lessons.isLessonUnlocked(career, l));
+  assert(all.length === LESSON_LIST.length, 'six trophies open every lesson');
+  assert(Math.max(...all.map((l) => l.band)) === 1500, 'the last band is 1500, the game\'s ceiling');
+  assert(Lessons.nextTier(career) === null, 'nothing is left to unlock');
+});
+
+test('a lesson can be done in any order, and earlier ones stay open', () => {
+  const career = Career.newCareer({ name: 'Tree', avatar: 'boy', startClubId: 'nyc' });
+  const late = LESSON_LIST.filter((l) => Lessons.isLessonUnlocked(career, l)).sort((a, b) => b.band - a.band)[0];
+  const early = LESSON_LIST.find((l) => l.band === 0);
+  /* start at the far end of the open tier, then go back to the first lesson */
+  Lessons.markRead(career, late.id);
+  late.challenges.forEach((c) => Lessons.recordChallengeSolved(career, late.id, c.id));
+  Lessons.markWatched(career, late.id);
+  Lessons.settleLesson(career, late.id);
+  assert(Lessons.lessonProgress(career, late).complete, 'the later lesson completes on its own');
+  assert(!Lessons.lessonProgress(career, early).started, 'the earlier one was never required');
+  Lessons.markRead(career, early.id);
+  assert(Lessons.lessonProgress(career, early).read, 'an earlier lesson is still open afterwards');
+  assert(Lessons.isLessonUnlocked(career, early), 'and stays unlocked');
+});
+
+test('practice progress pays XP once and only counts what is done', () => {
+  const career = Career.newCareer({ name: 'Tree', avatar: 'boy', startClubId: 'nyc' });
+  const lesson = LESSON_LIST.find((l) => l.band <= 600 && l.demo.length && l.challenges.length >= 2);
+  const first = Lessons.recordChallengeSolved(career, lesson.id, lesson.challenges[0].id);
+  assert(first.firstSolve && first.xp.xp === PRACTICE.xpChallenge, `a first solve pays ${PRACTICE.xpChallenge} XP`);
+  const again = Lessons.recordChallengeSolved(career, lesson.id, lesson.challenges[0].id);
+  assert(!again.firstSolve && !again.xp, 'solving it again pays nothing');
+  assert(!Lessons.lessonProgress(career, lesson).complete, 'unread and unwatched is not complete');
+  Lessons.markRead(career, lesson.id);
+  Lessons.markWatched(career, lesson.id);
+  lesson.challenges.slice(1).forEach((c) => Lessons.recordChallengeSolved(career, lesson.id, c.id));
+  const done = Lessons.lessonProgress(career, lesson);
+  assert(done.complete && done.solved === done.total, 'read + watched + every challenge = complete');
+  assert(career.stats.lessonsDone === 1, 'the career counts one finished lesson');
+  const xp = career.xp;
+  Lessons.settleLesson(career, lesson.id);
+  assert(career.xp === xp, 'a completed lesson is not paid for twice');
+});
+
+test('every practice challenge is playable: legal position, legal answer', () => {
+  for (const lesson of LESSON_LIST) {
+    for (const c of lesson.challenges) {
+      const rules = createRulesForTest(c.fen);
+      assert(rules, `${lesson.id}/${c.id}: illegal position`);
+      assert(rules.turn() === c.sideToMove, `${lesson.id}/${c.id}: side to move`);
+      if (c.kind === 'square') { assert(/^[a-h][1-8]$/.test(c.target), `${lesson.id}/${c.id}: target`); continue; }
+      const legal = new Set(rules.moves({ verbose: true }).map((m) => m.from + m.to + (m.promotion && m.promotion !== 'q' ? m.promotion : '')));
+      assert(c.answers.length > 0, `${lesson.id}/${c.id}: no answer`);
+      for (const uci of c.answers) assert(legal.has(uci), `${lesson.id}/${c.id}: answer ${uci} is not legal`);
+      for (const uci of Object.keys(c.verdicts)) assert(legal.has(uci), `${lesson.id}/${c.id}: judged move ${uci} is not legal`);
+    }
+  }
 });
 
 /* ---------------------------------------------------------------- report */
