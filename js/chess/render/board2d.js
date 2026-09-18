@@ -300,7 +300,13 @@ export class ChessBoard2DRenderer extends ChessBoardRenderer {
   /* ---------------------------------------------------------- highlights */
 
   /** Kinds that mark the PIECE too, not only the square it stands on. */
-  static PIECE_HIGHLIGHTS = new Set([HIGHLIGHT.HINT, HIGHLIGHT.THREAT, HIGHLIGHT.BEST]);
+  static PIECE_HIGHLIGHTS = new Set([HIGHLIGHT.HINT, HIGHLIGHT.THREAT, HIGHLIGHT.BEST, HIGHLIGHT.BOOK]);
+
+  /** Kinds that get a marker element, so css/board.css can put an icon on it. */
+  static MARKER_HIGHLIGHTS = new Set([
+    HIGHLIGHT.LEGAL, HIGHLIGHT.LEGAL_CAPTURE,
+    HIGHLIGHT.HINT, HIGHLIGHT.THREAT, HIGHLIGHT.BEST, HIGHLIGHT.BOOK, HIGHLIGHT.DEFENCE
+  ]);
 
   highlightSquare(square, kind = HIGHLIGHT.SELECTED) {
     const el = this.squares.get(square);
@@ -308,7 +314,10 @@ export class ChessBoard2DRenderer extends ChessBoardRenderer {
     el.classList.add(`is-${kind}`);
     if (!this._highlights.has(kind)) this._highlights.set(kind, new Set());
     this._highlights.get(kind).add(square);
-    if (kind === HIGHLIGHT.LEGAL || kind === HIGHLIGHT.LEGAL_CAPTURE) this._addMarker(square, kind);
+    /* Pawn & Passport: the assistance highlights carry a marker too, because
+       css/board.css puts the UI pack's icon on it - a square that is only
+       tinted says "look here", and the icon says what for. */
+    if (ChessBoard2DRenderer.MARKER_HIGHLIGHTS.has(kind)) this._addMarker(square, kind);
     // A wash on the square is mostly hidden by the piece standing on it, which
     // is the very thing being pointed at, so the piece carries the mark too.
     if (ChessBoard2DRenderer.PIECE_HIGHLIGHTS.has(kind)) {
@@ -483,7 +492,9 @@ export class ChessBoard2DRenderer extends ChessBoardRenderer {
 
     // Start just outside the origin piece and stop short of the target so the
     // arrowhead sits ON the square rather than covering the piece there.
-    const head = 0.30;
+    // Pawn & Passport: the head is wider and shorter than World Tour's, to match
+    // the chunky arrows in the supplied pixel UI pack.
+    const head = 0.34;
     const start = { x: a.x + ux * 0.32, y: a.y + uy * 0.32 };
     const end = { x: b.x - ux * head, y: b.y - uy * head };
 
@@ -505,7 +516,7 @@ export class ChessBoard2DRenderer extends ChessBoardRenderer {
 
     // An explicit triangle rather than a marker: markers inherit stroke width
     // and scale unpredictably inside a non-uniform viewBox.
-    const wing = 0.20;
+    const wing = 0.27;
     const tip = { x: b.x - ux * 0.08, y: b.y - uy * 0.08 };
     const left = { x: end.x - uy * wing, y: end.y + ux * wing };
     const right = { x: end.x + uy * wing, y: end.y - ux * wing };
@@ -520,7 +531,19 @@ export class ChessBoard2DRenderer extends ChessBoardRenderer {
       hit.setAttribute('class', 'cwt-arrow__hit');
       group.append(hit);
     }
-    group.append(line, headEl);
+    /* The pack's arrows are drawn with a dark outline around a bright core.
+       Two extra shapes under the coloured ones do it cheaply: a wider line and
+       a scaled-up head. CSS colours them; the geometry is shared. */
+    const outline = line.cloneNode(false);
+    outline.setAttribute('class', 'cwt-arrow__line cwt-arrow__line--outline');
+    const outlineHead = document.createElementNS(SVG_NS, 'polygon');
+    const grow = 0.05;
+    const oTip = { x: tip.x + ux * grow, y: tip.y + uy * grow };
+    const oLeft = { x: left.x - uy * grow - ux * grow, y: left.y + ux * grow - uy * grow };
+    const oRight = { x: right.x + uy * grow - ux * grow, y: right.y - ux * grow - uy * grow };
+    outlineHead.setAttribute('points', `${oTip.x},${oTip.y} ${oLeft.x},${oLeft.y} ${oRight.x},${oRight.y}`);
+    outlineHead.setAttribute('class', 'cwt-arrow__head cwt-arrow__head--outline');
+    group.append(outline, outlineHead, line, headEl);
     if (label !== null && label !== undefined) {
       const badge = document.createElementNS(SVG_NS, 'g');
       badge.setAttribute('class', 'cwt-arrow__badge');

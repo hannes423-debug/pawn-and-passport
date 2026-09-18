@@ -187,11 +187,14 @@ export function matchScreen(app, params) {
   function paintGuide() {
     renderer.clearArrows(ARROW.BOOK);
     renderer.clearArrows(ARROW.BOOK_ALT);
+    renderer.clearHighlights(HIGHLIGHT.BOOK);
     suggestions = suggestions.filter((sug) => sug.kind !== 'guide');
     if (!guideOn || !match.isPlayersTurn) return;
     const fen = match.fen;
     for (const g of match.guide()) {
       renderer.drawArrow({ from: g.from, to: g.to }, g.main ? ARROW.BOOK : ARROW.BOOK_ALT);
+      /* The square it points at carries the sparkle: preparation, not advice. */
+      if (g.main) renderer.highlightSquare(g.to, HIGHLIGHT.BOOK);
       suggestions.push({ kind: 'guide', fen, uci: g.uci, san: g.san, from: g.from, to: g.to, openingId: g.openingId });
     }
   }
@@ -289,6 +292,7 @@ export function matchScreen(app, params) {
       case 'move': {
         const record = payload;
         renderer.clearArrows(ARROW.HINT); renderer.clearArrows('hint-reply');
+        renderer.clearHighlights(HIGHLIGHT.HINT); renderer.clearHighlights(HIGHLIGHT.DEFENCE);
         suggestions = suggestions.filter((sug) => sug.kind !== 'hint');
         tip.hidden = true;
         if (record.color === colour) { renderer.clearVerdicts(); hintCard.hidden = true; }
@@ -314,6 +318,7 @@ export function matchScreen(app, params) {
         // The game emits one 'undo' per half-move; the match emits one with `state` when done.
         if (!payload?.state) break;
         renderer.clearArrows(ARROW.HINT); renderer.clearArrows('hint-reply');
+        renderer.clearHighlights(HIGHLIGHT.HINT); renderer.clearHighlights(HIGHLIGHT.DEFENCE);
         suggestions = suggestions.filter((sug) => sug.kind !== 'hint');
         tip.hidden = true; hintCard.hidden = true;
         renderer.clearVerdicts();
@@ -343,6 +348,8 @@ export function matchScreen(app, params) {
         pv.forEach((uci, i) => {
           const mine = i % 2 === 0;
           renderer.drawArrow({ from: uci.slice(0, 2), to: uci.slice(2, 4) }, mine ? ARROW.HINT : 'hint-reply', null, pv.length > 1 ? i + 1 : null);
+          /* A reticle on your own move's square, a shield on the reply's. */
+          renderer.highlightSquare(uci.slice(2, 4), mine ? HIGHLIGHT.HINT : HIGHLIGHT.DEFENCE);
           suggestions.push({ kind: 'hint', step: i + 1, reply: !mine, fen: stepFen, uci, san: san[i], from: uci.slice(0, 2), to: uci.slice(2, 4) });
           stepFen = applyUci(stepFen, uci)?.fen || stepFen;
         });

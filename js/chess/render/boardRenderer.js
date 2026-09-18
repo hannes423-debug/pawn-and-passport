@@ -29,7 +29,13 @@ export const HIGHLIGHT = Object.freeze({
   CHECK: 'check',
   HINT: 'hint',
   THREAT: 'threat',
-  BEST: 'best'
+  BEST: 'best',
+  /* Pawn & Passport: the square an arrow POINTS AT carries the same meaning as
+     the arrow, and css/board.css gives each one its marker from the UI pack -
+     a reticle for a suggestion, a shield for the reply, a sparkle for your own
+     preparation, crossed swords for a threat. */
+  BOOK: 'book',
+  DEFENCE: 'defence'
 });
 
 /** Arrow families. Colour and dash come from CSS, not from the caller. */

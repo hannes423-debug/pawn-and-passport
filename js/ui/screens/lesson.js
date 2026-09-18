@@ -339,7 +339,9 @@ export function lessonScreen(app, params) {
       return;
     }
     renderer.clearHighlights();
-    renderer.highlightSquare(square, HIGHLIGHT.THREAT);
+    /* CHECK, not THREAT: a red glow reads as "no", while the threat marker is
+       crossed swords and means "this is where they hit you". */
+    renderer.highlightSquare(square, HIGHLIGHT.CHECK);
     sfx.mistake();
     board.fx.shake();
     paintChallenge(swapped(square, c.target)
@@ -363,6 +365,7 @@ export function lessonScreen(app, params) {
     }
     const answer = c.answers[0];
     renderer.highlightSquare(answer.slice(0, 2), HIGHLIGHT.HINT);
+    renderer.highlightSquare(answer.slice(2, 4), HIGHLIGHT.HINT);
     renderer.drawArrow({ from: answer.slice(0, 2), to: answer.slice(2, 4) }, ARROW.HINT);
     hintLine.textContent = `The move is ${c.verdicts[answer]?.san || answer}. Play it on the board.`;
   }

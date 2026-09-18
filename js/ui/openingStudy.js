@@ -131,7 +131,11 @@ export function openOpeningStudy(app, openingId, { mode = 'review' } = {}) {
       renderer.clearArrows();
       const limit = limitFor(lineIndex);
       const upcoming = ply < limit ? replay.moves[ply] : null;
-      if (upcoming) renderer.drawArrow({ from: upcoming.from, to: upcoming.to }, ARROW.BOOK);
+      renderer.clearHighlights(HIGHLIGHT.BOOK);
+      if (upcoming) {
+        renderer.drawArrow({ from: upcoming.from, to: upcoming.to }, ARROW.BOOK);
+        renderer.highlightSquare(upcoming.to, HIGHLIGHT.BOOK);
+      }
 
       // Moves: numbered pairs; known ones are buttons, unknown ones a locked dot.
       const cells = [];

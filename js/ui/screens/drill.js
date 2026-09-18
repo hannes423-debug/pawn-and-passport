@@ -156,6 +156,7 @@ export function drillScreen(app, params) {
     renderer.clearArrows();
     const a = p.answers[0];
     renderer.drawArrow({ from: a.uci.slice(0, 2), to: a.uci.slice(2, 4) }, ARROW.HINT);
+    renderer.highlightSquare(a.uci.slice(2, 4), HIGHLIGHT.HINT);
     sfx.hint();
   }
 

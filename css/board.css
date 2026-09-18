@@ -109,8 +109,29 @@
 .cwt-sq[data-shade="light"] { background: var(--light); }
 .cwt-sq[data-shade="dark"]  { background: var(--dark); }
 
-/* Highlights. Overlays rather than background changes, so the square colour
-   underneath is never lost and two highlights can stack. */
+/* Highlights ---------------------------------------------------------------
+   Rehauled to the supplied pixel UI pack ("Shakkipelin pikselitaide-
+   kayttoliittymapaketti.png", sliced by tools/build_ui_icons.py). The pack
+   draws an assistance square as a tinted fill inside a bright 2-3px border
+   with a coloured glow around it, and an "expected / also considered" square
+   as the same border dashed, with no fill. Every colour below is sampled from
+   that sheet, so the board and the pack agree exactly.
+
+   Overlays rather than background changes, so the square colour underneath is
+   never lost and two highlights can stack:
+     ::after   the tint
+     ::before  the border and the glow  */
+
+.cwt-board {
+  --pk-green: #53c73d;  --pk-green-ink: #097503;
+  --pk-blue: #13cffc;   --pk-blue-ink: #025aa2;
+  --pk-purple: #b740fc; --pk-purple-ink: #2b024c;
+  --pk-gold: #fdba01;   --pk-gold-ink: #6a4404;
+  --pk-red: #fc302d;    --pk-red-ink: #690803;
+  --pk-white: #d7d3cf;  --pk-white-ink: #56534f;
+  --pk-outline: rgba(9, 6, 4, 0.85);
+}
+
 .cwt-sq::after {
   content: "";
   position: absolute;
@@ -119,37 +140,55 @@
   transition: opacity 120ms ease;
   background: currentColor;
 }
-.cwt-sq.is-last-move { color: #f7d774; }
-.cwt-sq.is-last-move::after { opacity: 0.46; }
-/* An inset border as well as the wash: on a busy board a tint alone reads as
-   part of the square colour, and the last move is the one thing a returning
-   player looks for first. */
-.cwt-sq.is-last-move::before {
+/* The border and glow. `--edge` is the bright line, `--glow` the halo; a state
+   that wants the dashed look only has to set --edge-style. */
+.cwt-sq::before {
   content: "";
   position: absolute;
   inset: 0;
-  border: 2px solid rgba(247, 215, 116, 0.85);
   pointer-events: none;
+  opacity: 0;
+  border: max(2px, calc(var(--sq, 48px) * 0.055)) var(--edge-style, solid) var(--edge, transparent);
+  box-shadow: 0 0 calc(var(--sq, 48px) * 0.22) var(--glow, transparent),
+              inset 0 0 calc(var(--sq, 48px) * 0.16) var(--glow, transparent);
 }
-.cwt-sq.is-selected  { color: #5aa9ff; }
-.cwt-sq.is-selected::after { opacity: 0.45; }
+
+.cwt-sq.is-last-move  { color: #dfad4e; --edge: rgba(253, 186, 1, 0.9); --glow: rgba(253, 186, 1, 0.28); }
+.cwt-sq.is-last-move::after  { opacity: 0.42; }
+.cwt-sq.is-last-move::before { opacity: 1; }
+
+.cwt-sq.is-selected   { color: #60a1af; --edge: var(--pk-blue); --glow: rgba(19, 207, 252, 0.45); }
+.cwt-sq.is-selected::after  { opacity: 0.44; }
+.cwt-sq.is-selected::before { opacity: 1; }
 
 /* Assistance highlights BREATHE. A static wash competes with the last-move
    tint and the square colours for attention and loses; a slow pulse is the one
    thing on a chess board that is unambiguously the game talking to you. The
-   base opacity lives in --hl so the keyframes can be written once for all
-   three colours. */
-.cwt-sq.is-hint      { color: #a78bfa; --hl: 0.42; }
-.cwt-sq.is-threat    { color: #fb7185; --hl: 0.40; }
-.cwt-sq.is-best      { color: #4ade80; --hl: 0.40; }
+   base opacity lives in --hl so the keyframes are written once for them all. */
+.cwt-sq.is-hint    { color: #60a1af; --hl: 0.44; --edge: var(--pk-blue);   --glow: rgba(19, 207, 252, 0.5); }
+.cwt-sq.is-best    { color: #6eba42; --hl: 0.42; --edge: var(--pk-green);  --glow: rgba(83, 199, 61, 0.5); }
+.cwt-sq.is-book    { color: #dfad4e; --hl: 0.40; --edge: var(--pk-gold);   --glow: rgba(253, 186, 1, 0.45); }
+/* What THEY are doing, and what they would answer with: dashed, unfilled, the
+   pack's own way of saying "this has not happened yet". */
+.cwt-sq.is-threat  { color: #c44238; --hl: 0.30; --edge: var(--pk-red);    --glow: rgba(252, 48, 45, 0.45); --edge-style: dashed; }
+.cwt-sq.is-defence { color: #8f8c89; --hl: 0.20; --edge: var(--pk-white);  --glow: rgba(215, 211, 207, 0.35); --edge-style: dashed; }
+
 .cwt-sq.is-hint::after,
 .cwt-sq.is-threat::after,
-.cwt-sq.is-best::after { opacity: var(--hl); }
+.cwt-sq.is-best::after,
+.cwt-sq.is-book::after,
+.cwt-sq.is-defence::after { opacity: var(--hl); }
+.cwt-sq.is-hint::before,
+.cwt-sq.is-threat::before,
+.cwt-sq.is-best::before,
+.cwt-sq.is-book::before,
+.cwt-sq.is-defence::before { opacity: 1; }
 
 @media (prefers-reduced-motion: no-preference) {
   .cwt-sq.is-hint::after,
   .cwt-sq.is-threat::after,
-  .cwt-sq.is-best::after { animation: cwt-hl-pulse 1500ms ease-in-out infinite; }
+  .cwt-sq.is-best::after,
+  .cwt-sq.is-book::after { animation: cwt-hl-pulse 1500ms ease-in-out infinite; }
 }
 /* No fill-mode and a 100% frame back at the base value: if the animation never
    runs the square still shows at its normal strength. */
@@ -158,28 +197,41 @@
   50%      { opacity: calc(var(--hl) * 1.3); }
 }
 .cwt-sq.is-check {
-  background-image: radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.95) 0%, rgba(239, 68, 68, 0.55) 45%, transparent 72%);
+  background-image: radial-gradient(circle at 50% 50%, rgba(252, 48, 45, 0.95) 0%, rgba(252, 48, 45, 0.55) 45%, transparent 72%);
 }
+.cwt-sq.is-check { --edge: var(--pk-red); --glow: rgba(252, 48, 45, 0.5); }
+.cwt-sq.is-check::before { opacity: 1; }
 
-/* Hint arrows ------------------------------------------------------------
+/* Arrows ------------------------------------------------------------------
    Drawn in an SVG whose viewBox is 0 0 8 8, so every measurement below is in
-   SQUARES and scales with the board automatically. */
+   SQUARES and scales with the board automatically.
+
+   Rehauled to the UI pack: a thick bright core over a dark outline, with a
+   coloured glow, and dashes for anything that has not happened yet. The
+   outline is a second, wider shape underneath (board2d._paintArrow), because a
+   stroke cannot be outlined in SVG and four drop-shadows per arrow is a lot of
+   filter work on a phone. */
 
 .cwt-arrow__line {
   stroke: currentColor;
-  stroke-width: 0.14;
-  stroke-linecap: round;
+  stroke-linecap: butt;
   vector-effect: non-scaling-stroke;
-  stroke-width: 9px;
+  /* In px because the stroke does not scale with the viewBox; --sq is
+     published in px by the board, so the arrow stays chunky on a phone and
+     does not turn into a hairline on a desktop. */
+  stroke-width: clamp(6px, calc(var(--sq, 56px) * 0.2), 16px);
 }
 .cwt-arrow__head { fill: currentColor; }
-.cwt-arrow { opacity: 0.82; }
+/* The dark edge, under the colour. */
+.cwt-arrow__line--outline { stroke: var(--pk-outline, rgba(9, 6, 4, 0.85)); stroke-width: clamp(9px, calc(var(--sq, 56px) * 0.29), 23px); stroke-dasharray: none; }
+.cwt-arrow__head--outline { fill: var(--pk-outline, rgba(9, 6, 4, 0.85)); }
+.cwt-arrow { opacity: 0.95; filter: drop-shadow(0 0 4px var(--arrow-glow, transparent)); }
 /* Only arrows that carry an explanation accept the pointer; the rest of the
    layer stays transparent to clicks so the board underneath still works. */
 .cwt-board__arrows { pointer-events: none; }
 .cwt-arrow--interactive { pointer-events: auto; cursor: help; }
-.cwt-arrow--interactive:hover { opacity: 1; }
-/* A separate transparent stroke is the hit target: a 9px line is not something
+.cwt-arrow--interactive:hover { opacity: 1; filter: drop-shadow(0 0 7px var(--arrow-glow, transparent)); }
+/* A separate transparent stroke is the hit target: a 13px line is not something
    anyone can reliably hover, and widening the visible one would just make an
    ugly arrow. */
 .cwt-arrow__hit {
@@ -189,28 +241,31 @@
   vector-effect: non-scaling-stroke;
 }
 
-.cwt-arrow--hint    { color: #a78bfa; }
-.cwt-arrow--threat  { color: #fb7185; }
-.cwt-arrow--defence { color: #38bdf8; opacity: 0.62; }
-.cwt-arrow--best    { color: #4ade80; }
-/* Preparation is the player's own line, not advice: quieter than a hint. */
-.cwt-arrow--book    { color: #f5c451; opacity: 0.6; }
-.cwt-arrow--book .cwt-arrow__line { stroke-dasharray: 18 8; }
-/* An alternative the player also prepared: same colour, quieter. */
-.cwt-arrow--book-alt { color: #f5c451; opacity: 0.3; }
-.cwt-arrow--book-alt .cwt-arrow__line { stroke-dasharray: 8 10; }
-/* A move the engine also considered: the same green as its first choice, but
-   quiet enough that "the best one" is still readable at a glance. */
-.cwt-arrow--candidate { color: #4ade80; opacity: 0.32; }
-.cwt-arrow--candidate .cwt-arrow__line { stroke-dasharray: 10 9; }
+/* What the game is suggesting right now. */
+.cwt-arrow--hint    { color: #13cffc; --arrow-glow: rgba(19, 207, 252, 0.75); }
+/* What they threaten, and the reply the game expects: dashed, like the pack's
+   dashed squares - a line that has not been played yet. */
+.cwt-arrow--threat  { color: #fc302d; --arrow-glow: rgba(252, 48, 45, 0.7); }
+.cwt-arrow--threat .cwt-arrow__line { stroke-dasharray: 9 7; }
+.cwt-arrow--defence { color: #d7d3cf; --arrow-glow: rgba(215, 211, 207, 0.5); opacity: 0.8; }
+.cwt-arrow--defence .cwt-arrow__line { stroke-dasharray: 8 7; }
+/* The engine's first choice, and the moves it also weighed. */
+.cwt-arrow--best    { color: #53c73d; --arrow-glow: rgba(83, 199, 61, 0.75); }
+.cwt-arrow--candidate { color: #53c73d; --arrow-glow: rgba(83, 199, 61, 0.35); opacity: 0.55; }
+.cwt-arrow--candidate .cwt-arrow__line { stroke-dasharray: 8 8; }
+/* Preparation is the player's own line, not advice: gold, like the pack's
+   sparkle, and quieter than a hint. */
+.cwt-arrow--book    { color: #fdba01; --arrow-glow: rgba(253, 186, 1, 0.6); opacity: 0.88; }
+/* An alternative you also prepared: the pack's purple, quieter again. */
+.cwt-arrow--book-alt { color: #b740fc; --arrow-glow: rgba(183, 64, 252, 0.45); opacity: 0.62; }
 
-.cwt-arrow--defence .cwt-arrow__line { stroke-dasharray: 14 10; }
-
-/* The move that was just played: the same warm yellow as the last-move squares,
-   flat and quiet, so it is never mistaken for advice. It sits under every
-   assistance arrow (its own SVG, earlier in the stack). */
-.cwt-board__lastmove .cwt-arrow { animation: none; }
-.cwt-arrow--last-move { color: #f7d774; opacity: 0.6; }
+/* The move that was just played: the pack's gold, flat and quiet, so it is
+   never mistaken for advice. It sits under every assistance arrow (its own
+   SVG, earlier in the stack). */
+.cwt-board__lastmove .cwt-arrow { animation: none; filter: none; }
+.cwt-arrow--last-move { color: #dfad4e; opacity: 0.55; }
+.cwt-arrow--last-move .cwt-arrow__line--outline,
+.cwt-arrow--last-move .cwt-arrow__head--outline { opacity: 0.5; }
 
 /* A verdict that stays on its square until the player's next move - see
    markVerdict(). A tint plus an inset glow that breathes slowly: loud enough to
@@ -325,11 +380,13 @@
 /* The PIECE an ability is talking about, not just the square under it. On a
    busy board the square wash disappears behind the piece that is standing on
    it, which is exactly the piece the player is being told to look at. */
-.cwt-piece.is-hint   { --glow: #a78bfa; }
-.cwt-piece.is-threat { --glow: #fb7185; }
-.cwt-piece.is-best   { --glow: #4ade80; }
+.cwt-piece.is-hint   { --glow: #13cffc; }
+.cwt-piece.is-threat { --glow: #fc302d; }
+.cwt-piece.is-best   { --glow: #53c73d; }
+.cwt-piece.is-book   { --glow: #fdba01; }
 .cwt-piece.is-hint,
 .cwt-piece.is-threat,
+.cwt-piece.is-book,
 .cwt-piece.is-best {
   filter: drop-shadow(0 0 calc(var(--sq) * 0.07) var(--glow))
           drop-shadow(0 0 calc(var(--sq) * 0.16) var(--glow));
@@ -337,6 +394,7 @@
 @media (prefers-reduced-motion: no-preference) {
   .cwt-piece.is-hint,
   .cwt-piece.is-threat,
+  .cwt-piece.is-book,
   .cwt-piece.is-best { animation: cwt-piece-pulse 1500ms ease-in-out infinite; }
 }
 @keyframes cwt-piece-pulse {
@@ -407,13 +465,55 @@
 }
 .pp-boardframe .cwt-coord { color: rgba(60, 35, 15, 0.7); font-family: var(--font-pixel); font-size: 9px; }
 .pp-boardframe .cwt-coord--file { bottom: 2px; }
-.cwt-arrow--hint    { color: #45e0ff; }
-.cwt-arrow--hint .cwt-arrow__line { stroke-width: 11px; }
-.cwt-arrow--hint-reply { color: #ff7a59; opacity: 0.75; }
-.cwt-arrow--hint-reply .cwt-arrow__line { stroke-dasharray: 14 9; }
-.cwt-arrow__badge circle { fill: #1b1420; stroke: currentColor; stroke-width: 0.04; }
-.cwt-arrow__badge text { fill: #fff6dc; font-family: var(--font-pixel); font-weight: 700; }
-.cwt-arrow--book { color: #ffd34d; opacity: 0.78; }
-.cwt-arrow--book-alt { color: #ffd34d; opacity: 0.45; }
-.cwt-marker--legal::before { background: rgba(40, 20, 8, 0.38); }
-.cwt-marker--legal-capture::before { border-color: rgba(40, 20, 8, 0.4); }
+/* The hint continuation's own two families, in the pack's colours: your move
+   in blue, the reply it expects in white and dashed. */
+.cwt-arrow--hint-reply { color: #d7d3cf; --arrow-glow: rgba(215, 211, 207, 0.45); opacity: 0.8; }
+.cwt-arrow--hint-reply .cwt-arrow__line { stroke-dasharray: 8 7; }
+/* The step number on a continuation: the pack's plate - dark, gold-rimmed. */
+.cwt-arrow__badge circle { fill: #241606; stroke: var(--pk-gold, #fdba01); stroke-width: 0.045; }
+.cwt-arrow__badge text { fill: #ffeec2; font-family: var(--font-pixel); font-weight: 700; }
+
+/* Legal destinations, straight off the pack's last two square tiles: a gold
+   dot for a quiet move, a gold ring for a capture. */
+.cwt-marker--legal::before {
+  background: radial-gradient(circle at 42% 38%, #ffd873 0%, #e79d11 62%, #6a4404 100%);
+  box-shadow: 0 0 calc(var(--sq, 48px) * 0.12) rgba(253, 186, 1, 0.55), 0 0 0 1px rgba(23, 14, 6, 0.85);
+}
+.cwt-marker--legal-capture::before {
+  border-color: #e79d11;
+  box-shadow: 0 0 calc(var(--sq, 48px) * 0.12) rgba(253, 186, 1, 0.45), inset 0 0 0 1px rgba(23, 14, 6, 0.7);
+}
+
+/* What an arrow MEANS, on the square it points at. The icons are cut from the
+   same UI pack by tools/build_ui_icons.py; they are single-hue pixel art, so a
+   hue rotation is enough to match a family whose colour differs from the
+   icon's own (the reticle is drawn green, and a hint is blue). */
+.cwt-marker--hint::before,
+.cwt-marker--best::before,
+.cwt-marker--threat::before,
+.cwt-marker--book::before,
+.cwt-marker--defence::before {
+  content: "";
+  width: 46%;
+  height: 46%;
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  background-size: contain;
+  image-rendering: pixelated;
+}
+.cwt-marker--best::before    { background-image: url('../assets/ui/reticle.png'); filter: drop-shadow(0 0 3px rgba(83, 199, 61, 0.9)); }
+.cwt-marker--hint::before    { background-image: url('../assets/ui/reticle.png'); filter: hue-rotate(78deg) saturate(1.25) drop-shadow(0 0 3px rgba(19, 207, 252, 0.9)); }
+.cwt-marker--threat::before  { background-image: url('../assets/ui/swords.png'); filter: drop-shadow(0 0 3px rgba(252, 48, 45, 0.85)); }
+.cwt-marker--defence::before { background-image: url('../assets/ui/shield.png'); width: 40%; height: 40%; filter: drop-shadow(0 0 3px rgba(19, 207, 252, 0.7)); opacity: 0.9; }
+.cwt-marker--book::before    { background-image: url('../assets/ui/sparkle.png'); filter: drop-shadow(0 0 3px rgba(253, 186, 1, 0.9)); }
+/* The marker sits UNDER the piece, so on an occupied square it reads as a
+   badge in the corner rather than a sticker over the piece's face. */
+.cwt-marker--threat::before, .cwt-marker--defence::before { align-self: end; justify-self: end; margin: 0 4% 4% 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .cwt-marker--hint::before, .cwt-marker--best::before { animation: cwt-marker-pop 1500ms ease-in-out infinite; }
+}
+@keyframes cwt-marker-pop {
+  0%, 100% { transform: scale(0.92); }
+  50%      { transform: scale(1.06); }
+}
