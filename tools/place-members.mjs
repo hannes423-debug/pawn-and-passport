@@ -98,22 +98,36 @@ function main() {
           const stand = [x, Math.min(99, y + standOff)];
           if (!grid.free(...stand)) continue;
           if (avoid.some((a) => dist(a.p, [x, y]) < a.r)) continue;
-          candidates.push([x, y]);
+          // A club garden's floor runs out onto the street: members stay inside the gate.
+          if (scene.kind === 'exterior' && scene.nodes.gate && y > scene.nodes.gate[1] - H * 0.8) continue;
+          // Open floor only: free all round at half a body height, so nobody
+          // is wedged into a corner, against a wall or on a thin strip of pavement.
+          const ring = H * 0.5;
+          let open = 0;
+          for (let k = 0; k < 8; k += 1) {
+            const t = (k / 8) * Math.PI * 2;
+            if (grid.free(x + (Math.cos(t) * ring) / aspect, y + Math.sin(t) * ring * 0.6)) open += 1;
+          }
+          if (open < 5) continue;
+          candidates.push({ p: [x, y], open });
         }
       }
+      // Close-up scenes (big characters) have little fully open floor: relax there only.
+      let need = 8;
+      while (need > 5 && candidates.filter((c) => c.open >= need).length < members.length * 20) need -= 1;
+      const pool = candidates.filter((c) => c.open >= need).map((c) => c.p);
       for (const member of members) {
         let at = PINS[member.id] || null;
         if (!at) {
-          /* Spacing first, then the middle of the room: a pure "as far from
-             everything as possible" search sent everyone into the corners and
-             out onto the pavement. Once a spot is spaced enough, nearer the
-             centre of the walkable floor wins, with a little randomness. */
+          /* Spread out: as far as possible from the other members and the
+             hotspots. Candidates are already open floor (see above), which is
+             what keeps this from sending everyone into the corners; the
+             centre only breaks near-ties. */
           const ranked = [];
-          for (const c of candidates) {
+          for (const c of pool) {
             if (placed.some((p) => dist(p, c) < H * 0.9)) continue;
             const near = Math.min(...placed.map((p) => dist(p, c)), ...avoid.map((a) => dist(a.p, c) - a.r + H), 60);
-            const spaced = Math.min(near, H * 1.6);
-            ranked.push({ c, score: spaced * 3 - dist(c, centre) * (0.6 + 0.8 * random()) });
+            ranked.push({ c, score: near * (0.85 + 0.15 * random()) - dist(c, centre) * 0.05 });
           }
           ranked.sort((a, b) => b.score - a.score);
           // Floor islands the player cannot reach (behind a counter) are skipped.
