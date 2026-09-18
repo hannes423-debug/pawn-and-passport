@@ -334,22 +334,22 @@ test('a full campaign: six trophies, finale, six postcards, secret', () => {
   for (const clubId of order) {
     Career.travelTo(c, clubId, `${clubId}-ext`);
     const run = Career.enterTournament(c, clubId, random);
-    eq(run.rounds.length, 3, 'two regulars and a star');
-    const band = ELO.regularBands[Career.tier(c)];
-    for (const r of run.rounds.slice(0, 2)) assert(r.elo >= band[0] && r.elo <= band[1], `${clubId} regular ${r.elo}`);
-    starElos.push(run.rounds[2].elo);
+    const format = Career.tournamentFormat(clubId);
+    eq(run.players.length, format === 'swiss' ? 16 : 32, `${clubId} field`);
+    starElos.push(run.star.elo);
 
-    // Round 1: a loss keeps the round current, a draw clears it.
-    let res = Career.recordTournamentGame(c, clubId, 0);
-    assert(!res.cleared); eq(Career.currentRound(c, clubId).index, 0);
-    res = Career.recordTournamentGame(c, clubId, 0.5);
-    assert(res.cleared && !res.completed);
-    Career.recordTournamentGame(c, clubId, 1);
-    // The star needs a WIN.
-    res = Career.recordTournamentGame(c, clubId, 0.5);
-    assert(!res.cleared, 'a draw does not beat the star');
-    res = Career.recordTournamentGame(c, clubId, 1);
-    assert(res.completed && res.trophy, `${clubId} trophy`);
+    // Five rounds, then the final. Nothing is awarded before the final.
+    let res = null;
+    for (let i = 0; i < 5; i += 1) {
+      const round = Career.currentRound(c, clubId);
+      assert(round && round.kind === 'regular', `${clubId} round ${i + 1} is a regular round`);
+      res = Career.recordTournamentGame(c, clubId, 1, Date.now(), random);
+      assert(!res.trophy, 'no trophy before the final');
+    }
+    assert(res.toFinal, `${clubId}: five wins reach the final`);
+    eq(Career.currentRound(c, clubId).kind, 'star');
+    res = Career.recordTournamentGame(c, clubId, 1, Date.now(), random);
+    assert(res.completed && res.trophy && res.outcome === 'champion', `${clubId} trophy`);
     eq(c.openings[CLUBS.find((x) => x.clubId === clubId).openingId], 100, 'trophy masters the opening');
     // Paying out twice is impossible.
     eq(Career.awardTrophy(c, clubId, 900), null);
@@ -375,6 +375,144 @@ test('a full campaign: six trophies, finale, six postcards, secret', () => {
   eq(Career.postcardCount(c), 6);
   assert(!Career.recordPuzzleSolved(c, PUZZLES[0].id).firstSolve, 'no double XP');
   assert(c.level >= 10, `trophies + finale + puzzles alone reach level ${c.level}`);
+});
+
+/* ------------------------------------------------ tournaments and coins */
+
+import * as Event from '../js/core/tournament.js';
+import { MEMBERS, membersForClub, VISITORS } from '../js/data/members.js';
+import { MEMBER_SPOTS } from '../js/data/memberSpots.js';
+import { TOURNAMENT, COINS } from '../js/data/config.js';
+
+const seeded = (s0) => { let s = s0; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; };
+
+test('simulated games follow Elo: upsets rare across a big gap, common within 100', () => {
+  const rate = (gap, n = 20000) => {
+    const r = seeded(11); let under = 0;
+    for (let i = 0; i < n; i += 1) if (Event.simulateGame(1000 - gap, 1000, r) === 1) under += 1;
+    return under / n;
+  };
+  const even = rate(0); const close = rate(100); const far = rate(400); const huge = rate(700);
+  assert(even > 0.35 && even < 0.5, `equal players: ${even}`);
+  assert(close > 0.15 && close < 0.35, `100 below wins now and then: ${close}`);
+  assert(far < 0.05, `400 below almost never: ${far}`);
+  assert(huge < 0.01, `700 below: ${huge}`);
+  for (const gap of [0, 150, 500]) {
+    const o = Event.outcomeOdds(1000 + gap, 1000);
+    assert(Math.abs(o.win + o.draw + o.loss - 1) < 1e-9 && o.loss >= 0, `odds sum at ${gap}`);
+  }
+});
+
+test('a Swiss event: 5 rounds, everyone plays each round, never the same opponent twice', () => {
+  const c = Career.newCareer({ name: 'Swiss', avatar: 'boy', startClubId: 'nyc' });
+  for (let trial = 0; trial < 20; trial += 1) {
+    delete c.tournaments.nyc;
+    const random = seeded(100 + trial);
+    const run = Career.enterTournament(c, 'nyc', random);
+    eq(run.format, 'swiss');
+    while (run.stage === 'rounds') Career.recordTournamentGame(c, 'nyc', [1, 0.5, 0][trial % 3], Date.now(), random);
+    eq(run.rounds.length, TOURNAMENT.rounds);
+    for (const p of run.players) {
+      const opps = run.rounds.map((r) => r.pairings.find((x) => x.w === p.id || x.b === p.id)).map((x) => (x.w === p.id ? x.b : x.w));
+      eq(opps.length, 5, `${p.id} plays every round`);
+      eq(new Set(opps).size, 5, `${p.id} meets five different opponents`);
+    }
+    const table = Event.standings(run);
+    eq(table.reduce((a, r) => a + r.points, 0), 16 * 5 / 2, 'every game hands out one point');
+    if (trial % 3 === 2) assert(!run.final.playerIn && run.outcome === 'placed' && run.completed, 'zero points does not reach the final');
+  }
+});
+
+test('a knockout loss ends the run; the bracket still finishes and the next entry is fresh', () => {
+  const c = Career.newCareer({ name: 'KO', avatar: 'girl', startClubId: 'lon' });
+  const random = seeded(5);
+  const run = Career.enterTournament(c, 'lon', random);
+  eq(run.format, 'knockout'); eq(run.rounds[0].pairings.length, 16);
+  Career.recordTournamentGame(c, 'lon', 1, Date.now(), random);
+  const res = Career.recordTournamentGame(c, 'lon', 0, Date.now(), random);
+  assert(res.eliminated && res.completed && !res.trophy, 'out in round 2');
+  eq(run.rounds.length, 5, 'the bracket was played to the end');
+  eq(run.rounds[4].pairings.length, 1);
+  assert(run.final && run.final.result !== null && !run.final.playerIn, 'an NPC played the Star in the final');
+  eq(Event.exitRound(run), 1);
+  eq(res.coins, COINS.perTournamentPoint, 'one win pays one point of prize money');
+  assert(!c.trophies.lon);
+  const again = Career.enterTournament(c, 'lon', random);
+  assert(again !== run && again.attempt === 2 && !again.completed, 'a fresh event');
+  // A drawn knockout game goes to Black.
+  eq(Event.knockoutWinner({ w: 'a', b: 'b', result: 0.5 }), 'b');
+});
+
+test('losing the final is runner-up: no trophy, but the opening is still learned', () => {
+  const c = Career.newCareer({ name: 'Final', avatar: 'boy', startClubId: 'nyc' });
+  const random = seeded(9);
+  const before = c.openings.vienna;
+  Career.enterTournament(c, 'vie', random);
+  for (let i = 0; i < 5; i += 1) Career.recordTournamentGame(c, 'vie', 1, Date.now(), random);
+  const res = Career.recordTournamentGame(c, 'vie', 0.5, Date.now(), random);
+  eq(res.outcome, 'runner-up'); assert(!res.trophy && !c.trophies.vie, 'a draw with the Star is not a trophy');
+  assert(c.openings.vienna > before, 'tournament games teach the club opening');
+  for (let n = 0; n < 5; n += 1) {
+    Career.enterTournament(c, 'vie', random);
+    while (!c.tournaments.vie.completed) Career.recordTournamentGame(c, 'vie', 0, Date.now(), random);
+  }
+  eq(c.openings.vienna, TOURNAMENT.masteryCap, 'failed runs stop at the cap; only the trophy gives 100');
+});
+
+test('coins: stakes by Elo, challenges settle, puzzles pay, old saves migrate', () => {
+  const c = Career.newCareer({ name: 'Coin', avatar: 'boy', startClubId: 'nyc' });
+  eq(c.coins, COINS.start);
+  eq(Career.stakeFor(300), COINS.stakeMin); eq(Career.stakeFor(2000), COINS.stakeMax);
+  assert(Career.stakeFor(900) > Career.stakeFor(600), 'stronger members stake more');
+  eq(Career.settleChallenge(c, 1, 20), 20); eq(Career.settleChallenge(c, 0.5, 20), 0); eq(Career.settleChallenge(c, 0, 30), -30);
+  eq(c.coins, COINS.start - 10);
+  c.coins = 5; Career.settleChallenge(c, 0, 30); eq(c.coins, 0, 'coins never go negative');
+  assert(!Career.canAfford(c, 10));
+  Career.recordPuzzleSolved(c, PUZZLES[0].id); eq(c.coins, COINS.puzzle, 'a first puzzle solve pays');
+  const old = { ...Career.newCareer({ name: 'Old', avatar: 'boy', startClubId: 'nyc' }) };
+  delete old.coins; old.tournaments = { nyc: { clubId: 'nyc', round: 1, rounds: [{ kind: 'regular' }], completed: false } };
+  Career.migrateCareer(old);
+  eq(old.coins, COINS.start); assert(!old.tournaments.nyc, 'an old three-game run restarts as a real event');
+});
+
+test('every club has 12 members who look and sound like their city', () => {
+  const manifest = JSON.parse(readFileSync(path.join(ROOT, 'assets/characters/manifest.json'), 'utf8'));
+  const indian = new Set(['in-student', 'woman', 'woman-coat', 'old-scarf', 'young-red']);
+  const ids = new Set();
+  for (const club of CLUBS) {
+    const members = membersForClub(club.clubId);
+    eq(members.length, 12, `${club.clubId} members`);
+    for (const mb of members) {
+      assert(!ids.has(mb.id), `${mb.id} twice`); ids.add(mb.id);
+      assert(manifest.sprites[mb.look.sprite], `${mb.id}: sprite ${mb.look.sprite}`);
+      assert(mb.lines.length >= 2 && mb.lines.every((l) => l.length < 160), `${mb.id}: short lines`);
+      assert(OPENINGS.find((o) => o.id === mb.openingId), `${mb.id}: opening`);
+      assert(mb.rel >= 0 && mb.rel <= 1, `${mb.id}: rel`);
+      assert(!/—|–/.test(mb.lines.join(' ')), `${mb.id}: no dashes in dialogue`);
+    }
+    for (const sprite of VISITORS[club.clubId].sprites) assert(manifest.sprites[sprite], `${club.clubId} visitor ${sprite}`);
+  }
+  const che = membersForClub('che');
+  assert(che.filter((mb) => indian.has(mb.look.sprite)).length >= 9, 'Chennai is mostly Indian');
+  assert(che.some((mb) => !indian.has(mb.look.sprite)), 'with some exchange students');
+});
+
+test('every placed member stands on reachable floor, apart from the hotspots', () => {
+  let placed = 0;
+  for (const [sceneId, spots] of Object.entries(MEMBER_SPOTS)) {
+    const scene = sceneById(sceneId);
+    const aspect = 1448 / 1086;
+    const grid = createWalkGrid(SCENE_LAYERS[sceneId], { aspect, walker: walkerFor(scene.actorHeight ?? 0.1) });
+    const spawn = scene.nodes[scene.spawn.default];
+    for (const [id, spot] of Object.entries(spots)) {
+      assert(MEMBERS[sceneId.slice(0, 3)].some((mb) => mb.id === id), `${sceneId}: ${id} is a member of this club`);
+      assert(grid.free(...spot.at), `${sceneId}: ${id} stands in furniture`);
+      assert(grid.path(spawn, spot.stand), `${sceneId}: ${id} cannot be reached`);
+      placed += 1;
+    }
+  }
+  const expected = CLUBS.reduce((n, c) => n + MEMBERS[c.clubId].filter((mb) => mb.where).length, 0);
+  eq(placed, expected, 'every member with a place is placed');
 });
 
 test('game results move Elo, XP and opening knowledge', () => {

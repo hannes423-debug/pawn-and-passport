@@ -11,7 +11,9 @@
  *   Postcards      optional, 6, unlock the Beyond the Tour page
  */
 
-import { LEVELS, XP, ELO, FOCUS, HINTS, MASTERY, REPERTOIRE, TOURNAMENT, GAME, UNDO } from '../data/config.js';
+import { LEVELS, XP, ELO, FOCUS, HINTS, MASTERY, REPERTOIRE, TOURNAMENT, GAME, UNDO, MEMBERS, COINS } from '../data/config.js';
+import { membersForClub, VISITORS } from '../data/members.js';
+import * as Event from './tournament.js';
 import { CLUBS, FINALE, clubById } from '../data/clubs.js';
 import { OPENINGS } from '../data/openings.js';
 import { STAR_PLAYERS, starForClub, starById } from '../data/starPlayers.js';
@@ -46,7 +48,8 @@ export function newCareer({ name, avatar, startClubId, now = Date.now() }) {
     postcards: {},           // postcardId -> { collectedAt, read }
     secretRevealSeen: false,
     puzzlesSolved: {},       // puzzleId -> true
-    tournaments: {},         // clubId -> run state, see enterTournament
+    tournaments: {},         // clubId -> the current or last event, see enterTournament
+    coins: COINS.start,
     finale: { unlocked: false, round: 0, opponents: null, results: [], won: false },
     stars: {},               // starId -> { met, beaten, losses }
     stats: {
@@ -182,6 +185,11 @@ export function migrateCareer(career) {
     const order = [home, ...ranked.filter((id) => id !== home)].filter(Boolean);
     career.equipped = order.slice(0, repertoireSlots(career.level || 1));
   }
+  // v2 -> v3: coins, and the old three-game tournaments restart as real events.
+  if (typeof career.coins !== 'number') career.coins = COINS.start;
+  for (const [clubId, run] of Object.entries(career.tournaments || {})) {
+    if (!run || !run.format) delete career.tournaments[clubId];
+  }
   const slots = repertoireSlots(career.level || 1);
   career.equipped = career.equipped.filter((id, i, all) => all.indexOf(id) === i && (career.openings[id] ?? 0) > 0).slice(0, slots);
   career.version = GAME.saveVersion;
@@ -215,66 +223,159 @@ export function meetStar(career, starId) {
   return first;
 }
 
+/* ---------------------------------------------------------------- coins -- */
+
+/** A challenge stake, from the opponent's Elo: COINS.stakeMin .. stakeMax. */
+export function stakeFor(elo) {
+  const [lo, hi] = COINS.stakeFromElo;
+  const t = Math.max(0, Math.min(1, (elo - lo) / (hi - lo)));
+  return Math.round((COINS.stakeMin + t * (COINS.stakeMax - COINS.stakeMin)) / 5) * 5;
+}
+
+export const canAfford = (career, amount) => (career.coins ?? 0) >= amount;
+
+export function earnCoins(career, amount) {
+  career.coins = Math.max(0, (career.coins ?? COINS.start) + Math.round(amount));
+  if (amount > 0) career.stats.coinsEarned = (career.stats.coinsEarned || 0) + Math.round(amount);
+  return Math.round(amount);
+}
+
+/** A won challenge pays the stake, a lost one costs it, a draw returns it. */
+export function settleChallenge(career, score, stake) {
+  const delta = score === 1 ? stake : score === 0 ? -Math.min(stake, career.coins ?? 0) : 0;
+  earnCoins(career, delta);
+  const s = career.stats;
+  s.challenges = (s.challenges || 0) + 1;
+  return delta;
+}
+
 /* ----------------------------------------------------------- tournament -- */
 
-/**
- * Enter (or look at) a club's tournament.
- *
- * Strength is FIXED when the run starts, from the tier at that moment, so a
- * trophy won elsewhere mid-run cannot make a half-played event harder.
- */
-export function enterTournament(career, clubId, random = Math.random) {
+/** A member's Elo at a campaign tier: their club strength laid over the tier's band. */
+export function memberElo(rel, tierIndex) {
+  const [lo, hi] = ELO.regularBands[Math.min(tierIndex, ELO.regularBands.length - 1)];
+  const from = lo - MEMBERS.belowBand;
+  const to = hi + MEMBERS.aboveBand;
+  return Math.round((from + (to - from) * rel) / 5) * 5;
+}
+
+export const tournamentFormat = (clubId) => TOURNAMENT.format[clubId] || 'swiss';
+
+/** The field: the player, every club member, then visitors up to the format's size. */
+export function tournamentField(career, clubId, tierIndex, random = Math.random) {
   const club = clubById(clubId);
+  const size = TOURNAMENT.field[tournamentFormat(clubId)];
+  const members = membersForClub(clubId).map((mb) => ({
+    id: mb.id, name: mb.name, elo: memberElo(mb.rel, tierIndex), style: mb.style,
+    openingId: mb.openingId || club.openingId, look: mb.look, member: true
+  }));
+  const guests = VISITORS[clubId] || { names: [], sprites: ['young-blue'] };
+  const names = [...guests.names];
+  const styles = ['aggressive', 'positional', 'tactical', 'balanced', 'practical', 'defensive'];
+  const visitors = [];
+  for (let i = 0; members.length + visitors.length + 1 < size; i += 1) {
+    const name = names.length ? names.splice(Math.floor(random() * names.length), 1)[0] : `Guest ${i + 1}`;
+    const [a, b] = MEMBERS.visitorRel;
+    visitors.push({
+      id: `${clubId}-v${i}`, name, elo: memberElo(a + (b - a) * random(), tierIndex),
+      style: styles[Math.floor(random() * styles.length)], openingId: club.openingId,
+      look: { sprite: guests.sprites[i % guests.sprites.length] }, visitor: true
+    });
+  }
+  const you = { id: Event.YOU, name: career.name, elo: career.elo, you: true };
+  return [you, ...members, ...visitors];
+}
+
+/**
+ * Enter (or look at) a club's tournament. A finished event without a trophy
+ * is replaced by a fresh one: a new draw, the same club.
+ *
+ * Strength is FIXED when the event starts, from the tier at that moment, so a
+ * trophy won elsewhere mid-event cannot make it harder.
+ */
+export function enterTournament(career, clubId, random = Math.random, now = Date.now()) {
   const existing = career.tournaments[clubId];
   if (existing && !existing.completed) return existing;
   if (career.trophies[clubId]) return existing || null;
   const t = tier(career);
-  const pool = [...club.regularOpponentPool];
-  const picked = [];
-  while (picked.length < TOURNAMENT.regularRounds && pool.length) {
-    picked.push(pool.splice(Math.floor(random() * pool.length), 1)[0]);
-  }
-  const elos = picked.map(() => regularElo(t, random)).sort((a, b) => a - b);
   const star = starForClub(clubId);
-  const run = {
-    clubId, tier: t, round: 0, completed: false, results: [],
-    rounds: [
-      ...picked.map((opponent, i) => ({ kind: 'regular', opponentId: opponent.id, name: opponent.name, style: opponent.style, elo: elos[i] })),
-      { kind: 'star', opponentId: star.id, name: star.name, style: star.style, elo: starElo(t) }
-    ],
-    colours: picked.map((_, i) => (random() < 0.5 ? 'w' : 'b')).concat(random() < 0.5 ? 'w' : 'b')
-  };
+  const run = Event.createEvent({
+    clubId, format: tournamentFormat(clubId), tier: t, now, random,
+    players: tournamentField(career, clubId, t, random),
+    star: { id: star.id, name: star.name, elo: starElo(t), style: star.style, openingId: star.openingId, look: star.look }
+  });
+  run.attempt = (existing?.attempt || 0) + 1;
   career.tournaments[clubId] = run;
   return run;
 }
 
+/** A finished event that did not end in the trophy: the desk offers a new one. */
+export const canReenter = (career, clubId) => {
+  const run = career.tournaments[clubId];
+  return !career.trophies[clubId] && (!run || run.completed);
+};
+
 export function currentRound(career, clubId) {
   const run = career.tournaments[clubId];
   if (!run || run.completed) return null;
-  return { index: run.round, total: run.rounds.length, colour: run.colours[run.round], ...run.rounds[run.round] };
+  const game = Event.playerGame(run);
+  if (!game) return null;
+  const o = game.opponent;
+  const club = clubById(clubId);
+  return {
+    index: game.final ? TOURNAMENT.rounds : run.round,
+    total: TOURNAMENT.rounds + 1,
+    label: game.final ? 'Final' : run.format === 'knockout' ? Event.knockoutRoundName(run, run.round) : `Round ${run.round + 1}`,
+    kind: game.final ? 'star' : 'regular',
+    colour: game.colour,
+    opponentId: o.id, name: o.name, elo: o.elo, style: o.style, look: o.look,
+    openingId: o.openingId || club.openingId
+  };
+}
+
+/** Mastery of the club's opening from one tournament game, under masteryCap. */
+function learnFromTournament(career, openingId, score) {
+  const before = career.openings[openingId] ?? 0;
+  if (before >= TOURNAMENT.masteryCap) return 0;
+  const gain = TOURNAMENT.masteryPerGame[score === 1 ? 'win' : score === 0.5 ? 'draw' : 'loss'];
+  career.openings[openingId] = Math.min(TOURNAMENT.masteryCap, before + gain);
+  return career.openings[openingId] - before;
 }
 
 /**
- * Record a tournament game. A regular round clears on a win or draw, the Star
- * Player only on a win. A failed round stays current and can be replayed.
- * @returns {{cleared:boolean, completed:boolean, trophy:Object|null}}
+ * Record the player's tournament game. The rest of the round is played out
+ * (simulated on Elo), the event moves on, and a finished event pays: prize
+ * coins always, the trophy only for beating the Star Player in the final.
+ * @returns {{roundIndex:number, final:boolean, outcome:string|null, completed:boolean, toFinal:boolean,
+ *            eliminated:boolean, mastery:number, coins:number, trophy:Object|null}}
  */
-export function recordTournamentGame(career, clubId, score, now = Date.now()) {
+export function recordTournamentGame(career, clubId, score, now = Date.now(), random = Math.random) {
   const run = career.tournaments[clubId];
-  if (!run || run.completed) return { cleared: false, completed: false, trophy: null };
-  const round = run.rounds[run.round];
-  const needed = round.kind === 'star' ? TOURNAMENT.starClearScore : TOURNAMENT.regularClearScore;
-  const cleared = score >= needed;
-  run.results.push({ round: run.round, score, at: now });
-  if (round.kind === 'star') {
-    const entry = career.stars[round.opponentId] || (career.stars[round.opponentId] = { met: true, beaten: false, losses: 0 });
-    if (cleared) entry.beaten = true; else entry.losses += 1;
+  const none = { roundIndex: -1, final: false, outcome: null, completed: false, toFinal: false, eliminated: false, mastery: 0, coins: 0, trophy: null };
+  if (!run || run.completed) return none;
+  const club = clubById(clubId);
+  const final = run.stage === 'final';
+  const roundIndex = run.round;
+  const me = run.players.find((p) => p.id === Event.YOU);
+  if (me) me.elo = career.elo;
+  const step = Event.recordPlayerGame(run, score, random);
+  const mastery = learnFromTournament(career, club.openingId, score);
+  if (final) {
+    const entry = career.stars[run.star.id] || (career.stars[run.star.id] = { met: true, beaten: false, losses: 0 });
+    if (score === 1) entry.beaten = true; else entry.losses += 1;
   }
-  if (!cleared) return { cleared: false, completed: false, trophy: null };
-  run.round += 1;
-  if (run.round < run.rounds.length) return { cleared: true, completed: false, trophy: null };
-  run.completed = true;
-  return { cleared: true, completed: true, trophy: awardTrophy(career, clubId, round.elo, now) };
+  let coins = 0;
+  let trophy = null;
+  if (run.completed) {
+    coins = Event.playerPoints(run) * COINS.perTournamentPoint;
+    if (run.outcome === 'runner-up') coins += COINS.finalist;
+    if (run.outcome === 'champion') coins += COINS.champion;
+    earnCoins(career, coins);
+    run.prize = coins;
+    career.stats.tournaments = (career.stats.tournaments || 0) + 1;
+    if (run.outcome === 'champion') trophy = awardTrophy(career, clubId, run.star.elo, now);
+  }
+  return { roundIndex, final, outcome: run.outcome, completed: run.completed, toFinal: step.toFinal, eliminated: step.eliminated, mastery, coins, trophy };
 }
 
 /** Trophy + full opening mastery + XP, exactly once. */
@@ -410,8 +511,9 @@ export function recordClubPuzzleSolved(career, puzzleId) {
     career.clubPuzzlesSolved[puzzleId] = true;
     career.stats.practicePuzzles = (career.stats.practicePuzzles || 0) + 1;
     xp = grantXp(career, XP.clubPuzzleSolved);
+    earnCoins(career, COINS.puzzle);
   }
-  return { firstSolve, xp };
+  return { firstSolve, xp, coins: firstSolve ? COINS.puzzle : 0 };
 }
 
 export function recordPuzzleSolved(career, puzzleId, now = Date.now()) {
@@ -423,6 +525,7 @@ export function recordPuzzleSolved(career, puzzleId, now = Date.now()) {
     career.puzzlesSolved[puzzleId] = true;
     career.stats.puzzlesSolved += 1;
     xp = grantXp(career, XP.puzzleSolved);
+    earnCoins(career, COINS.puzzle);
   }
   const mission = MISSIONS.find((m) => m.clubId === puzzle.mission);
   const progress = missionProgress(career, mission.id);
@@ -431,6 +534,7 @@ export function recordPuzzleSolved(career, puzzleId, now = Date.now()) {
     career.postcards[mission.postcardId] = { collectedAt: now, read: false };
     postcard = POSTCARDS.find((p) => p.id === mission.postcardId);
     grantXp(career, XP.missionComplete);
+    earnCoins(career, COINS.missionComplete);
   }
   return { firstSolve, xp, missionComplete: progress.complete, postcard, allPostcards: !!postcard && hasAllPostcards(career) };
 }
@@ -440,7 +544,8 @@ export { missionById };
 export default {
   newCareer, levelForXp, xpProgress, grantXp, maxFocus, hintPlies, masteryState, learnFromPlay,
   tier, trophyCount, postcardCount, hasAllTrophies, hasAllPostcards, regularElo, starElo, travelTo, meetStar,
-  enterTournament, currentRound, recordTournamentGame, awardTrophy,
+  enterTournament, currentRound, recordTournamentGame, awardTrophy, canReenter, tournamentField, memberElo,
+  stakeFor, canAfford, earnCoins, settleChallenge,
   enterFinale, currentFinaleRound, recordFinaleGame, applyGameResult, missionProgress, recordPuzzleSolved,
   repertoireSlots, isUnlocked, equippedMastery, equipOpening, unequipOpening, migrateCareer
 };

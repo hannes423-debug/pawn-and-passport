@@ -51,6 +51,7 @@ C = ['down', 'left', 'up', 'right']      # "IDLE | WALK 1-8", rows down/left/up/
 # id -> source, layout, idle frames, frame region, hero-figure region
 # (regions are fractions of the page: x0, y0, x1, y1)
 HERO = (0.0, 0.0, 0.2, 0.36)
+HERO_DARK = (0.0, 0.0, 0.19, 0.335)   # the dark pages print the title right under the figure
 SHEETS = {
     'boy':          ('Shakkipojan pikselitaidean spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
     'girl':         ('Shakkia opiskeleva tyttö – spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
@@ -59,6 +60,20 @@ SHEETS = {
     'old-green':    ('Vanhan shakinpelaajan pikselihahmolevy.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
     'old-scarf':    ('Vanhan shakinpelaajan pikselisprite-sheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
     'woman':        ('Aikuisen naisen pikselihahmojen spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    # 2026-09-18 sheets. Most sit on a dark, blurred backdrop instead of
+    # white, which the 'dark' cutter handles (see foreground_dark).
+    'woman-coat':   ('Aikuisen naisen pikselianimaatiosetti.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'bug-catcher':  ('ChatGPT Image 18.9.2026 klo 16.47.47.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'cs-student':   ('ChatGPT Image 18.9.2026 klo 16.52.30.png', A, 4, (0.24, 0.1, 1.0, 0.95), HERO_DARK, 'dark'),
+    'cn-student':   ('ChatGPT Image 18.9.2026 klo 17.00.36.png', A, 4, (0.27, 0.1, 1.0, 0.95), HERO_DARK, 'dark'),
+    'in-student':   ('ChatGPT Image 18.9.2026 klo 17.02.37.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'tr-student':   ('ChatGPT Image 18.9.2026 klo 17.07.45.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'nyc-student':  ('ChatGPT Image 18.9.2026 klo 17.09.28.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'lon-boy':      ('ChatGPT Image 18.9.2026 klo 17.14.18.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'lon-girl':     ('ChatGPT Image 18.9.2026 klo 17.18.28.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    # Vienna's page is a poster: 4 idle + 4 walk per row in a framed panel on
+    # the right, and the hero stands in front of a painted street (GrabCut).
+    'vie-student':  ('ChatGPT Image 18.9.2026 klo 17.28.53.png', A, 4, (0.47, 0.07, 0.99, 0.85), (0.05, 0.05, 0.33, 0.7), 'dark', 4),
 }
 
 PORTRAIT_H = 320       # the hero figure is scaled to this height
@@ -91,11 +106,64 @@ def foreground(img):
     return ndimage.binary_opening(mask, iterations=1)
 
 
-def find_frames(img, layout, idle_count, region):
+def foreground_dark(img, thr=24, rules=True):
+    """Sprite mask on a dark or blurred, non-uniform backdrop.
+
+    The backdrop is estimated by normalised convolution that ignores what is
+    already believed to be sprite, a few times over, so a dark head of hair on
+    a dark wall is judged against the WALL next to it and not against itself.
+    Then: the ruled panel lines (straight, near full length) and the soft drop
+    shadow under the feet are removed."""
+    a = np.asarray(img.convert('RGB')).astype(np.float32)
+    small = a[::2, ::2]
+    m = np.zeros(small.shape[:2], bool)
+    for _ in range(4):
+        w = (~ndimage.binary_dilation(m, iterations=3)).astype(np.float32)
+        den = ndimage.gaussian_filter(w, 12) + 1e-4
+        bg = np.stack([ndimage.gaussian_filter(small[..., c] * w, 12) / den for c in range(3)], -1)
+        m = np.sqrt(((small - bg) ** 2).sum(-1)) > thr
+        m = ndimage.binary_fill_holes(ndimage.binary_closing(m, iterations=2))
+    bgf = np.stack([ndimage.zoom(bg[..., c], 2, order=1) for c in range(3)], -1)
+    bgf = np.pad(bgf, ((0, max(0, a.shape[0] - bgf.shape[0])), (0, max(0, a.shape[1] - bgf.shape[1])), (0, 0)), mode='edge')[:a.shape[0], :a.shape[1]]
+    diff = a - bgf
+    m = np.sqrt((diff ** 2).sum(-1)) > thr
+    # Panel rules: a thin run spanning most of a row or column.
+    lines = np.zeros_like(m)
+    H, W = m.shape
+    def longest_run(v):
+        best = cur = 0
+        for on in v:
+            cur = cur + 1 if on else 0
+            best = max(best, cur)
+        return best
+    for x in range(W if rules else 0):
+        if longest_run(m[:, x]) > H * 0.3: lines[:, x] = True
+    for y in range(H if rules else 0):
+        if longest_run(m[y]) > W * 0.3: lines[y] = True
+    m &= ~ndimage.binary_dilation(lines, iterations=1)
+    # Drop shadow: the backdrop darkened by a roughly constant factor with no
+    # hue of its own. Found anywhere, but only removed in a blob's bottom band.
+    lum = a.mean(-1) + 1; blum = bgf.mean(-1) + 1
+    k = lum / blum
+    chroma = np.abs((a / lum[..., None]) - (bgf / blum[..., None])).max(-1)
+    shadow = (k > 0.25) & (k < 0.9) & (chroma < 0.12)
+    m = ndimage.binary_closing(m, iterations=2)
+    m = ndimage.binary_fill_holes(m)
+    labels, n = ndimage.label(m)
+    for i, sl in enumerate(ndimage.find_objects(labels)):
+        if sl is None: continue
+        h = sl[0].stop - sl[0].start
+        band = slice(sl[0].stop - max(2, int(h * 0.14)), sl[0].stop)
+        sub = (labels[band, sl[1]] == i + 1) & shadow[band, sl[1]]
+        m[band, sl[1]] &= ~sub
+    return ndimage.binary_opening(m, iterations=1)
+
+
+def find_frames(img, layout, idle_count, region, mode='white', walk_count=8):
     W, H = img.size
     x0, y0, x1, y1 = (int(region[0] * W), int(region[1] * H), int(region[2] * W), int(region[3] * H))
     crop = img.crop((x0, y0, x1, y1))
-    mask = foreground(crop)
+    mask = foreground_dark(crop) if mode == 'dark' else foreground(crop)
     # Bridge the one-pixel gaps an upscaled "pixel" sprite has between limbs.
     labels, n = ndimage.label(ndimage.binary_closing(mask, iterations=3), structure=np.ones((3, 3)))
     boxes = ndimage.find_objects(labels)
@@ -141,7 +209,7 @@ def find_frames(img, layout, idle_count, region):
             rows[-1]['cy'] = np.mean([(b['y0'] + b['y1']) / 2 for b in rows[-1]['blobs']])
         else:
             rows.append({'cy': cy, 'blobs': [blob]})
-    per_row = idle_count + 8
+    per_row = idle_count + walk_count
     rows = [r for r in rows if len(r['blobs']) >= per_row - 1]
     if len(rows) != 4:
         raise RuntimeError(f'found {len(rows)} usable rows ({[len(r["blobs"]) for r in rows]})')
@@ -160,16 +228,39 @@ def find_frames(img, layout, idle_count, region):
         idle = frames[:idle_count]
         while len(idle) < 4:
             idle.append(idle[len(idle) % idle_count])
-        out[name] = idle + frames[idle_count:idle_count + 8]
+        walk = frames[idle_count:idle_count + walk_count]
+        # A 4-frame walk is held two ticks per frame, so it keeps the 8-frame cadence.
+        walk = [walk[i * len(walk) // 8] for i in range(8)]
+        out[name] = idle + walk
     return out
 
 
-def hero_figure(img, region):
+def grabcut_mask(crop):
+    import cv2
+    rgb = np.asarray(crop.convert('RGB'))[..., ::-1].copy()
+    h, w = rgb.shape[:2]
+    mask = np.zeros((h, w), np.uint8)
+    bgd = np.zeros((1, 65), np.float64); fgd = np.zeros((1, 65), np.float64)
+    rect = (int(w * 0.04), int(h * 0.02), int(w * 0.92), int(h * 0.97))
+    cv2.grabCut(rgb, mask, rect, bgd, fgd, 8, cv2.GC_INIT_WITH_RECT)
+    return (mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD)
+
+
+def hero_figure(img, region, mode='white'):
     """The large illustration of the character: the biggest blob in its corner of the page."""
     W, H = img.size
     box = (int(region[0] * W), int(region[1] * H), int(region[2] * W), int(region[3] * H))
     crop = img.crop(box)
-    mask = foreground(crop)
+    if mode == 'dark':
+        # A painted or blurred backdrop has no single background colour:
+        # GrabCut from the figure's box, then keep the biggest piece.
+        mask = grabcut_mask(crop)
+        if region == HERO_DARK:
+            # GrabCut keeps soft bokeh next to the figure; the backdrop
+            # cutter does not (it only misjudges the painted Vienna street).
+            mask &= ndimage.binary_dilation(foreground_dark(crop, rules=False), iterations=2)
+    else:
+        mask = foreground_dark(crop) if mode == 'dark' else foreground(crop)
     labels, n = ndimage.label(ndimage.binary_closing(mask, iterations=3), structure=np.ones((3, 3)))
     if not n:
         raise RuntimeError('no hero figure found')
@@ -290,17 +381,20 @@ def main():
     os.makedirs(os.path.join(OUT, 'portraits'), exist_ok=True)
     for stale in os.listdir(os.path.join(OUT, 'portraits')):
         os.remove(os.path.join(OUT, 'portraits', stale))
-    for sid, (file, layout, idle, region, hero) in SHEETS.items():
+    for sid, spec in SHEETS.items():
+        file, layout, idle, region, hero = spec[:5]
+        mode = spec[5] if len(spec) > 5 else 'white'
+        walk_count = spec[6] if len(spec) > 6 else 8
         path = os.path.join(SRC, file)
         if not os.path.exists(path):
             print(f'  MISSING {file}', file=sys.stderr)
             continue
         page = Image.open(path)
-        frames = find_frames(page, layout, idle, region)
+        frames = find_frames(page, layout, idle, region, mode, walk_count)
         sheet = assemble(frames)
         built[sid] = sheet
         sheet.save(os.path.join(OUT, f'{sid}.png'), optimize=True)
-        portrait = hero_figure(page, hero)
+        portrait = hero_figure(page, hero, mode)
         portrait.save(os.path.join(OUT, 'portraits', f'{sid}.png'), optimize=True)
         manifest['sprites'][sid] = {'src': f'assets/characters/{sid}.png', 'portrait': f'assets/characters/portraits/{sid}.png',
                                     'portraitSize': list(portrait.size), 'from': file}

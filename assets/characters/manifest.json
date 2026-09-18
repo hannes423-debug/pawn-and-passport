@@ -83,6 +83,96 @@
         320
       ],
       "from": "Aikuisen naisen pikselihahmojen spritesheet.png"
+    },
+    "woman-coat": {
+      "src": "assets/characters/woman-coat.png",
+      "portrait": "assets/characters/portraits/woman-coat.png",
+      "portraitSize": [
+        130,
+        320
+      ],
+      "from": "Aikuisen naisen pikselianimaatiosetti.png"
+    },
+    "bug-catcher": {
+      "src": "assets/characters/bug-catcher.png",
+      "portrait": "assets/characters/portraits/bug-catcher.png",
+      "portraitSize": [
+        180,
+        320
+      ],
+      "from": "ChatGPT Image 18.9.2026 klo 16.47.47.png"
+    },
+    "cs-student": {
+      "src": "assets/characters/cs-student.png",
+      "portrait": "assets/characters/portraits/cs-student.png",
+      "portraitSize": [
+        213,
+        320
+      ],
+      "from": "ChatGPT Image 18.9.2026 klo 16.52.30.png"
+    },
+    "cn-student": {
+      "src": "assets/characters/cn-student.png",
+      "portrait": "assets/characters/portraits/cn-student.png",
+      "portraitSize": [
+        152,
+        320
+      ],
+      "from": "ChatGPT Image 18.9.2026 klo 17.00.36.png"
+    },
+    "in-student": {
+      "src": "assets/characters/in-student.png",
+      "portrait": "assets/characters/portraits/in-student.png",
+      "portraitSize": [
+        151,
+        320
+      ],
+      "from": "ChatGPT Image 18.9.2026 klo 17.02.37.png"
+    },
+    "tr-student": {
+      "src": "assets/characters/tr-student.png",
+      "portrait": "assets/characters/portraits/tr-student.png",
+      "portraitSize": [
+        151,
+        320
+      ],
+      "from": "ChatGPT Image 18.9.2026 klo 17.07.45.png"
+    },
+    "nyc-student": {
+      "src": "assets/characters/nyc-student.png",
+      "portrait": "assets/characters/portraits/nyc-student.png",
+      "portraitSize": [
+        184,
+        320
+      ],
+      "from": "ChatGPT Image 18.9.2026 klo 17.09.28.png"
+    },
+    "lon-boy": {
+      "src": "assets/characters/lon-boy.png",
+      "portrait": "assets/characters/portraits/lon-boy.png",
+      "portraitSize": [
+        159,
+        320
+      ],
+      "from": "ChatGPT Image 18.9.2026 klo 17.14.18.png"
+    },
+    "lon-girl": {
+      "src": "assets/characters/lon-girl.png",
+      "portrait": "assets/characters/portraits/lon-girl.png",
+      "portraitSize": [
+        168,
+        320
+      ],
+      "from": "ChatGPT Image 18.9.2026 klo 17.18.28.png"
+    },
+    "vie-student": {
+      "src": "assets/characters/vie-student.png",
+      "portrait": "assets/characters/portraits/vie-student.png",
+      "portraitSize": [
+        130,
+        320
+      ],
+      "from": "ChatGPT Image 18.9.2026 klo 17.28.53.png"
     }
   }
 }

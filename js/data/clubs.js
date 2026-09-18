@@ -97,8 +97,8 @@ export const CLUBS = Object.freeze([
     openingId: 'caro',
     starPlayerId: 'priya',
     regularOpponentPool: [
-      { id: 'che-arjun', name: 'Arjun Menon', style: 'positional', look: { sprite: 'young-blue', skin: '#8f5d3d', hair: '#121212', hairStyle: 'short', top: '#e8e2d0', bottom: '#3b3b55' } },
-      { id: 'che-kavya', name: 'Kavya Iyer', style: 'defensive', look: { sprite: 'girl', skin: '#9a6444', hair: '#1a1212', hairStyle: 'braid', top: '#c2410c', bottom: '#2f3a4f' } },
+      { id: 'che-arjun', name: 'Arjun Menon', style: 'positional', look: { sprite: 'in-student', skin: '#8f5d3d', hair: '#121212', hairStyle: 'short', top: '#e8e2d0', bottom: '#3b3b55' } },
+      { id: 'che-kavya', name: 'Kavya Iyer', style: 'defensive', look: { sprite: 'woman-coat', skin: '#9a6444', hair: '#1a1212', hairStyle: 'braid', top: '#c2410c', bottom: '#2f3a4f' } },
       { id: 'che-rahul', name: 'Rahul Subramani', style: 'tactical', look: { sprite: 'young-red', skin: '#7a4a30', hair: '#171717', hairStyle: 'curly', top: '#3a7ab0', bottom: '#2b2b2b' } },
       { id: 'che-divya', name: 'Divya Nair', style: 'balanced', look: { sprite: 'woman', skin: '#a06a48', hair: '#20120e', hairStyle: 'long', top: '#7a3a8a', bottom: '#2d2d3d' } }
     ],

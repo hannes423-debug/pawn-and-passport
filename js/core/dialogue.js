@@ -47,7 +47,7 @@ export function loungeLines(career, clubId) {
   const star = starById(club.starPlayerId);
   const won = !!career.trophies[clubId];
   return won
-    ? [`Everyone here is still talking about your game against ${star.name.split(' ')[0]}.`, `The ${club.trophyName} looks good on you.`]
+    ? [`Everyone here is still talking about your game against ${star.name.split(' ')[0]}.`, `${club.trophyName} looks good on you.`]
     : [`Welcome to the ${club.clubName}. Around here, everybody plays one opening.`, `Beat ${star.name} and it will be yours too.`];
 }
 

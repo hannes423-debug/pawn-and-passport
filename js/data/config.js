@@ -9,7 +9,7 @@ export const GAME = Object.freeze({
   title: 'Pawn & Passport',
   subtitle: 'A Chess Career RPG',
   version: '0.1.0-jam',
-  saveVersion: 2
+  saveVersion: 3
 });
 
 /* ================================================================ levels === */
@@ -25,7 +25,7 @@ export const LEVELS = Object.freeze({
 export const XP = Object.freeze({
   game: { base: 30, win: 60, draw: 30, loss: 10 },
   perGrade: { EPIC: 60, BRILLIANT: 40, CLUTCH: 30, BEST: 4, EXCELLENT: 2 },
-  kindMultiplier: { friendly: 0.8, tournament: 1.25, star: 1.5, finale: 1.75 },
+  kindMultiplier: { friendly: 0.8, challenge: 1, tournament: 1.25, star: 1.5, finale: 1.75 },
   trophy: 250,
   finaleWin: 600,
   puzzleSolved: 25,        // first solve only
@@ -65,7 +65,7 @@ export const ELO = Object.freeze({
   start: 600,
   floor: 100,
   /* Friendlies are practice: unrated (K = 0). */
-  k: { friendly: 0, tournament: 32, star: 32, finale: 32 },
+  k: { friendly: 0, challenge: 16, tournament: 32, star: 32, finale: 32 },
   /* Regular opponents by campaign TIER (trophies already won, 0..5), not by
      club: the player picks the order, so the sixth club visited is the hard one. */
   regularBands: [[500, 700], [600, 800], [700, 900], [800, 1050], [900, 1150], [1000, 1250]],
@@ -158,11 +158,57 @@ export const REPERTOIRE = Object.freeze({
 
 /* ============================================================ tournament === */
 export const TOURNAMENT = Object.freeze({
-  regularRounds: 2,
-  /* A regular round is cleared by a win or a draw; the Star Player must be beaten.
-     A lost round can be challenged again, it does not reset the event. */
-  regularClearScore: 0.5,
-  starClearScore: 1
+  /* Each club runs one format. Swiss: 16 players, everyone plays all 5 rounds,
+     and the leader after round 5 (tiebreak Buchholz, then rating) meets the
+     Star Player in the final. Knockout: 32 players, lose once and you are out;
+     the bracket winner meets the Star. Either way the TROPHY needs a win in
+     the final. Anyone who falls short enters a fresh event next time. */
+  format: { nyc: 'swiss', lon: 'knockout', vie: 'swiss', ist: 'knockout', che: 'swiss', wen: 'knockout' },
+  rounds: 5,
+  field: { swiss: 16, knockout: 32 },
+  /* A knockout game cannot end level: a draw goes to Black (Armageddon rule). */
+  knockoutDrawGoesTo: 'b',
+  /* Mastery of the club opening per tournament game played (the final too),
+     never past failedRunCap: only the trophy makes it 100. */
+  masteryPerGame: { win: 6, draw: 4, loss: 3 },
+  masteryCap: 60
+});
+
+/* ============================================================== members === */
+/* A member's Elo: its club strength `rel` (0..1) laid over the tier's regular
+   band, widened so a field has real underdogs and real favourites. Visitors
+   (the rest of a tournament field) sit in the lower part of the same range. */
+export const MEMBERS = Object.freeze({
+  belowBand: 100,          // weakest member = band low - this
+  aboveBand: 60,           // strongest member = band high + this
+  visitorRel: [0, 0.7]
+});
+
+/* ============================================================ simulation === */
+/* NPC games are played out on Elo: expected score on a logistic with this
+   SCALE (steeper than the usual 400, so a 400-point gap is a real mismatch:
+   the underdog wins ~4%, but 100 points apart it is roughly 1 in 4), and a
+   draw rate that falls as the gap grows. */
+export const SIM = Object.freeze({
+  scale: 300,
+  drawAtEqual: 0.16,
+  drawFalloff: 250         // draw share = drawAtEqual * exp(-|gap| / drawFalloff)
+});
+
+/* ================================================================= coins === */
+export const COINS = Object.freeze({
+  start: 100,
+  /* A challenge stake by the opponent's Elo: stakeMin at stakeFromElo[0],
+     stakeMax at stakeFromElo[1], rounded to 5. A draw returns the stake. */
+  stakeMin: 10,
+  stakeMax: 40,
+  stakeFromElo: [450, 1350],
+  /* Tournament prize money: per point scored, and for the final. */
+  perTournamentPoint: 8,
+  finalist: 40,
+  champion: 120,
+  puzzle: 5,               // first solve of any puzzle
+  missionComplete: 25
 });
 
 /* ============================================================== grading === */
@@ -231,4 +277,4 @@ export const BOOK = Object.freeze({
   starPreference: 1.0
 });
 
-export default { GAME, LEVELS, XP, ELO, FOCUS, HINTS, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK, PRACTICE };
+export default { GAME, LEVELS, XP, ELO, FOCUS, HINTS, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, MEMBERS, SIM, COINS, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK, PRACTICE };

@@ -338,7 +338,8 @@ def trophy():
           const C = await import('./js/core/career.js');
           const app = window.__pap; const career = app.career;
           C.enterTournament(career, 'vie');
-          C.recordTournamentGame(career, 'vie', 1); C.recordTournamentGame(career, 'vie', 0.5);
+          // Five Swiss wins reach the final against the Star Player.
+          for (let i = 0; i < 5; i += 1) C.recordTournamentGame(career, 'vie', 1);
           app.save();
           const r = C.currentRound(career, 'vie');
           const { starById } = await import('./js/data/starPlayers.js');
@@ -366,6 +367,10 @@ def trophy():
                 break
         ok = c.wait_for("!!document.querySelector('.pp-result__letter')", timeout=60)
         print("result", ok, c.shot("61-star-result"))
+        c.eval("[...document.querySelectorAll('.pp-overlay button')].find(b => b.textContent.includes('Continue'))?.click()")
+        # The tournament report (the final's line) comes before the ceremony.
+        c.wait_for("[...document.querySelectorAll('.pp-overlay button')].some(b => b.textContent.includes('Continue'))", timeout=15)
+        c.pump(0.4)
         c.eval("[...document.querySelectorAll('.pp-overlay button')].find(b => b.textContent.includes('Continue'))?.click()")
         ok2 = c.wait_for("[...document.querySelectorAll('.pp-overlay h2')].some(h => h.textContent.includes('Waltz'))", timeout=20)
         c.pump(0.6)

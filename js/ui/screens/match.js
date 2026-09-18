@@ -27,11 +27,12 @@ import { starById } from '../../data/starPlayers.js';
 import { applyUci } from '../../chess/core/rules.js';
 import {
   applyGameResult, recordTournamentGame, recordFinaleGame, maxFocus, hintPlies, masteryState, currentRound,
-  repertoireSlots
+  repertoireSlots, settleChallenge
 } from '../../core/career.js';
+import { roundReport, roundLabel } from '../tournamentView.js';
 import { starLines } from '../../core/dialogue.js';
 
-const KIND_LABEL = { friendly: 'Friendly game', tournament: 'Tournament round', star: 'Star Player final', finale: 'Grand Finale' };
+const KIND_LABEL = { friendly: 'Friendly game', challenge: 'Challenge match', tournament: 'Tournament round', star: 'Tournament final', finale: 'Grand Finale' };
 
 export function matchScreen(app, params) {
   const career = app.career;
@@ -42,8 +43,29 @@ export function matchScreen(app, params) {
   let guideOn = app.settings.guideArrows;
   let finished = false;
 
-  /* The hover card for suggested squares (filled in by onBoardHover). */
-  const tip = h('div.pp-tip', { hidden: true, role: 'tooltip' });
+  /* The hover card for suggested squares (filled in by onBoardHover). On a
+     touch screen it is pinned beside the board and can cover part of it, so
+     it can be hidden: the 📖 Notes button (and the card's own Hide button)
+     switches it off and on, and the choice is remembered. */
+  let notesOn = app.settings.openingNotes !== false;
+  const tipBody = h('div');
+  const tipHide = h('button.pp-tip__hide', { type: 'button', 'aria-label': 'Hide opening notes', text: 'Hide ▾', onclick: (e) => { e.stopPropagation(); setNotes(false); } });
+  const tip = h('div.pp-tip', { hidden: true, role: 'tooltip' }, tipHide, tipBody);
+  const notesBtn = h('button.pp-btn.pp-btn--small.pp-notesbtn', { type: 'button', onclick: () => setNotes(!notesOn) });
+  function paintNotes() {
+    notesBtn.replaceChildren('📖 ', h('span', { text: notesOn ? 'Notes: on' : 'Notes: off' }));
+    notesBtn.setAttribute('aria-pressed', String(notesOn));
+    notesBtn.title = notesOn ? 'Hide the opening notes card' : 'Show the opening notes card on suggested squares';
+  }
+  function setNotes(on) {
+    notesOn = on;
+    app.settings.openingNotes = on;
+    app.applySettings();
+    tip.hidden = true;
+    paintNotes();
+    if (!on) app.toast('Opening notes hidden. The arrows stay; 📖 Notes brings the card back.', { ms: 2600 });
+  }
+  paintNotes();
 
   const board = createBoard(app, {
     orientation: colour,
@@ -62,7 +84,7 @@ export function matchScreen(app, params) {
     h('img', { alt: '', src: portraitUrl(opponent.look || PLAYER_LOOKS.boy, { ring: kind === 'star' || kind === 'finale' ? '#e8b04a' : '#8a6437' }) }),
     h('div', null,
       h('div.pp-player__name', { text: opponent.name }),
-      h('div.pp-small', { text: `${opponent.elo} Elo · ${opponent.style}` }),
+      h('div.pp-small', { text: `${opponent.elo} Elo · ${opponent.style}${kind === 'challenge' ? ` · ${opponent.stake}🪙 on it` : ''}` }),
       opening ? h('div.pp-small.pp-muted', { text: `Plays the ${opening.name}` }) : null,
       // visibility, not display: the card must not change height while the bot thinks.
       h('div.pp-thinking', { style: { visibility: 'hidden' }, text: 'thinking...' })));
@@ -85,7 +107,8 @@ export function matchScreen(app, params) {
 
   const left = h('aside.pp-match__left', null,
     h('div.pp-panel.pp-small.pp-match__kind', null, h('b', { text: KIND_LABEL[kind] }), club ? ` · ${club.clubName}` : kind === 'finale' ? ` · ${FINALE.venueName}` : '',
-      kind === 'friendly' ? h('span.pp-muted', { text: ' · unrated' }) : null),
+      kind === 'friendly' ? h('span.pp-muted', { text: ' · unrated' }) : null,
+      kind === 'challenge' ? h('span.pp-muted', { text: ` · ${opponent.stake} coins` }) : null),
     oppCard,
     meCard,
     h('div.pp-panel.pp-col.pp-match__focus', null,
@@ -119,7 +142,7 @@ export function matchScreen(app, params) {
     h('div.pp-panel.pp-panel--dark.pp-match__banner', null, openingBanner),
     h('div.pp-panel.pp-col.pp-match__moves', null, h('h3.pp-h3', { text: 'Moves' }), moveList, lastGrade, engineLine),
     h('div.pp-panel.pp-col.pp-match__tools', null,
-      guideBtn,
+      h('div.pp-row.pp-match__toggles', null, guideBtn, notesBtn),
       h('div.pp-small.pp-muted', { text: `Gold arrows come from your equipped openings, as deep as you know them. Free, no Focus. ${tapWord() === 'tap' ? 'Tap' : 'Hover'} a suggested square for details.` }),
       h('div.pp-small', null, h('b', { text: `Repertoire ${(career.equipped || []).length}/${repertoireSlots(career.level)}: ` }),
         (career.equipped || []).map((id) => `${openingById(id).name} ${career.openings[id] ?? 0}%`).join(', ') || 'none (equip openings in the Journal)'),
@@ -237,7 +260,7 @@ export function matchScreen(app, params) {
   }
 
   function onBoardHover(e) {
-    if (!suggestions.length) { tip.hidden = true; return; }
+    if (!notesOn || !suggestions.length) { tip.hidden = true; return; }
     const square = renderer.squareAtPoint(e.clientX, e.clientY);
     const hits = square ? suggestions.filter((sug) => sug.from === square || sug.to === square) : [];
     if (!hits.length) { tip.hidden = true; return; }
@@ -250,9 +273,10 @@ export function matchScreen(app, params) {
         if (!groups.has(k)) groups.set(k, []);
         groups.get(k).push(sug);
       }
-      tip.replaceChildren(...[...groups.values()].flatMap((g) => describeMove(g)));
+      tipBody.replaceChildren(...[...groups.values()].flatMap((g) => describeMove(g)));
     }
     tip.hidden = false;
+    tip.classList.toggle('is-pinned', e.pointerType === 'touch');
     if (e.pointerType === 'touch') {
       // A finger covers whatever sits beside it: pin the card clear of the board instead.
       const rect = board.host.getBoundingClientRect();
@@ -413,8 +437,14 @@ export function matchScreen(app, params) {
     const pliesBefore = hintPlies(levelBefore).plies;
     const rewards = applyGameResult(career, summary);
     let progress = null;
-    if (kind === 'tournament' || kind === 'star') progress = recordTournamentGame(career, clubId, summary.score);
+    let coinDelta = 0;
+    if (kind === 'tournament' || kind === 'star') { progress = recordTournamentGame(career, clubId, summary.score); coinDelta = progress.coins; }
     if (kind === 'finale') progress = recordFinaleGame(career, summary.score);
+    if (kind === 'challenge') {
+      coinDelta = settleChallenge(career, summary.score, opponent.stake || 0);
+      const rec = (career.memberRecords = career.memberRecords || {})[opponent.id] || (career.memberRecords[opponent.id] = { w: 0, d: 0, l: 0 });
+      rec[summary.score === 1 ? 'w' : summary.score === 0.5 ? 'd' : 'l'] += 1;
+    }
     app.save();
 
     if (kind === 'star' || kind === 'finale') {
@@ -422,14 +452,40 @@ export function matchScreen(app, params) {
       if (star) await app.dialogue({ name: star.name, role: star.title, look: star.look, lines: starLines(career, star.id, summary.score === 1 ? 'won' : 'lost') });
     }
 
-    await showResult({ summary, rewards, progress, levelBefore, focusBefore, pliesBefore });
+    await showResult({ summary, rewards, progress, levelBefore, focusBefore, pliesBefore, coinDelta });
+    if ((kind === 'tournament' || kind === 'star') && progress?.roundIndex >= 0) await tournamentReport(progress);
 
     if (progress?.trophy) await trophyCeremony(progress.trophy);
     if (kind === 'finale' && progress?.won) { app.go('ending'); return; }
     app.go('scene', { sceneId: returnScene, node: returnSpawn });
   }
 
-  function showResult({ summary, rewards, progress, levelBefore, focusBefore, pliesBefore }) {
+  /* After a tournament game: the rest of the round, played out, and the table. */
+  function tournamentReport(progress) {
+    const run = career.tournaments[clubId];
+    if (!run) return null;
+    const index = progress.final ? run.rounds.length : progress.roundIndex;
+    return app.overlay((close) => h('div.pp-panel.pp-modal.pp-modal--wide', null,
+      h('h2.pp-h2', { text: club.tournamentConfig.name }),
+      roundReport(run, index),
+      h('div.pp-row', { style: { justifyContent: 'center', marginTop: '10px' } }, button('Continue', () => close(), { cls: 'pp-btn--gold', icon: '▶' }))),
+    { dismissable: false });
+  }
+
+  function tournamentText(progress) {
+    const run = career.tournaments[clubId];
+    const star = starById(run?.star?.id);
+    const starName = star?.name || 'the Star Player';
+    if (progress.outcome === 'champion') return `${club.tournamentConfig.name} won! You beat ${starName} in the final.`;
+    if (progress.outcome === 'runner-up') return `Runner-up. ${starName} won the final. Enter again from the tournament desk whenever you are ready.`;
+    if (progress.toFinal) return `You made the final! ${starName} is waiting. Play it from the tournament desk.`;
+    if (progress.outcome === 'eliminated') return `Knocked out in the ${roundLabel(run, progress.roundIndex).toLowerCase()}. The bracket played on without you. You can enter again any time.`;
+    if (progress.outcome === 'placed') return `You finished ${run.place} of ${run.players.length}. Only first place reaches the final: enter again any time.`;
+    const next = currentRound(career, clubId);
+    return next ? `${roundLabel(run, progress.roundIndex)} done. Next: ${next.label} against ${next.name} (${next.elo}).` : 'Round done.';
+  }
+
+  function showResult({ summary, rewards, progress, levelBefore, focusBefore, pliesBefore, coinDelta = 0 }) {
     const ms = summary.matchScore;
     if (career.level > levelBefore) sfx.levelUp();
     const gradeTiles = GRADE_ORDER.filter((g) => summary.grades[g]).map((g) =>
@@ -437,12 +493,10 @@ export function matchScreen(app, params) {
     const masteryLines = Object.entries(rewards.mastery).map(([id, gain]) =>
       h('li', null, h('span', { text: openingById(id).name }), h('b', { text: `+${gain}% → ${career.openings[id]}%` })));
     let progressText = null;
-    if (kind === 'tournament' || kind === 'star') {
-      const next = currentRound(career, clubId);
-      progressText = progress.completed ? `${club.tournamentConfig.name} won!`
-        : progress.cleared ? `Round cleared. Next: ${next ? `${next.kind === 'star' ? '★ ' : ''}${next.name}` : 'done'}.`
-        : kind === 'star' ? `The Star Player must be beaten. Challenge ${opponent.name.split(' ')[0]} again whenever you are ready.`
-        : 'Round not cleared (a win or draw is needed). You can replay it any time.';
+    if (kind === 'tournament' || kind === 'star') progressText = tournamentText(progress);
+    if (kind === 'challenge') {
+      const first = opponent.name.split(' ')[0];
+      progressText = coinDelta > 0 ? `You win ${coinDelta} coins from ${first}.` : coinDelta < 0 ? `${first} takes ${-coinDelta} of your coins.` : `A draw: ${first} hands your stake back.`;
     }
     if (kind === 'finale') {
       progressText = progress.won ? 'You won the Grand Finale!' : progress.cleared ? 'Through to the next round!' : 'Eliminated this time. The round can be replayed.';
@@ -470,6 +524,8 @@ export function matchScreen(app, params) {
           h('ul.pp-lines', null,
             h('li', null, h('span', { text: 'Elo' }), h('b', { class: rewards.eloDelta < 0 ? 'neg' : '', text: kind === 'friendly' ? `unrated · ${career.elo}` : `${rewards.eloDelta >= 0 ? '+' : ''}${rewards.eloDelta} → ${career.elo}` })),
             h('li', null, h('span', { text: 'XP' }), h('b', { text: `+${rewards.xp.xp}` })),
+            coinDelta ? h('li', null, h('span', { text: kind === 'challenge' ? '🪙 Stake' : '🪙 Prize money' }), h('b', { class: coinDelta < 0 ? 'neg' : '', text: `${coinDelta > 0 ? '+' : ''}${coinDelta} → ${career.coins}` })) : null,
+            progress?.mastery ? h('li', null, h('span', { text: `📖 ${openingById(club.openingId).name} (tournament)` }), h('b', { text: `+${progress.mastery}% → ${career.openings[club.openingId]}%` })) : null,
             progress?.trophy ? h('li', null, h('span', { text: `🏆 ${progress.trophy.trophyName}` }), h('b', { text: `+${progress.trophy.xp.xp} XP` })) : null,
             progress?.won && progress.xp ? h('li', null, h('span', { text: '🥇 Grand Finale' }), h('b', { text: `+${progress.xp.xp} XP` })) : null,
             career.level > levelBefore ? h('li', null, h('span', { text: '⬆ LEVEL UP' }), h('b', { text: `Level ${career.level}` })) : null,

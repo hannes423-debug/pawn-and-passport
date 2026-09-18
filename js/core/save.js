@@ -23,6 +23,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   coordinates: true,
   moveGrades: true,              // live colour-coded verdicts on your moves
   guideArrows: true,             // opening-knowledge arrows
+  openingNotes: true,            // the opening card on suggested squares (match screen 📖 Notes)
   reducedMotion: false,
   textSpeed: 'normal',           // slow | normal | fast
   touchControls: 'auto'          // auto | on | off: joystick, phone layout, tap wording

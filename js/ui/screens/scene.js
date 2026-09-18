@@ -26,8 +26,14 @@ import { openingById } from '../../data/openings.js';
 import { ELO, MASTERY } from '../../data/config.js';
 import {
   travelTo, meetStar, enterTournament, currentRound, tier, regularElo, missionProgress,
-  hasAllTrophies, enterFinale, currentFinaleRound, trophyCount, masteryState
+  hasAllTrophies, enterFinale, currentFinaleRound, trophyCount, masteryState,
+  memberElo, stakeFor, canAfford
 } from '../../core/career.js';
+import { MEMBERS, CHESS_TIPS } from '../../data/members.js';
+import { MEMBER_SPOTS } from '../../data/memberSpots.js';
+import { TOURNAMENT } from '../../data/config.js';
+import { formatBlurb, eventView, roundLabel } from '../tournamentView.js';
+import { exitRound } from '../../core/tournament.js';
 import { starLines, loungeLines } from '../../core/dialogue.js';
 import { createTouchpad, tapWord } from '../touch.js';
 import { openOpeningStudy } from '../openingStudy.js';
@@ -39,6 +45,11 @@ import { createWalkGrid, walkerFor } from '../../core/freeWalk.js';
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
 const WALK_SPEED = 42;           // percent of the stage height per second
 
+const ordinal = (n) => {
+  const teen = n % 100 >= 11 && n % 100 <= 13;
+  return `${n}${teen ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')}`;
+};
+
 /* A walk grid takes a moment to bake on a phone: build each scene's once. */
 const walkGrids = new Map();
 function walkGridFor(id, layers, aspect, actorHeight) {
@@ -47,9 +58,29 @@ function walkGridFor(id, layers, aspect, actorHeight) {
   return walkGrids.get(key);
 }
 
+/**
+ * The scene with its club members added: each one a hotspot (walk up, talk,
+ * challenge) standing on a spot tools/place-members.mjs found on the floor.
+ */
+function withMembers(base) {
+  const spots = MEMBER_SPOTS[base.id];
+  const members = MEMBERS[base.id.slice(0, 3)] || [];
+  if (!spots) return base;
+  const nodes = { ...base.nodes };
+  const hotspots = [...base.hotspots];
+  for (const member of members) {
+    const spot = spots[member.id];
+    if (!spot) continue;
+    nodes[`m:${member.id}`] = spot.stand;
+    hotspots.push({ id: `member:${member.id}`, node: `m:${member.id}`, label: member.name, verb: 'Talk', member: true,
+      action: { type: 'member', memberId: member.id }, npc: { kind: 'member', member, at: spot.at, dir: spot.dir } });
+  }
+  return { ...base, nodes, hotspots };
+}
+
 export async function sceneScreen(app, params) {
   const career = app.career;
-  const scene = sceneById(params.sceneId) || sceneById(clubById(career.location.clubId)?.scenes.exterior) || sceneById('nyc-ext');
+  const scene = withMembers(sceneById(params.sceneId) || sceneById(clubById(career.location.clubId)?.scenes.exterior) || sceneById('nyc-ext'));
   const clubId = scene.id.slice(0, 3);
   const club = clubById(clubId);
   const isFinale = clubId === FINALE.id;
@@ -194,6 +225,7 @@ export async function sceneScreen(app, params) {
       });
       continue;
     }
+    if (npc.kind === 'member') { makeActor(npc.member.look, npc.at, { dir: npc.dir || 'down' }); continue; }
     const look = npc.kind === 'star' ? starForClub(clubId)?.look
       : npc.kind === 'host' ? missionForClub(clubId)?.host.look
       : club?.regularOpponentPool[npc.index % club.regularOpponentPool.length].look;
@@ -363,19 +395,22 @@ export async function sceneScreen(app, params) {
   function drawHotspots() {
     clear(hotspotLayer);
     const list = h('div.pp-row');
+    const people = h('div');
     scene.hotspots.forEach((spot, i) => {
       const [x, y] = scene.nodes[spot.node];
       // Labels float just above a character's head, however tall characters are drawn here.
       const labelY = spot.npc?.at ? Math.min(y, spot.npc.at[1]) - ACTOR_H * 95 - 1 : y - Math.max(7, ACTOR_H * 70);
       hotspotLayer.append(h('button.pp-hotspot', {
-        type: 'button', class: spotState(spot),
+        type: 'button', class: `${spotState(spot)}${spot.member ? ' is-member' : ''}`,
         style: { left: `${spot.npc?.at ? spot.npc.at[0] : x}%`, top: `${Math.max(4, labelY)}%` },
         'aria-label': `${spot.verb}: ${spot.label}`,
         onclick: (e) => { e.stopPropagation(); use(spot); }
-      }, h('span.pp-hotspot__label', { text: `${i + 1}  ${spot.label}` }), h('span.pp-hotspot__arrow', { text: '▼' })));
-      list.append(button(`${i + 1}. ${spot.verb}`, () => use(spot), { cls: 'pp-btn--small', title: spot.label }));
+      }, h('span.pp-hotspot__label', { text: spot.member ? spot.label : `${i + 1}  ${spot.label}` }), h('span.pp-hotspot__arrow', { text: '▼' })));
+      if (spot.member) people.append(button(spot.label.split(' ')[0], () => use(spot), { cls: 'pp-btn--small', title: `Talk to ${spot.label}` }));
+      else list.append(button(`${i + 1}. ${spot.verb}`, () => use(spot), { cls: 'pp-btn--small', title: spot.label }));
     });
-    dock.replaceChildren(h('div.pp-panel', null, h('div.pp-scene__title', { text: app.locationName() }), list));
+    dock.replaceChildren(h('div.pp-panel', null, h('div.pp-scene__title', { text: app.locationName() }), list,
+      people.children.length ? h('div.pp-row.pp-scene__people', null, h('span.pp-small.pp-muted', { text: 'People:' }), ...people.children) : null));
   }
 
   // Clicking empty floor walks there (free mode) or to the nearest waypoint.
@@ -574,6 +609,7 @@ export async function sceneScreen(app, params) {
       case 'trophies': return trophyHall();
       case 'talk': return app.dialogue({ name: 'Club member', role: club.clubName, look: club.regularOpponentPool[2 % club.regularOpponentPool.length].look, lines: loungeLines(career, clubId) });
       case 'mission': return venueMission();
+      case 'member': return memberTalk(a.memberId);
       case 'finale': return finaleStage();
       case 'rivals': return rivalsLounge();
       default: return null;
@@ -600,25 +636,44 @@ export async function sceneScreen(app, params) {
   async function tournamentDesk() {
     const star = starForClub(clubId);
     const opening = openingById(club.openingId);
+    const event = club.tournamentConfig.name;
     if (career.trophies[clubId]) {
-      await app.dialogue({ name: 'Tournament director', role: club.tournamentConfig.name, look: GUIDE_LOOK,
-        lines: [`The ${club.trophyName} is already yours, champion.`, 'The practice room is always open for a friendly game.'] });
+      await app.dialogue({ name: 'Tournament director', role: event, look: GUIDE_LOOK,
+        lines: [`${club.trophyName} is already yours, champion.`, 'The practice room is always open, and the members will always take your coins.'] });
       return;
     }
-    const run = enterTournament(career, clubId);
-    app.save();
+    let run = career.tournaments[clubId];
+    if (!run || run.completed) {
+      const format = TOURNAMENT.format[clubId];
+      const last = run?.completed ? run : null;
+      const lastLine = !last ? null
+        : last.outcome === 'runner-up' ? `Last time you reached the final and lost to ${star.name}. So close.`
+        : last.outcome === 'eliminated' ? `Last time you went out in the ${roundLabel(last, exitRound(last)).toLowerCase()}.`
+        : `Last time you finished ${ordinal(last.place)} of ${last.players.length}.`;
+      const choice = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
+        h('h2.pp-h2', { text: event }),
+        h('p.pp-small', { text: format === 'swiss'
+          ? `A ${TOURNAMENT.field.swiss}-player Swiss: ${TOURNAMENT.rounds} rounds, and you play every one of them. Whoever tops the table meets ${star.name} in the final.`
+          : `A ${TOURNAMENT.field.knockout}-player knockout: ${TOURNAMENT.rounds} rounds, one loss and you are out. A drawn game goes to Black. Win the bracket and ${star.name} is waiting in the final.` }),
+        h('p.pp-small', { text: `${club.trophyName} goes only to whoever beats ${star.name} in the final. Every game you play teaches you the ${opening.name}, even if you fall short.` }),
+        lastLine ? h('p.pp-small', null, h('b', { text: lastLine })) : null,
+        h('div.pp-row', null,
+          button(last ? 'Enter again' : 'Enter the tournament', () => close('enter'), { cls: 'pp-btn--gold', icon: '♞' }),
+          button('Not yet', () => close(null), { cls: 'pp-btn--small' }))));
+      if (choice !== 'enter') return;
+      run = enterTournament(career, clubId);
+      app.save();
+    }
     const round = currentRound(career, clubId);
-    const choice = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
-      h('h2.pp-h2', { text: club.tournamentConfig.name }),
-      h('p.pp-small', { text: `Two rounds against club regulars (a win or a draw clears a round), then ${star.name}, who must be beaten. Everyone here leans toward the ${opening.name}. Lose a round and you can simply challenge it again.` }),
-      h('ol.pp-col', { style: { paddingLeft: '20px', margin: '8px 0' } },
-        run.rounds.map((r, i) => h('li', null,
-          h('b', { text: r.kind === 'star' ? `★ ${r.name}` : r.name }),
-          ` · ${r.elo} Elo · ${r.style}`,
-          i < run.round ? ' · ✔ cleared' : i === run.round ? ' · ◀ next' : ''))),
-      h('p.pp-small.pp-muted', { text: `Difficulty tier ${run.tier + 1}/6 (set by the trophies you had when you entered).` }),
+    if (!round) return;
+    const choice = await app.overlay((close) => h('div.pp-panel.pp-modal.pp-modal--wide', null,
+      h('h2.pp-h2', { text: `${event} · ${round.label}` }),
+      h('p.pp-small', { text: formatBlurb(run, star.name) }),
+      eventView(run),
+      h('p', null, h('b', { text: round.kind === 'star' ? `Final: ★ ${round.name}` : `Next: ${round.name}` }), ` · ${round.elo} Elo · ${round.style} · you play ${round.colour === 'w' ? 'White' : 'Black'}`),
+      h('p.pp-small.pp-muted', { text: `Difficulty tier ${run.tier + 1}/6 (set by the trophies you had when you entered). Attempt ${run.attempt || 1}.` }),
       h('div.pp-row', null,
-        button(`Play round ${round.index + 1} as ${round.colour === 'w' ? 'White' : 'Black'}`, () => close('play'), { cls: 'pp-btn--gold', icon: '♞' }),
+        button(round.kind === 'star' ? `Play the final` : `Play ${round.label.toLowerCase()}`, () => close('play'), { cls: 'pp-btn--gold', icon: '♞' }),
         button('Not yet', () => close(null), { cls: 'pp-btn--small' }))));
     if (choice !== 'play') return;
     if (round.kind === 'star') {
@@ -629,9 +684,39 @@ export async function sceneScreen(app, params) {
     playMatch({
       kind: round.kind === 'star' ? 'star' : 'tournament',
       colour: round.colour,
-      opponent: { id: round.opponentId, name: round.name, elo: round.elo, style: round.style, openingId: club.openingId,
-        look: round.kind === 'star' ? star.look : club.regularOpponentPool.find((p) => p.id === round.opponentId)?.look }
+      opponent: { id: round.opponentId, name: round.name, elo: round.elo, style: round.style, openingId: round.openingId || club.openingId,
+        look: round.kind === 'star' ? star.look : round.look }
     });
+  }
+
+  /* A member: a line or two about the city, their opening or the game, then
+     a challenge for coins. The stake is set by their Elo. */
+  async function memberTalk(memberId) {
+    const member = (MEMBERS[clubId] || []).find((x) => x.id === memberId);
+    if (!member) return;
+    const elo = memberElo(member.rel, tier(career));
+    const stake = stakeFor(elo);
+    const record = career.memberRecords?.[member.id];
+    const spoken = [...member.lines];
+    // Now and then a general tip as well, so a second visit is not word for word the same.
+    if (Math.random() < 0.5) spoken.splice(Math.floor(Math.random() * spoken.length) + 1, 0, CHESS_TIPS[Math.floor(Math.random() * CHESS_TIPS.length)]);
+    const said = spoken.slice(0, 2);
+    const special = openingById(member.openingId);
+    const recordLine = record ? ` We are ${record.w}-${record.l}${record.d ? `-${record.d}` : ''} so far.` : '';
+    const afford = canAfford(career, stake);
+    const offer = afford
+      ? `Fancy a game? ${stake} coins on it. I am about ${elo}, and I play the ${special.name}.${recordLine}`
+      : `I play for ${stake} coins a game, and you have ${career.coins}. Win some in the tournament or solve some puzzles, then come back.`;
+    const choice = await app.dialogue({
+      name: member.name, role: `${club.clubName} · ${elo} Elo`, look: member.look,
+      lines: [...said, offer],
+      actions: afford
+        ? [{ id: 'w', label: `Play White (${stake}🪙)`, cls: 'pp-btn--gold' }, { id: 'b', label: `Play Black (${stake}🪙)`, cls: 'pp-btn--gold' }, { id: null, label: 'Not now' }]
+        : [{ id: null, label: 'Bye' }]
+    });
+    if (!choice) return;
+    playMatch({ kind: 'challenge', colour: choice,
+      opponent: { id: member.id, name: member.name, elo, style: member.style, openingId: member.openingId, look: member.look, stake } });
   }
 
   async function starOffice() {
@@ -646,7 +731,7 @@ export async function sceneScreen(app, params) {
       : null;
     const choice = await app.dialogue({ name: star.name, role: star.title, look: star.look, lines, actions });
     if (!ready && !career.trophies[clubId] && !first) {
-      app.toast(`Clear the ${club.tournamentConfig.name} regular rounds to face ${star.name}.`);
+      app.toast(`Reach the final of the ${club.tournamentConfig.name} to face ${star.name}.`);
     }
     if (choice === 'play') {
       playMatch({ kind: 'star', colour: round.colour,
@@ -722,7 +807,7 @@ export async function sceneScreen(app, params) {
       h('div.pp-tiles', null, CLUBS.map((c) => h('div.pp-tile', { class: career.trophies[c.clubId] ? 'pp-tile--epic' : '' },
         h('b.pp-trophy', { class: career.trophies[c.clubId] ? '' : 'is-empty', text: '🏆' }),
         h('span', { text: c.trophyName }), h('div.pp-small.pp-muted', { text: c.city })))),
-      h('p', { text: career.trophies[clubId] ? `Your name is engraved on the ${club.trophyName}.` : `The ${club.trophyName} is still waiting for a name.` }),
+      h('p', { text: career.trophies[clubId] ? `Your name is engraved on ${club.trophyName}.` : `${club.trophyName} is still waiting for a name.` }),
       button('Close', () => close(), { cls: 'pp-btn--small' })));
   }
 
