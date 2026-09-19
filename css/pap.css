@@ -555,3 +555,7 @@ img, canvas { image-rendering: pixelated; }
 /* Short landscape phones: the dock must stay clear of the joystick, and the
    name tags on the scene are tappable anyway. */
 @media (max-height: 500px) { .pp-scene__people { display: none; } }
+
+/* Focus hint rolls, one line per candidate (match screen hint card). */
+.pp-hintroll { line-height: 1.3; }
+.pp-hintroll.is-fail { opacity: 0.6; }

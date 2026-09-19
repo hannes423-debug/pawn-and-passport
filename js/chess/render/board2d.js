@@ -305,7 +305,9 @@ export class ChessBoard2DRenderer extends ChessBoardRenderer {
   /** Kinds that get a marker element, so css/board.css can put an icon on it. */
   static MARKER_HIGHLIGHTS = new Set([
     HIGHLIGHT.LEGAL, HIGHLIGHT.LEGAL_CAPTURE,
-    HIGHLIGHT.HINT, HIGHLIGHT.THREAT, HIGHLIGHT.BEST, HIGHLIGHT.BOOK, HIGHLIGHT.DEFENCE
+    HIGHLIGHT.HINT, HIGHLIGHT.THREAT, HIGHLIGHT.BEST, HIGHLIGHT.BOOK, HIGHLIGHT.DEFENCE,
+    /* Pawn & Passport: the three Focus plan qualities. */
+    'hint-green', 'hint-purple', 'hint-gold'
   ]);
 
   highlightSquare(square, kind = HIGHLIGHT.SELECTED) {

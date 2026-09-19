@@ -30,6 +30,9 @@ export const GRADE_META = Object.freeze({
   EXCELLENT:  { label: 'Excellent',  glyph: '!',   tier: 'best' },
   GOOD:       { label: 'Good',       glyph: '✓',   tier: 'good' },
   BOOK:       { label: 'Book',       glyph: '📖',  tier: 'playable' },
+  /* A move the player was SHOWN (a Focus hint) is not graded as their own
+     find: it reads FOCUS, earns no Focus back and no grade bonus. */
+  FOCUS:      { label: 'Focus',      glyph: '◎',   tier: 'playable' },
   FORCED:     { label: 'Forced',     glyph: '⇥',   tier: 'neutral' },
   INACCURACY: { label: 'Inaccuracy', glyph: '?!',  tier: 'mistake' },
   MISS:       { label: 'Missed win', glyph: '×',   tier: 'mistake' },
@@ -37,7 +40,7 @@ export const GRADE_META = Object.freeze({
   BLUNDER:    { label: 'Blunder',    glyph: '??',  tier: 'blunder' }
 });
 
-export const GRADE_ORDER = ['EPIC', 'BRILLIANT', 'CLUTCH', 'BEST', 'EXCELLENT', 'GOOD', 'BOOK', 'INACCURACY', 'MISS', 'MISTAKE', 'BLUNDER'];
+export const GRADE_ORDER = ['EPIC', 'BRILLIANT', 'CLUTCH', 'BEST', 'EXCELLENT', 'GOOD', 'BOOK', 'FOCUS', 'INACCURACY', 'MISS', 'MISTAKE', 'BLUNDER'];
 
 /**
  * Is this annotated move CLUTCH?

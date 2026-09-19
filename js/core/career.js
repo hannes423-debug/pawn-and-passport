@@ -14,6 +14,7 @@
 import { LEVELS, XP, ELO, FOCUS, HINTS, MASTERY, REPERTOIRE, TOURNAMENT, GAME, UNDO, MEMBERS, COINS } from '../data/config.js';
 import { membersForClub, VISITORS } from '../data/members.js';
 import * as Event from './tournament.js';
+import { hintBand } from './focusHints.js';
 import { CLUBS, FINALE, clubById } from '../data/clubs.js';
 import { OPENINGS } from '../data/openings.js';
 import { STAR_PLAYERS, starForClub, starById } from '../data/starPlayers.js';
@@ -95,11 +96,8 @@ export function undoUses(level) {
   return uses;
 }
 
-export function hintPlies(level) {
-  let band = HINTS.pliesByLevel[0];
-  for (const entry of HINTS.pliesByLevel) if (level >= entry.from) band = entry;
-  return band;
-}
+/** The level's Focus hint: how many rolls, and their odds (focusHints.js). */
+export const hintPlies = (level) => hintBand(level);
 
 /* ---------------------------------------------------------- the opening -- */
 

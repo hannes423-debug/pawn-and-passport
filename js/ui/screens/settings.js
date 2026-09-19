@@ -35,7 +35,7 @@ export function settingsScreen(app, params) {
   const right = h('div.pp-book__page.pp-book__page--right', null,
     h('h2.pp-h2', { text: 'Assistance' }),
     row('Live move grades', toggle('moveGrades'), 'Colour verdicts and Brilliant / Epic / Clutch effects on your moves.'),
-    row('Opening guide arrows', toggle('guideArrows'), 'Gold arrows from your equipped openings. They never cost Focus.'),
+    row('Opening guide arrows', toggle('guideArrows'), 'Blue arrows from your equipped openings. They never cost Focus.'),
     h('h2.pp-h2', { text: 'Accessibility' }),
     row('Reduce motion', toggle('reducedMotion'), 'No particles, flashes or shakes.'),
     row('Dialogue speed', select('textSpeed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']])),

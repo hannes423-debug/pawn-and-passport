@@ -167,25 +167,28 @@
    base opacity lives in --hl so the keyframes are written once for them all. */
 .cwt-sq.is-hint    { color: #60a1af; --hl: 0.44; --edge: var(--pk-blue);   --glow: rgba(19, 207, 252, 0.5); }
 .cwt-sq.is-best    { color: #6eba42; --hl: 0.42; --edge: var(--pk-green);  --glow: rgba(83, 199, 61, 0.5); }
-.cwt-sq.is-book    { color: #dfad4e; --hl: 0.40; --edge: var(--pk-gold);   --glow: rgba(253, 186, 1, 0.45); }
+.cwt-sq.is-book    { color: #60a1af; --hl: 0.36; --edge: var(--pk-blue);   --glow: rgba(19, 207, 252, 0.4); }
+.cwt-sq.is-hint-green  { color: #6eba42; --hl: 0.48; --edge: var(--pk-green);  --glow: rgba(83, 199, 61, 0.55); }
+.cwt-sq.is-hint-purple { color: #a24fd8; --hl: 0.50; --edge: var(--pk-purple); --glow: rgba(183, 64, 252, 0.6); }
+.cwt-sq.is-hint-gold   { color: #e6b43a; --hl: 0.52; --edge: var(--pk-gold);   --glow: rgba(253, 186, 1, 0.65); }
 /* What THEY are doing, and what they would answer with: dashed, unfilled, the
    pack's own way of saying "this has not happened yet". */
 .cwt-sq.is-threat  { color: #c44238; --hl: 0.30; --edge: var(--pk-red);    --glow: rgba(252, 48, 45, 0.45); --edge-style: dashed; }
 .cwt-sq.is-defence { color: #8f8c89; --hl: 0.20; --edge: var(--pk-white);  --glow: rgba(215, 211, 207, 0.35); --edge-style: dashed; }
 
-.cwt-sq.is-hint::after,
+.cwt-sq.is-hint::after, .cwt-sq.is-hint-green::after, .cwt-sq.is-hint-purple::after, .cwt-sq.is-hint-gold::after,
 .cwt-sq.is-threat::after,
 .cwt-sq.is-best::after,
 .cwt-sq.is-book::after,
 .cwt-sq.is-defence::after { opacity: var(--hl); }
-.cwt-sq.is-hint::before,
+.cwt-sq.is-hint::before, .cwt-sq.is-hint-green::before, .cwt-sq.is-hint-purple::before, .cwt-sq.is-hint-gold::before,
 .cwt-sq.is-threat::before,
 .cwt-sq.is-best::before,
 .cwt-sq.is-book::before,
 .cwt-sq.is-defence::before { opacity: 1; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .cwt-sq.is-hint::after,
+  .cwt-sq.is-hint::after, .cwt-sq.is-hint-green::after, .cwt-sq.is-hint-purple::after, .cwt-sq.is-hint-gold::after,
   .cwt-sq.is-threat::after,
   .cwt-sq.is-best::after,
   .cwt-sq.is-book::after { animation: cwt-hl-pulse 1500ms ease-in-out infinite; }
@@ -255,9 +258,15 @@
 .cwt-arrow--candidate .cwt-arrow__line { stroke-dasharray: 8 8; }
 /* Preparation is the player's own line, not advice: gold, like the pack's
    sparkle, and quieter than a hint. */
-.cwt-arrow--book    { color: #fdba01; --arrow-glow: rgba(253, 186, 1, 0.6); opacity: 0.88; }
-/* An alternative you also prepared: the pack's purple, quieter again. */
-.cwt-arrow--book-alt { color: #b740fc; --arrow-glow: rgba(183, 64, 252, 0.45); opacity: 0.62; }
+/* Pawn & Passport, 2026-09-19: the guide is the pack's BLUE (main line) and
+   grey (other prepared branches). Green, purple and gold are reserved for the
+   Focus hint's plan qualities, so a colour always means one thing. */
+.cwt-arrow--book    { color: #13cffc; --arrow-glow: rgba(19, 207, 252, 0.6); opacity: 0.88; }
+.cwt-arrow--book-alt { color: #d7d3cf; --arrow-glow: rgba(215, 211, 207, 0.45); opacity: 0.62; }
+/* Focus plans, straight off the pack: green 1 move, purple 2, gold 3. */
+.cwt-arrow--hint-green  { color: #53c73d; --arrow-glow: rgba(83, 199, 61, 0.8); }
+.cwt-arrow--hint-purple { color: #b740fc; --arrow-glow: rgba(183, 64, 252, 0.85); }
+.cwt-arrow--hint-gold   { color: #fdba01; --arrow-glow: rgba(253, 186, 1, 0.9); }
 
 /* The move that was just played: the pack's gold, flat and quiet, so it is
    never mistaken for advice. It sits under every assistance arrow (its own
@@ -489,6 +498,7 @@
    hue rotation is enough to match a family whose colour differs from the
    icon's own (the reticle is drawn green, and a hint is blue). */
 .cwt-marker--hint::before,
+.cwt-marker--hint-green::before, .cwt-marker--hint-purple::before, .cwt-marker--hint-gold::before,
 .cwt-marker--best::before,
 .cwt-marker--threat::before,
 .cwt-marker--book::before,
@@ -505,13 +515,18 @@
 .cwt-marker--hint::before    { background-image: url('../assets/ui/reticle.png'); filter: hue-rotate(78deg) saturate(1.25) drop-shadow(0 0 3px rgba(19, 207, 252, 0.9)); }
 .cwt-marker--threat::before  { background-image: url('../assets/ui/swords.png'); filter: drop-shadow(0 0 3px rgba(252, 48, 45, 0.85)); }
 .cwt-marker--defence::before { background-image: url('../assets/ui/shield.png'); width: 40%; height: 40%; filter: drop-shadow(0 0 3px rgba(19, 207, 252, 0.7)); opacity: 0.9; }
-.cwt-marker--book::before    { background-image: url('../assets/ui/sparkle.png'); filter: drop-shadow(0 0 3px rgba(253, 186, 1, 0.9)); }
+.cwt-marker--book::before    { background-image: url('../assets/ui/sparkle.png'); filter: hue-rotate(150deg) saturate(1.3) drop-shadow(0 0 3px rgba(19, 207, 252, 0.9)); }
+/* The reticle is drawn green: purple and gold are hue turns of it. */
+.cwt-marker--hint-green::before  { background-image: url('../assets/ui/reticle.png'); filter: drop-shadow(0 0 3px rgba(83, 199, 61, 0.95)); }
+.cwt-marker--hint-purple::before { background-image: url('../assets/ui/reticle.png'); filter: hue-rotate(160deg) saturate(1.4) drop-shadow(0 0 3px rgba(183, 64, 252, 0.95)); }
+.cwt-marker--hint-gold::before   { background-image: url('../assets/ui/reticle.png'); filter: hue-rotate(-65deg) saturate(1.6) brightness(1.15) drop-shadow(0 0 3px rgba(253, 186, 1, 0.95)); }
 /* The marker sits UNDER the piece, so on an occupied square it reads as a
    badge in the corner rather than a sticker over the piece's face. */
 .cwt-marker--threat::before, .cwt-marker--defence::before { align-self: end; justify-self: end; margin: 0 4% 4% 0; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .cwt-marker--hint::before, .cwt-marker--best::before { animation: cwt-marker-pop 1500ms ease-in-out infinite; }
+  .cwt-marker--hint::before, .cwt-marker--best::before,
+  .cwt-marker--hint-green::before, .cwt-marker--hint-purple::before, .cwt-marker--hint-gold::before { animation: cwt-marker-pop 1500ms ease-in-out infinite; }
 }
 @keyframes cwt-marker-pop {
   0%, 100% { transform: scale(0.92); }

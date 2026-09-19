@@ -88,24 +88,64 @@ export const FOCUS = Object.freeze({
 export const HINTS = Object.freeze({
   baseCost: 10,
   minCost: 2,
-  /* Plies drawn by level band. 1 = the move; 2 = move + expected reply;
-     3 = move, reply, your next move; 5 = three of your own moves. */
-  pliesByLevel: [
-    { from: 1, plies: 1, label: 'Best move' },
-    { from: 5, plies: 2, label: 'Move + reply' },
-    { from: 10, plies: 3, label: 'Two-move plan' },
-    { from: 15, plies: 5, label: 'Three-move plan' }
+  /* A hint is a handful of ROLLS, one per candidate move. The engine ranks
+     the playable moves (MultiPV); roll 1 is for the best one, roll 2 for the
+     runner-up, roll 3 for the third. Each roll succeeds or fails on its own:
+     a failed roll shows nothing for that move, a successful one shows it in
+     the quality it rolled, and the quality is how far the idea reaches:
+       green   the move                                  (1 of your moves)
+       purple  the move, then the next one               (2)
+       gold    the move and two more                     (3)
+     Later moves are not shown in advance: after the opponent replies, the
+     engine draws the next move of the plan you followed, like the opening guide. */
+  rollsByLevel: [
+    { from: 1, rolls: 1, label: '1 roll' },
+    { from: 5, rolls: 2, label: '2 rolls' },
+    { from: 10, rolls: 3, label: '3 rolls' }
   ],
-  depthMultiplier: { 1: 1.0, 2: 1.2, 3: 1.4, 5: 1.7 },
+  /* Chances per roll, by level. Each row sums to 1. */
+  oddsByLevel: [
+    { from: 1, fail: 0.30, green: 0.55, purple: 0.12, gold: 0.03 },
+    { from: 5, fail: 0.25, green: 0.50, purple: 0.18, gold: 0.07 },
+    { from: 10, fail: 0.20, green: 0.42, purple: 0.26, gold: 0.12 },
+    { from: 15, fail: 0.10, green: 0.35, purple: 0.35, gold: 0.20 }
+  ],
+  movesByQuality: { green: 1, purple: 2, gold: 3 },
+  /* A candidate only gets a roll if it is playable: at most this many
+     win-probability points (0..100) worse than the engine's best. With one
+     playable move there is one roll, whatever the level. */
+  playableLoss: 8,
+  candidates: 3,
+  rollsMultiplier: { 1: 1.0, 2: 1.3, 3: 1.6 },
+  /* Focus given back, as a share of what the hint cost. Paid on your NEXT
+     move only (a plan's later, free moves pay nothing):
+       lesser   playing the 2nd or 3rd suggestion instead of the best
+       ignored  playing none of the suggestions: you trusted yourself
+       blank    every roll failed and nothing was shown */
+  refund: { lesser: [0, 0.3, 0.5], ignored: 0.75, blank: 0.75 },
   /* Inside a known opening line: 1 - familiarityDiscount * mastery (0..1). */
   familiarityDiscount: 0.6,
   specialtyMultiplier: 0.9,          // extra for your starting club's opening
   phaseMultiplier: { opening: 1.0, middlegame: 1.2, endgame: 1.4 },
   complexityThreshold: 0.55,
   complexityMultiplier: 1.15,
-  /* Hints use the same strong engine as grading. Level changes how much of
-     the line is SHOWN, never how good the suggestion is. */
+  /* Hints use the same strong engine as grading. Level changes how many rolls
+     and how good they are, never the engine's strength. */
   search: { depth: 14, movetime: 1500, nodes: 1500000 }
+});
+
+/* ================================================================ guide === */
+/* The opening guide is the player's own preparation, drawn from the book.
+   A MASTERED opening (100%) is known well enough that an opponent leaving the
+   book does not leave the player lost: until the game passes the opening's
+   longest prepared line, the guide keeps going with the engine's move. */
+export const GUIDE = Object.freeze({
+  masteredFillIn: true,
+  masteredAt: 100,
+  /* Only once the game has really been in the opening: the guide was showing
+     it at this ply or later (1.e4 c5 against an Italian player is simply a
+     different opening, not a deviation from the Italian). */
+  minBookPlies: 2
 });
 
 /* ================================================================= undo === */
@@ -277,4 +317,4 @@ export const BOOK = Object.freeze({
   starPreference: 1.0
 });
 
-export default { GAME, LEVELS, XP, ELO, FOCUS, HINTS, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, MEMBERS, SIM, COINS, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK, PRACTICE };
+export default { GAME, LEVELS, XP, ELO, FOCUS, HINTS, GUIDE, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, MEMBERS, SIM, COINS, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK, PRACTICE };

@@ -30,6 +30,10 @@ import {
   repertoireSlots, settleChallenge
 } from '../../core/career.js';
 import { roundReport, roundLabel } from '../tournamentView.js';
+import { QUALITY_META } from '../../core/focusHints.js';
+
+/* Arrow and square kinds for the three plan qualities (css/board.css). */
+const PLAN_KINDS = ['hint-green', 'hint-purple', 'hint-gold'];
 import { starLines } from '../../core/dialogue.js';
 
 const KIND_LABEL = { friendly: 'Friendly game', challenge: 'Challenge match', tournament: 'Tournament round', star: 'Tournament final', finale: 'Grand Finale' };
@@ -117,7 +121,7 @@ export function matchScreen(app, params) {
       // The two Focus abilities side by side, at every viewport.
       h('div.pp-abilities', null, hintBtn, undoBtn),
       hintInfo,
-      h('div.pp-small.pp-muted.pp-match__note', { text: `Level ${career.level} hint: ${band.label.toLowerCase()} (${band.plies} ${band.plies === 1 ? 'move' : 'moves'} shown).` })));
+      h('div.pp-small.pp-muted.pp-match__note', { text: `Level ${career.level} hint: ${band.label}, one per candidate move. Each roll can fail, or come up green (1 move), purple (2) or gold (3).` })));
 
   /* The engine's state, always visible: a phone that cannot run Stockfish used
      to lose grades and hints without a word. */
@@ -143,7 +147,7 @@ export function matchScreen(app, params) {
     h('div.pp-panel.pp-col.pp-match__moves', null, h('h3.pp-h3', { text: 'Moves' }), moveList, lastGrade, engineLine),
     h('div.pp-panel.pp-col.pp-match__tools', null,
       h('div.pp-row.pp-match__toggles', null, guideBtn, notesBtn),
-      h('div.pp-small.pp-muted', { text: `Gold arrows come from your equipped openings, as deep as you know them. Free, no Focus. ${tapWord() === 'tap' ? 'Tap' : 'Hover'} a suggested square for details.` }),
+      h('div.pp-small.pp-muted', { text: `Blue arrows come from your equipped openings, as deep as you know them (a mastered opening keeps guiding after the book ends). Free, no Focus. ${tapWord() === 'tap' ? 'Tap' : 'Hover'} a suggested square for details.` }),
       h('div.pp-small', null, h('b', { text: `Repertoire ${(career.equipped || []).length}/${repertoireSlots(career.level)}: ` }),
         (career.equipped || []).map((id) => `${openingById(id).name} ${career.openings[id] ?? 0}%`).join(', ') || 'none (equip openings in the Journal)'),
       h('div.pp-row', null,
@@ -186,7 +190,7 @@ export function matchScreen(app, params) {
     if (b.specialty < 1) why.push(`home opening x${b.specialty}`);
     why.push(`${q.phase} x${b.phase}`);
     if (b.complexity > 1) why.push(`sharp x${b.complexity}`);
-    if (b.depth > 1) why.push(`depth x${b.depth}`);
+    if (b.rolls > 1) why.push(`${q.rolls} rolls x${b.rolls}`);
     hintInfo.textContent = affordable || !match.isPlayersTurn ? `Cost: ${why.join(' · ')}` : 'Not enough Focus. Strong moves earn some back.';
   }
 
@@ -214,12 +218,30 @@ export function matchScreen(app, params) {
     suggestions = suggestions.filter((sug) => sug.kind !== 'guide');
     if (!guideOn || !match.isPlayersTurn) return;
     const fen = match.fen;
-    for (const g of match.guide()) {
-      renderer.drawArrow({ from: g.from, to: g.to }, g.main ? ARROW.BOOK : ARROW.BOOK_ALT);
-      /* The square it points at carries the sparkle: preparation, not advice. */
-      if (g.main) renderer.highlightSquare(g.to, HIGHLIGHT.BOOK);
-      suggestions.push({ kind: 'guide', fen, uci: g.uci, san: g.san, from: g.from, to: g.to, openingId: g.openingId });
+    const draw = (list) => {
+      for (const g of list) {
+        renderer.drawArrow({ from: g.from, to: g.to }, g.main ? ARROW.BOOK : ARROW.BOOK_ALT);
+        /* The square it points at carries the sparkle: preparation, not advice. */
+        if (g.main) renderer.highlightSquare(g.to, HIGHLIGHT.BOOK);
+        suggestions.push({ kind: 'guide', fen, uci: g.uci, san: g.san, from: g.from, to: g.to, openingId: g.openingId, mastered: !!g.mastered });
+      }
+    };
+    const book = match.guide();
+    draw(book);
+    /* A mastered opening keeps guiding when the opponent leaves the book. */
+    if (!book.length) {
+      const token = ++guideToken;
+      match.masteredGuide().then((list) => {
+        if (token !== guideToken || match.fen !== fen || !guideOn || !match.isPlayersTurn) return;
+        draw(list);
+      });
     }
+  }
+  let guideToken = 0;
+
+  function clearPlans() {
+    for (const kind of PLAN_KINDS) { renderer.clearArrows(kind); renderer.clearHighlights(kind); }
+    suggestions = suggestions.filter((sug) => sug.kind !== 'hint');
   }
 
   /**
@@ -233,8 +255,9 @@ export function matchScreen(app, params) {
     const hint = group.find((g) => g.kind === 'hint');
     const guide = group.find((g) => g.kind === 'guide');
     const titles = [];
-    if (hint) titles.push(hint.reply ? `💡 Hint ${hint.step}: expected reply ${hint.san}` : `💡 Hint ${hint.step}: ${hint.san}`);
+    if (hint) titles.push(`💡 ${QUALITY_META[hint.quality].label} plan, move ${hint.step} of ${hint.total}: ${hint.san}`);
     if (guide) titles.push(hint ? '📖 also your opening guide' : `📖 Opening guide: ${guide.san}`);
+    if (guide?.mastered && !hint) titles.push('The game has left your prepared lines, but you have mastered this opening: this is how you would carry on.');
     const equipped = (e) => (career.equipped || []).includes(e.openingId);
     let primary = info.entries.filter(equipped);
     if (!primary.length) primary = info.entries.filter((e) => (career.openings[e.openingId] ?? 0) > 0);
@@ -315,9 +338,7 @@ export function matchScreen(app, params) {
     switch (type) {
       case 'move': {
         const record = payload;
-        renderer.clearArrows(ARROW.HINT); renderer.clearArrows('hint-reply');
-        renderer.clearHighlights(HIGHLIGHT.HINT); renderer.clearHighlights(HIGHLIGHT.DEFENCE);
-        suggestions = suggestions.filter((sug) => sug.kind !== 'hint');
+        clearPlans();
         tip.hidden = true;
         if (record.color === colour) { renderer.clearVerdicts(); hintCard.hidden = true; }
         paintPosition(record);
@@ -333,17 +354,16 @@ export function matchScreen(app, params) {
           board.fx.grade(payload);
         }
         const meta = GRADE_META[grade];
-        lastGrade.replaceChildren(`Move ${Math.ceil(record.ply / 2)}. ${record.san}: `, h(`b.pp-grade.pp-grade--${meta.tier}`, { text: `${meta.glyph} ${meta.label}` }),
-          payload.focusGain ? ` · +${payload.focusGain} Focus` : '', payload.followedHint ? ' (hinted)' : '');
+        lastGrade.replaceChildren(`Move ${Math.ceil(record.ply / 2)}. ${record.san}: `,
+          h(`b.pp-grade.pp-grade--${meta.tier}`, { text: `${meta.glyph} ${meta.label}`, style: payload.quality ? { color: QUALITY_META[payload.quality].colour } : null }),
+          payload.focusGain ? ` · +${payload.focusGain} Focus` : '', payload.followedHint ? ' (from your Focus hint: no Focus back)' : '');
         paintMoves(); paintFocus();
         break;
       }
       case 'undo': {
         // The game emits one 'undo' per half-move; the match emits one with `state` when done.
         if (!payload?.state) break;
-        renderer.clearArrows(ARROW.HINT); renderer.clearArrows('hint-reply');
-        renderer.clearHighlights(HIGHLIGHT.HINT); renderer.clearHighlights(HIGHLIGHT.DEFENCE);
-        suggestions = suggestions.filter((sug) => sug.kind !== 'hint');
+        clearPlans();
         tip.hidden = true; hintCard.hidden = true;
         renderer.clearVerdicts();
         paintPosition(match.game.lastMove);
@@ -365,23 +385,45 @@ export function matchScreen(app, params) {
         if (!payload) paintGuide();
         break;
       case 'hint': {
-        const { pv, san, quote } = payload;
-        sfx.hint();
-        suggestions = suggestions.filter((sug) => sug.kind !== 'hint');
-        let stepFen = match.fen;
-        pv.forEach((uci, i) => {
-          const mine = i % 2 === 0;
-          renderer.drawArrow({ from: uci.slice(0, 2), to: uci.slice(2, 4) }, mine ? ARROW.HINT : 'hint-reply', null, pv.length > 1 ? i + 1 : null);
-          /* A reticle on your own move's square, a shield on the reply's. */
-          renderer.highlightSquare(uci.slice(2, 4), mine ? HIGHLIGHT.HINT : HIGHLIGHT.DEFENCE);
-          suggestions.push({ kind: 'hint', step: i + 1, reply: !mine, fen: stepFen, uci, san: san[i], from: uci.slice(0, 2), to: uci.slice(2, 4) });
-          stepFen = applyUci(stepFen, uci)?.fen || stepFen;
-        });
+        const { plans, rolls, continuation, quote, refund } = payload;
+        if (!continuation) sfx.hint();
+        clearPlans();
+        for (const plan of plans) {
+          const kind = `hint-${plan.quality}`;
+          const step = plan.step + 1;
+          renderer.drawArrow({ from: plan.uci.slice(0, 2), to: plan.uci.slice(2, 4) }, kind, null, plan.total > 1 ? step : null);
+          renderer.highlightSquare(plan.uci.slice(2, 4), kind);
+          suggestions.push({ kind: 'hint', quality: plan.quality, step, total: plan.total, fen: plan.fen, uci: plan.uci, san: plan.san,
+            from: plan.uci.slice(0, 2), to: plan.uci.slice(2, 4) });
+        }
         hintCard.hidden = false;
-        hintCard.textContent = pv.length === 1
-          ? `Try ${san[0]}.`
-          : `Plan: ${san.map((s, i) => `${i + 1}. ${s}${i % 2 ? ' (reply)' : ''}`).join('  ')}`;
-        app.toast(`-${quote.cost} Focus`, { ms: 1400 });
+        if (continuation) {
+          const plan = plans[0];
+          hintCard.replaceChildren(h('b', { text: `${QUALITY_META[plan.quality].label} plan, move ${plan.step + 1} of ${plan.total}: ` }), plan.san);
+          break;
+        }
+        const ordinal = ['Best', 'Second', 'Third'];
+        hintCard.replaceChildren(...rolls.map((r) => {
+          if (r.quality === 'fail') return h('div.pp-hintroll.is-fail', { text: `✖ ${ordinal[r.rank]} idea: it slipped away.` });
+          const q = QUALITY_META[r.quality];
+          const moves = { green: 'just this move', purple: 'a two-move plan', gold: 'a three-move plan' }[r.quality];
+          return h('div.pp-hintroll', null, h('b', { text: `✦ ${q.label}`, style: { color: q.colour } }), ` ${ordinal[r.rank]} idea: ${r.san} (${moves})`);
+        }));
+        app.toast(refund ? `-${quote.cost} Focus. Nothing came to mind: +${refund} back.` : `-${quote.cost} Focus`, { ms: refund ? 2600 : 1400 });
+        paintFocus();
+        break;
+      }
+      case 'hint-follow': {
+        const { plan, refund, done } = payload;
+        if (refund) app.toast(`+${refund} Focus back: you chose a lesser idea.`, { ms: 2200 });
+        hintCard.hidden = done;
+        if (!done) hintCard.replaceChildren(h('b', { text: `${QUALITY_META[plan.quality].label} plan: ` }), `move ${plan.step + 1} of ${plan.total} appears after the reply.`);
+        paintFocus();
+        break;
+      }
+      case 'hint-ignored': {
+        hintCard.hidden = true;
+        if (payload.refund) app.toast(`+${payload.refund} Focus back: you trusted your own move.`, { ms: 2200 });
         paintFocus();
         break;
       }
@@ -434,7 +476,7 @@ export function matchScreen(app, params) {
     const summary = await match.summary();
     const levelBefore = career.level;
     const focusBefore = maxFocus(levelBefore);
-    const pliesBefore = hintPlies(levelBefore).plies;
+    const pliesBefore = hintPlies(levelBefore).rolls;
     const rewards = applyGameResult(career, summary);
     let progress = null;
     let coinDelta = 0;
@@ -530,7 +572,7 @@ export function matchScreen(app, params) {
             progress?.won && progress.xp ? h('li', null, h('span', { text: '🥇 Grand Finale' }), h('b', { text: `+${progress.xp.xp} XP` })) : null,
             career.level > levelBefore ? h('li', null, h('span', { text: '⬆ LEVEL UP' }), h('b', { text: `Level ${career.level}` })) : null,
             maxFocus(career.level) > focusBefore ? h('li', null, h('span', { text: 'Max Focus' }), h('b', { text: `${focusBefore} → ${maxFocus(career.level)}` })) : null,
-            hintPlies(career.level).plies > pliesBefore ? h('li', null, h('span', { text: 'Hint upgraded' }), h('b', { text: hintPlies(career.level).label })) : null,
+            hintPlies(career.level).rolls > pliesBefore ? h('li', null, h('span', { text: 'Hint upgraded' }), h('b', { text: hintPlies(career.level).label })) : null,
             masteryLines))),
       h('div.pp-row', { style: { justifyContent: 'center', marginTop: '12px' } },
         button('Continue', () => close(), { cls: 'pp-btn--gold', icon: '▶' }))), { dismissable: false });

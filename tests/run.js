@@ -47,8 +47,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let passed = 0;
 const failures = [];
 
+const running = [];
 function test(name, fn) {
-  try { fn(); passed += 1; } catch (error) { failures.push(`${name}: ${error.message}`); }
+  try {
+    const out = fn();
+    // An async test is awaited before the report.
+    if (out && typeof out.then === 'function') running.push(out.then(() => { passed += 1; }, (error) => failures.push(`${name}: ${error.message}`)));
+    else passed += 1;
+  } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 function assert(cond, message = 'assertion failed') { if (!cond) throw new Error(message); }
 const eq = (a, b, m) => assert(a === b, `${m || ''} expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
@@ -185,9 +191,11 @@ test('level curve: 15 levels, strictly increasing', () => {
   eq(Career.levelForXp(0), 1); eq(Career.levelForXp(99), 1); eq(Career.levelForXp(100), 2); eq(Career.levelForXp(999999), 15);
 });
 
-test('focus grows with level, hint depth reaches 5 plies at the cap', () => {
+test('focus grows with level, and a max-level hint gets three rolls', () => {
   assert(Career.maxFocus(15) > Career.maxFocus(1));
-  eq(Career.hintPlies(1).plies, 1); eq(Career.hintPlies(5).plies, 2); eq(Career.hintPlies(10).plies, 3); eq(Career.hintPlies(15).plies, 5);
+  eq(Career.hintPlies(1).rolls, 1); eq(Career.hintPlies(5).rolls, 2); eq(Career.hintPlies(10).rolls, 3); eq(Career.hintPlies(15).rolls, 3);
+  assert(Career.hintPlies(15).odds.gold > Career.hintPlies(1).odds.gold, 'better odds at the cap');
+  assert(Career.hintPlies(15).odds.fail < Career.hintPlies(1).odds.fail, 'fewer failed rolls at the cap');
 });
 
 test('new career: starting club opening at 40%, others at 0', () => {
@@ -265,7 +273,7 @@ test('repertoire: slots grow with level, only known openings, migration', () => 
   eq(old.equipped.join(), 'sicilian,french');
 });
 
-test('hint cost: known opening < unknown opening < endgame, depth costs more', () => {
+test('hint cost: known opening < unknown opening < endgame, more rolls cost more', () => {
   const afterE4 = applyUci(START_FEN, 'e2e4').fen;
   const known = hintQuote({ level: 1, fen: afterE4, mastery: { sicilian: 100 }, book: fullBook });
   const unknown = hintQuote({ level: 1, fen: afterE4, mastery: {}, book: fullBook });
@@ -273,7 +281,7 @@ test('hint cost: known opening < unknown opening < endgame, depth costs more', (
   assert(known.cost < unknown.cost, `${known.cost} < ${unknown.cost}`);
   assert(unknown.cost < endgame.cost, `${unknown.cost} < ${endgame.cost}`);
   const deep = hintQuote({ level: 15, fen: afterE4, mastery: {}, book: fullBook });
-  assert(deep.cost > unknown.cost); eq(deep.plies, 5);
+  assert(deep.cost > unknown.cost); eq(deep.rolls, 3);
   assert(known.cost >= HINTS.minCost);
 });
 
@@ -375,6 +383,125 @@ test('a full campaign: six trophies, finale, six postcards, secret', () => {
   eq(Career.postcardCount(c), 6);
   assert(!Career.recordPuzzleSolved(c, PUZZLES[0].id).firstSolve, 'no double XP');
   assert(c.level >= 10, `trophies + finale + puzzles alone reach level ${c.level}`);
+});
+
+/* ---------------------------------------------------- Focus hint rolls */
+
+import * as FocusHints from '../js/core/focusHints.js';
+import { GRADE_META as GM } from '../js/core/grading.js';
+
+/** Stockfish stand-in: every legal move, best first, 15 cp apart; `bad` moves score -900. */
+function fakeEngine({ bad = [] } = {}) {
+  const lines = (fen, n = 3) => {
+    const r = createRules(fen);
+    const moves = r.moves({ verbose: true }).map((m) => m.from + m.to + (m.promotion || ''));
+    moves.sort();
+    return moves.map((uci, i) => ({ pv: [uci], score: { cp: bad.includes(uci) ? -900 : 60 - 15 * i }, depth: 18 })).slice(0, Math.max(n, 5));
+  };
+  return {
+    available: true, status: 'ready', statusText: 'fake',
+    ready: async () => true, newGame: async () => {}, onStatus: () => () => {},
+    analyze: async (fen, o = {}) => ({ lines: lines(fen, o.multiPv || 1), depth: 18 }),
+    review: async (fen, o = {}) => ({ lines: lines(fen, o.multiPv || 3), depth: 18 })
+  };
+}
+
+test('hint rolls: one per playable candidate, quality sets the plan length', () => {
+  const lines = [{ pv: ['e2e4'], score: { cp: 40 } }, { pv: ['d2d4'], score: { cp: 35 } }, { pv: ['g1f3'], score: { cp: 30 } }];
+  const always = (q) => () => ({ fail: 0.05, green: 0.2, purple: 0.6, gold: 0.99 }[q]);
+  eq(FocusHints.rollHint(lines, 15, always('gold')).plans.length, 3, 'three rolls at the cap');
+  eq(FocusHints.rollHint(lines, 1, always('gold')).plans.length, 1, 'one roll at level 1');
+  eq(FocusHints.rollHint(lines, 15, always('gold')).plans[0].total, 3, 'gold reaches three moves');
+  eq(FocusHints.rollHint(lines, 15, always('purple')).plans[0].total, 2, 'purple two');
+  eq(FocusHints.rollHint(lines, 15, always('green')).plans[0].total, 1, 'green one');
+  eq(FocusHints.rollHint(lines, 15, always('fail')).plans.length, 0, 'a failed roll shows nothing');
+  // One failed roll cancels only its own candidate.
+  let i = 0; const mixed = () => [0.99, 0.01, 0.99][i++ % 3];
+  const r = FocusHints.rollHint(lines, 15, mixed);
+  eq(r.rolls.map((x) => x.quality).join(), 'gold,fail,gold'); eq(r.plans.map((p) => p.rank).join(), '0,2');
+  // Only playable candidates roll: a move far worse than the best gets none.
+  const onlyOne = [{ pv: ['e2e4'], score: { cp: 300 } }, { pv: ['a2a3'], score: { cp: -400 } }];
+  eq(FocusHints.rollHint(onlyOne, 15, always('gold')).rolls.length, 1, 'one playable move, one roll');
+  // Odds: at the cap roughly 10% fail, 20% gold.
+  let sd = 3; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; }; const n = 20000; const count = { fail: 0, green: 0, purple: 0, gold: 0 };
+  for (let k = 0; k < n; k += 1) count[FocusHints.rollQuality(15, rnd)] += 1;
+  assert(Math.abs(count.fail / n - 0.10) < 0.02 && Math.abs(count.gold / n - 0.20) < 0.02, JSON.stringify(count));
+  eq(FocusHints.refundFor({ cost: 20, rank: 0 }), 0, 'the best suggestion pays nothing back');
+  assert(FocusHints.refundFor({ cost: 20, rank: 2 }) > FocusHints.refundFor({ cost: 20, rank: 1 }), 'a lesser idea pays more back');
+  assert(FocusHints.refundFor({ cost: 20, rank: null }) > FocusHints.refundFor({ cost: 20, rank: 2 }), 'ignoring the hint pays the most');
+});
+
+async function hintMatch({ level = 15, random, bad = [] } = {}) {
+  const career = Career.newCareer({ name: 'H', avatar: 'boy', startClubId: 'nyc' });
+  career.level = level;
+  const match = new PapMatch({ career, kind: 'friendly', playerColour: 'w', service: fakeEngine({ bad }),
+    opponent: { id: 'x', name: 'X', elo: 800, style: 'balanced', openingId: null } });
+  const events = [];
+  match.on((e) => events.push(e));
+  await match.start();
+  const r = await match.requestHint(random);
+  return { match, events, r };
+}
+const settle = async (match) => { await Promise.all(match._pending); for (let k = 0; k < 20; k += 1) await new Promise((res) => setTimeout(res, 5)); };
+
+test('following a Focus hint grades FOCUS, earns no Focus, and the gold plan continues after the reply', async () => {
+  const { match, events, r } = await hintMatch({ random: () => 0.99 });
+  assert(r.ok && r.hint.plans.length === 3 && r.hint.plans.every((p) => p.quality === 'gold'), 'three gold plans');
+  const best = { ...r.hint.plans[0] };      // the plan object itself moves on to its next step
+  const focusAfterBuy = match.focus;
+  await match.playMove(best.uci);
+  await settle(match);
+  const graded = events.find((e) => e.type === 'graded' && e.payload.record.from + e.payload.record.to === best.uci);
+  assert(graded, `the move was graded (${events.filter((e) => e.type === 'graded').map((e) => e.payload.record.from + e.payload.record.to).join()} vs ${best.uci}; events ${events.map((e) => e.type).join()})`);
+  eq(graded.payload.grade, 'FOCUS', 'a hinted move reads FOCUS');
+  eq(graded.payload.focusGain, 0, 'and earns no Focus back');
+  eq(match.focus, focusAfterBuy, 'the best suggestion refunds nothing');
+  eq(match.grades.BEST || 0, 0, 'not counted as the player\'s own best move');
+  const next = events.filter((e) => e.type === 'hint' && e.payload.continuation);
+  eq(next.length, 1, 'after the reply the plan\'s second move is drawn by itself');
+  eq(next[0].payload.plans[0].step, 1);
+  assert(GM.FOCUS.label === 'Focus');
+});
+
+test('a lesser suggestion or no suggestion gives Focus back', async () => {
+  const lesser = await hintMatch({ random: () => 0.5 });
+  const cost = lesser.r.hint.quote.cost;
+  const before = lesser.match.focus;
+  await lesser.match.playMove(lesser.r.hint.plans[2].uci);
+  eq(lesser.match.focus - before, FocusHints.refundFor({ cost, rank: 2 }), 'third idea refund');
+  const ignored = await hintMatch({ random: () => 0.5 });
+  const shown = new Set(ignored.r.hint.plans.map((p) => p.uci));
+  const other = createRules(ignored.match.fen).moves({ verbose: true }).map((m) => m.from + m.to).find((u) => !shown.has(u));
+  const before2 = ignored.match.focus;
+  await ignored.match.playMove(other);
+  eq(ignored.match.focus - before2, FocusHints.refundFor({ cost, rank: null }), 'ignoring refunds the most');
+  const blank = await hintMatch({ random: () => 0.01 });
+  eq(blank.r.hint.plans.length, 0, 'every roll failed');
+  eq(blank.r.hint.refund, FocusHints.refundFor({ cost, shown: false }), 'a blank hint gives most of its cost back');
+});
+
+test('a mastered opening keeps guiding after the opponent leaves the book', async () => {
+  const run = async (mastery) => {
+    const career = Career.newCareer({ name: 'G', avatar: 'boy', startClubId: 'nyc' });
+    career.openings.italian = mastery; career.equipped = ['italian'];
+    // The fake engine answers alphabetically, so Black's first reply to 1.e4 would be a7a5: put e5 first.
+    const svc = fakeEngine();
+    const match = new PapMatch({ career, kind: 'friendly', playerColour: 'w', service: svc, opponent: { id: 'x', name: 'X', elo: 800, style: 'balanced', openingId: null } });
+    await match.start();
+    const moves = [['e2e4', 'e7e5'], ['g1f3', 'd7d6']];     // 2...d6 leaves the Italian lines
+    for (const [mine, reply] of moves) {
+      eq(match.guide().some((g) => g.uci === mine), true, `the book guide shows ${mine}`);
+      match.bot.chooseMove = async () => ({ uci: reply });
+      await match.playMove(mine);
+    }
+    return { book: match.guide(), filled: await match.masteredGuide() };
+  };
+  const full = await run(100);
+  eq(full.book.length, 0, 'the position after 2...d6 is out of the prepared lines');
+  eq(full.filled.length, 1, 'at 100% the guide carries on with the engine');
+  assert(full.filled[0].mastered && full.filled[0].openingId === 'italian');
+  const partial = await run(90);
+  eq(partial.filled.length, 0, 'below 100% the guide stops where the book stops');
 });
 
 /* ------------------------------------------------ tournaments and coins */
@@ -690,6 +817,7 @@ test('every practice challenge is playable: legal position, legal answer', () =>
 
 /* ---------------------------------------------------------------- report */
 
+await Promise.all(running);
 console.log(`${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  FAIL ${f}`);
 process.exit(failures.length ? 1 : 0);

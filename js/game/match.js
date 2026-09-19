@@ -25,7 +25,8 @@ import { GameReview } from '../chess/analysis/gameReview.js';
 import { accuracyFromWinProbLoss } from '../chess/core/gameResult.js';
 import { pvToSan, applyUci } from '../chess/core/rules.js';
 import { otherColour } from '../chess/core/constants.js';
-import { FOCUS, MASTERY, BOOK, GRADING, UNDO } from '../data/config.js';
+import { FOCUS, MASTERY, BOOK, GRADING, UNDO, HINTS, GUIDE } from '../data/config.js';
+import { rollHint, refundFor, QUALITY_META } from '../core/focusHints.js';
 import { profileForOpponent } from '../core/difficulty.js';
 import { fullBook, bookForOpening } from '../core/openingBook.js';
 import { hintQuote } from '../core/hints.js';
@@ -83,7 +84,10 @@ export class PapMatch {
     this.playerMovesSinceUndo = Infinity;   // no cooldown before the first undo
     this.grades = emptyGradeCounts();
     this.openingsReached = new Set();
-    this.lastHint = null;
+    /* The Focus hint in play: { cost, fresh, plans:[{rank, quality, total, step, uci, san, fen, awaiting}] }.
+       `fresh` until the player's next move, which settles any refund. */
+    this.hint = null;
+    this.lastGuided = null;   // { openingIds, ply }: the last position the book guide covered
     this.thinking = false;
     this.hintBusy = false;
     this._pending = [];
@@ -124,12 +128,66 @@ export class PapMatch {
     const record = this.game.move(move);
     if (!record) return null;
     this._noteOpening(record);
-    const followedHint = !!this.lastHint && this.lastHint.uci === record.uci;
-    this.lastHint = null;
+    const plan = this._settleHint(record);
     this.playerMovesSinceUndo += 1;
-    this._pending.push(this._grade(record, followedHint));
+    this._pending.push(this._grade(record, plan));
     await this.maybePlayBot();
     return record;
+  }
+
+  /**
+   * The player moved while a hint was showing. Playing a plan's move follows
+   * that plan (the others end); anything else ends them all. The first move
+   * after buying a hint settles the refund: a lesser plan or no plan at all
+   * gives some Focus back.
+   * @returns {Object|null} the plan followed
+   */
+  _settleHint(record) {
+    const hint = this.hint;
+    if (!hint) return null;
+    const showing = hint.plans.filter((p) => !p.awaiting && p.uci);
+    const plan = showing.find((p) => p.uci === record.uci) || null;
+    let refund = 0;
+    if (hint.fresh) refund = plan ? refundFor({ cost: hint.cost, rank: plan.rank }) : showing.length ? refundFor({ cost: hint.cost, rank: null }) : 0;
+    hint.fresh = false;
+    if (refund) this.focus = Math.min(this.focusMax, this.focus + refund);
+    if (plan) {
+      plan.step += 1;
+      record.hintQuality = plan.quality;
+      if (plan.step < plan.total) {
+        plan.awaiting = true;
+        plan.uci = null;
+        hint.plans = [plan];
+      } else {
+        this.hint = null;
+      }
+      this.emit('hint-follow', { plan, refund, done: plan.step >= plan.total });
+    } else {
+      this.hint = null;
+      if (showing.length) this.emit('hint-ignored', { refund });
+    }
+    return plan;
+  }
+
+  /** After the opponent's reply: the next move of the plan being followed, drawn automatically. */
+  async _continueHint() {
+    const hint = this.hint;
+    const plan = hint?.plans.find((p) => p.awaiting);
+    if (!plan || !this.isPlayersTurn) return;
+    const fen = this.game.fen;
+    const ply = this.game.ply;
+    try {
+      const result = await this.service.analyze(fen, { ...HINTS.search, multiPv: 1, useCache: true });
+      const uci = result.lines?.[0]?.pv?.[0];
+      if (this.hint !== hint || this.game.ply !== ply || !uci) return;
+      plan.uci = uci;
+      plan.san = pvToSan(fen, [uci])[0];
+      plan.fen = fen;
+      plan.awaiting = false;
+      this.emit('hint', { plans: [plan], rolls: null, continuation: true, quote: null });
+    } catch {
+      if (this.hint === hint) this.hint = null;
+    }
   }
 
   async maybePlayBot() {
@@ -145,6 +203,7 @@ export class PapMatch {
       if (token !== this._botToken || this.game.status !== 'active') return null;
       const record = this.game.move(choice.uci);
       if (record) this._noteOpening(record);
+      if (record && this.hint?.plans.some((p) => p.awaiting)) this._continueHint();
       return record;
     } catch (error) {
       console.error('[PapMatch] bot failed', error);
@@ -164,7 +223,8 @@ export class PapMatch {
     }
   }
 
-  async _grade(record, followedHint) {
+  async _grade(record, plan = null) {
+    const followedHint = !!plan;
     try {
       await this.reviewer.annotate(record);
       if (record.undone) return;
@@ -173,6 +233,12 @@ export class PapMatch {
       let verdict = gradeMove(record, before.lines);
       if (!verdict.grade || record.undone) return;
       verdict = this._noRepeatSpecial(record, verdict);
+      /* A move the hint showed is the hint's, not the player's find: it reads
+         FOCUS in the plan's colour and earns nothing back. */
+      if (followedHint) {
+        record.shownGrade = verdict.grade;
+        verdict = { ...verdict, grade: 'FOCUS', tier: QUALITY_META[plan.quality].tier, meta: GRADE_META.FOCUS, quality: plan.quality };
+      }
       record.grade = verdict.grade;
       this.grades[verdict.grade] = (this.grades[verdict.grade] || 0) + 1;
       let focusGain = 0;
@@ -218,7 +284,12 @@ export class PapMatch {
     });
   }
 
-  async requestHint() {
+  /**
+   * Buy a hint: the engine's playable candidates, one roll each (see
+   * core/focusHints.js). Plans that succeed are drawn at once, one move each;
+   * the rest of a purple or gold plan follows after the opponent replies.
+   */
+  async requestHint(random = Math.random) {
     if (!this.isPlayersTurn || this.hintBusy) return { ok: false, reason: 'not-now' };
     const quote = this.quoteHint();
     if (this.focus < quote.cost) return { ok: false, reason: 'focus', quote };
@@ -227,19 +298,54 @@ export class PapMatch {
     const fen = this.game.fen;
     const ply = this.game.ply;
     try {
-      const result = await this.service.analyze(fen, { ...quote.search, multiPv: 1, useCache: true });
-      const line = result.lines?.[0];
-      if (!line?.pv?.length) return { ok: false, reason: this.service.available === false ? 'engine' : 'no-line' };
+      const result = await this.service.analyze(fen, { ...quote.search, multiPv: HINTS.candidates, useCache: true });
+      if (!result.lines?.[0]?.pv?.length) return { ok: false, reason: this.service.available === false ? 'engine' : 'no-line' };
       if (this.game.ply !== ply) return { ok: false, reason: 'stale' };
+      const { rolls, plans } = rollHint(result.lines, this.career.level, random);
       this.focus -= quote.cost;
       this.hintsUsed += 1;
-      const pv = line.pv.slice(0, quote.plies);
-      const hint = { pv, san: pvToSan(fen, pv), ply, quote, uci: pv[0] };
-      this.lastHint = hint;
-      this.emit('hint', hint);
-      return { ok: true, hint };
+      const drawn = plans.map((p) => ({ ...p, step: 0, fen, san: pvToSan(fen, [p.uci])[0], awaiting: false }));
+      for (const r of rolls) r.san = pvToSan(fen, [r.uci])[0];
+      // Nothing came to mind: most of the Focus comes straight back.
+      let refund = 0;
+      if (!drawn.length) {
+        refund = refundFor({ cost: quote.cost, shown: false });
+        this.focus = Math.min(this.focusMax, this.focus + refund);
+        this.hint = null;
+      } else {
+        this.hint = { cost: quote.cost, fresh: true, plans: drawn };
+      }
+      const payload = { plans: drawn, rolls, continuation: false, quote, refund };
+      this.emit('hint', payload);
+      return { ok: true, hint: payload };
     } finally {
       this.hintBusy = false;
+    }
+  }
+
+  /**
+   * The guide past the book, for a MASTERED opening only: when the opponent
+   * leaves the prepared lines, the player who knows the opening completely
+   * still knows what to do, until the game passes the opening's longest line.
+   * Free. @returns {Promise<Object[]>} guide entries, like guide()
+   */
+  async masteredGuide() {
+    if (!GUIDE.masteredFillIn || !this.isPlayersTurn) return [];
+    const mastery = equippedMastery(this.career);
+    const ply = this.game.ply;
+    const last = this.lastGuided;
+    if (!last || last.ply < GUIDE.minBookPlies) return [];
+    const opening = last.openingIds.map((id) => this.book.byId.get(id))
+      .find((o) => o && (mastery[o.id] ?? 0) >= GUIDE.masteredAt && ply < Math.max(...o.lines.map((l) => l.length)));
+    if (!opening || this.service.available === false) return [];
+    const fen = this.game.fen;
+    try {
+      const result = await this.service.analyze(fen, { ...HINTS.search, multiPv: 1, useCache: true });
+      const uci = result.lines?.[0]?.pv?.[0];
+      if (!uci || this.game.ply !== ply || !this.isPlayersTurn) return [];
+      return [{ from: uci.slice(0, 2), to: uci.slice(2, 4), uci, san: pvToSan(fen, [uci])[0], openingId: opening.id, main: true, mastered: true }];
+    } catch {
+      return [];
     }
   }
 
@@ -284,7 +390,7 @@ export class PapMatch {
     this.focus -= UNDO.cost;
     this.undosUsed += 1;
     this.playerMovesSinceUndo = 0;
-    this.lastHint = null;
+    this.hint = null;
     this.thinking = false;
     this.emit('thinking', false);
     this.emit('undo', { undone, state: this.undoState() });
@@ -294,7 +400,9 @@ export class PapMatch {
   /** Guide arrows from what the player already knows. Free, never the engine. */
   guide() {
     if (!this.isPlayersTurn) return [];
-    return this.book.guide(this.game.fen, equippedMastery(this.career), { allBranchesAt: MASTERY.allBranchesAt });
+    const out = this.book.guide(this.game.fen, equippedMastery(this.career), { allBranchesAt: MASTERY.allBranchesAt });
+    if (out.length) this.lastGuided = { openingIds: [...new Set(out.map((g) => g.openingId))], ply: this.game.ply };
+    return out;
   }
 
   /* ------------------------------------------------------------- control */

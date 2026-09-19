@@ -125,28 +125,47 @@ the main path's games push a player to about 13, side content to 15.
 Max Focus = `30 + 6 x (level - 1)`: 30 at level 1, 114 at level 15.
 Refilled to max at the start of every game. Earned back mid-game only by
 strong moves found WITHOUT the hint: Best +2, Excellent +1, Clutch +5,
-Brilliant +5, Epic +6.
+Brilliant +5, Epic +6. A move the hint showed is graded **FOCUS** (in the
+plan's colour), earns no Focus and no grade bonus, and does not count as a
+Best/Epic in the stats or the Match Score.
 
-## 10. Hint continuation
+## 10. Focus hint: rolls and plans (reworked 2026-09-19)
 
-One ability: **Ask for Hint** (button or `H`). The engine line is drawn as
-numbered arrows (cyan = your moves, dashed orange = expected replies).
+**Ask for Hint** (button or `H`) asks the engine for its playable candidates
+(MultiPV 3; a candidate is playable within `HINTS.playableLoss` = 8
+win-probability points of the best) and rolls once per candidate, up to the
+level's count: 1 roll at levels 1-4, 2 at 5-9, 3 at 10+. Roll 1 is the best
+move, roll 2 the runner-up, roll 3 the third. Each roll is independent:
 
-| Level | Shown |
-|-------|-------|
-| 1-4 | best move (1 ply) |
-| 5-9 | move + expected reply (2 plies) |
-| 10-14 | move, reply, your next move (3 plies) |
-| 15 | three of your own moves (5 plies) |
+| Level | fail | green | purple | gold |
+|-------|------|-------|--------|------|
+| 1-4   | 30%  | 55%   | 12%    | 3%   |
+| 5-9   | 25%  | 50%   | 18%    | 7%   |
+| 10-14 | 20%  | 42%   | 26%    | 12%  |
+| 15    | 10%  | 35%   | 35%    | 20%  |
 
-Hints use the same strong engine as grading (depth 14, `config.HINTS.search`).
-Level decides how much of the line is SHOWN, never how good the suggestion is,
-and hints are not tied to the player's Elo.
+A failed roll shows nothing for its candidate. The quality is how far the
+plan reaches: green 1 of your moves, purple 2, gold 3, in the UI pack's
+green / purple / gold arrows and squares. Only the next move is drawn; after
+the opponent replies, the plan you followed draws its next move by itself
+(a fresh engine search of the new position), numbered 2, then 3.
 
-Hovering a suggested square (hint arrow or gold guide arrow) opens a card:
-the openings in your repertoire that contain the move are explained (name,
-ECO, idea); other openings get one "also part of" line. Variation names only
-appear once the game has left that opening's main line.
+**Focus back**, settled by your next move only: playing the 2nd suggestion
+refunds 30% of the cost, the 3rd 50%, none of them 75% (you trusted
+yourself); the best one refunds nothing. If every roll fails, 75% comes back
+at once. Numbers: `config.HINTS.refund`.
+
+Hovering a suggested square opens a card: the plan, and the openings in your
+repertoire that contain the move. The opening guide is BLUE (main line) and
+grey (other prepared branches), so green, purple and gold only ever mean a
+Focus plan.
+
+**Mastered openings keep guiding** (`config.GUIDE`): the guide is the book,
+and a regular opponent leaves the book on about 1 move in 10 (BOOK.
+regularPreference 0.9), which is why arrows used to vanish and return on a
+transposition. At 100% mastery, once the game has been in the opening for 2
+plies, an opponent leaving the book no longer ends the guide: the engine's
+move is drawn in blue until the game passes the opening's longest line.
 
 ## 11. Hint cost
 
@@ -156,7 +175,7 @@ cost = round( 10
             x specialty     your starting club's opening: 0.9
             x phase         opening 1.0 / middlegame 1.2 / endgame 1.4 (in book counts as opening)
             x complexity    1.15 when positionComplexity >= 0.55
-            x depth         1 ply 1.0 / 2 plies 1.2 / 3 plies 1.4 / 5 plies 1.7 )
+            x rolls         1 roll 1.0 / 2 rolls 1.3 / 3 rolls 1.6 )
 minimum 2
 ```
 
