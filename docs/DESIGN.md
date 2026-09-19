@@ -499,3 +499,39 @@ squares; on touch the pinned card has its own Hide button. Remembered in
 settings (`openingNotes`). Arrows are unaffected.
 
 Verify: `node tests/run.js`, `python3 tools/cdp_members.py [390x844] [--scenes]`.
+
+## 28. Stability pass (2026-09-19)
+
+**The opponent always moves** (`js/game/match.js`): `maybePlayBot` gives the
+engine 30 s and a retry, then plays `fallbackMove()` (mate > captures by value >
+checks > centralising, deterministic) and emits `bot-fallback`; the screen
+tells the player. Stale calls (Undo, a newer call) never move into a new
+position, and only the owning call clears `thinking`. A screen watchdog
+restarts a stalled bot and, after three stalls, offers "Try again / Leave the
+game". A failed hint search costs nothing.
+
+**A game pays out once** (`career.commitMatchResult`): Elo, XP, mastery,
+coins, tournament and finale progress are committed in one call keyed by the
+match's `gameId`; a second call is a no-op returning the first result. The
+screen commits and saves BEFORE any presentation, wraps the rest, and on any
+error returns the player to the venue (or the ending). `summary()` waits at
+most 8 s for grading.
+
+**Saving is reported** (`save.storageStatus`, `onStorageStatus`): the memory
+fallback and failed writes (quota, blocked storage) show one persistent
+"Not saving" strip; it disappears when a write succeeds again.
+
+**Resume and repair**: `nextStep(career)` is the next useful action;
+`validateCareer` lists anything that could not resume; `migrateCareer` repairs
+broken runs and unknown locations. Tests reload the career after every
+transition of a full campaign.
+
+**Scene art** never blocks: after 2.5 s the room is shown from
+`assets/manifest.json` sizes with a placeholder and a Retry button.
+
+**Gates**: `tools/predeploy.sh` (content gate + unit tests + syntax) must pass
+before pushing main; `tools/validate-content.mjs` fails on any bad puzzle,
+line, drill or lesson. Browser: `tools/cdp_campaign.py all` plays the whole
+campaign through the UI from every starting city (with losses, re-entry, a
+lost Star final and a lost Madrid round), `tools/cdp_resilience.py` the
+failure paths, `tools/cdp_layout.py` the 8-viewport matrix.

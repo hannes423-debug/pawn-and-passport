@@ -64,7 +64,10 @@ export function createApp(root, screens) {
     },
 
     save() {
-      if (app.career) Save.saveCareer(app.career);
+      if (!app.career) return true;
+      const ok = Save.saveCareer(app.career);
+      paintSaveWarning();
+      return ok;
     },
 
     setCareer(career) {
@@ -219,6 +222,23 @@ export function createApp(root, screens) {
       await wait(200);
     }
   };
+
+  /* One quiet, persistent banner while progress cannot be kept: shown once,
+     never re-announced on every save, gone as soon as saving works again. */
+  let saveWarning = null;
+  function paintSaveWarning() {
+    const st = Save.storageStatus();
+    if (st.ok) { saveWarning?.remove(); saveWarning = null; return; }
+    if (saveWarning) return;
+    saveWarning = h('div.pp-savewarn', { role: 'status' },
+      h('b', { text: '⚠ Not saving. ' }),
+      st.persistent ? 'Your browser refused to store the game (storage full or blocked).' : 'This browser is not allowing the game to store data (private mode or blocked site data).',
+      ' You can keep playing, but progress will be lost when the page is closed or reloaded.');
+    document.body.append(saveWarning);
+  }
+  Save.onStorageStatus(() => paintSaveWarning());
+  app.paintSaveWarning = paintSaveWarning;
+  paintSaveWarning();
 
   // First gesture unlocks WebAudio.
   const unlock = () => { unlockAudio(); configureAudio(app.settings); };

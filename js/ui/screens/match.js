@@ -27,7 +27,7 @@ import { starById } from '../../data/starPlayers.js';
 import { applyUci } from '../../chess/core/rules.js';
 import {
   applyGameResult, recordTournamentGame, recordFinaleGame, maxFocus, hintPlies, masteryState, currentRound,
-  repertoireSlots, settleChallenge
+  repertoireSlots, commitMatchResult
 } from '../../core/career.js';
 import { roundReport, roundLabel } from '../tournamentView.js';
 import { QUALITY_META } from '../../core/focusHints.js';
@@ -379,6 +379,9 @@ export function matchScreen(app, params) {
         if (app.settings.moveGrades) board.fx.word(o.name.toUpperCase(), '#ffd34d', equipped ? 'In your repertoire' : mastery > 0 ? 'You know some of this line' : 'An opening you have not learned yet');
         break;
       }
+      case 'bot-fallback':
+        app.toast(`${opponent.name.split(' ')[0]} had engine trouble and played a quick move instead.`, { ms: 3200 });
+        break;
       case 'thinking':
         thinking.style.visibility = payload ? 'visible' : 'hidden';
         paintFocus();
@@ -465,41 +468,52 @@ export function matchScreen(app, params) {
   document.addEventListener('keydown', onKey);
 
   /* ---------------------------------------------------------- the end -- */
-  async function onFinished() {
-    const result = match.game.result;
-    const score = result.scoreFor(colour);
-    if (score === 1) sfx.win(); else if (score === 0) sfx.lose();
-    board.fx.word(score === 1 ? 'VICTORY!' : score === 0.5 ? 'DRAW' : 'DEFEAT', score === 1 ? '#ffc341' : score === 0.5 ? '#9ec7ff' : '#ff6b5e', result.headline);
-    await wait(1400);
-    const waiting = app.toast('Scoring the game...', { ms: 2500 });
-    void waiting;
-    const summary = await match.summary();
-    const levelBefore = career.level;
-    const focusBefore = maxFocus(levelBefore);
-    const pliesBefore = hintPlies(levelBefore).rolls;
-    const rewards = applyGameResult(career, summary);
-    let progress = null;
-    let coinDelta = 0;
-    if (kind === 'tournament' || kind === 'star') { progress = recordTournamentGame(career, clubId, summary.score); coinDelta = progress.coins; }
-    if (kind === 'finale') progress = recordFinaleGame(career, summary.score);
-    if (kind === 'challenge') {
-      coinDelta = settleChallenge(career, summary.score, opponent.stake || 0);
-      const rec = (career.memberRecords = career.memberRecords || {})[opponent.id] || (career.memberRecords[opponent.id] = { w: 0, d: 0, l: 0 });
-      rec[summary.score === 1 ? 'w' : summary.score === 0.5 ? 'd' : 'l'] += 1;
+  /* The end of a game. Rewards are committed ONCE (commitMatchResult is
+     keyed by the game id) and saved before anything is shown; every piece of
+     presentation after that is optional, and whatever fails, the player is
+     taken back to the venue rather than left on a dead board. */
+  let finishing = null;
+  function onFinished() {
+    if (!finishing) finishing = finishGame();
+    return finishing;
+  }
+
+  async function finishGame() {
+    const leave = () => app.go('scene', { sceneId: returnScene, node: returnSpawn });
+    let committed = null;
+    try {
+      const result = match.game.result;
+      const score = result ? result.scoreFor(colour) : 0;
+      if (score === 1) sfx.win(); else if (score === 0) sfx.lose();
+      try {
+        board.fx.word(score === 1 ? 'VICTORY!' : score === 0.5 ? 'DRAW' : 'DEFEAT', score === 1 ? '#ffc341' : score === 0.5 ? '#9ec7ff' : '#ff6b5e', result?.headline);
+      } catch { /* an effect is never worth losing a result over */ }
+      await wait(1400);
+      app.toast('Scoring the game...', { ms: 2500 });
+      const summary = await match.summary();
+      const levelBefore = career.level;
+      const focusBefore = maxFocus(levelBefore);
+      const pliesBefore = hintPlies(levelBefore).rolls;
+      committed = commitMatchResult(career, { gameId: match.gameId, kind, clubId, summary, opponent });
+      app.save();
+      const { rewards, progress, coinDelta } = committed;
+
+      if (kind === 'star' || kind === 'finale') {
+        const star = starById(opponent.id);
+        if (star) await app.dialogue({ name: star.name, role: star.title, look: star.look, lines: starLines(career, star.id, summary.score === 1 ? 'won' : 'lost') });
+      }
+      await showResult({ summary, rewards, progress, levelBefore, focusBefore, pliesBefore, coinDelta });
+      if ((kind === 'tournament' || kind === 'star') && progress?.roundIndex >= 0) await tournamentReport(progress);
+      if (progress?.trophy) await trophyCeremony(progress.trophy);
+      if (kind === 'finale' && progress?.won) { app.go('ending'); return; }
+      leave();
+    } catch (error) {
+      console.error('[match] finishing the game failed', error);
+      try { app.save(); } catch { /* the save layer reports its own failures */ }
+      app.toast(committed ? 'Your result is saved. Something went wrong showing it.' : 'This game could not be scored.', { ms: 4200 });
+      if (kind === 'finale' && committed?.progress?.won) { app.go('ending'); return; }
+      leave();
     }
-    app.save();
-
-    if (kind === 'star' || kind === 'finale') {
-      const star = starById(opponent.id);
-      if (star) await app.dialogue({ name: star.name, role: star.title, look: star.look, lines: starLines(career, star.id, summary.score === 1 ? 'won' : 'lost') });
-    }
-
-    await showResult({ summary, rewards, progress, levelBefore, focusBefore, pliesBefore, coinDelta });
-    if ((kind === 'tournament' || kind === 'star') && progress?.roundIndex >= 0) await tournamentReport(progress);
-
-    if (progress?.trophy) await trophyCeremony(progress.trophy);
-    if (kind === 'finale' && progress?.won) { app.go('ending'); return; }
-    app.go('scene', { sceneId: returnScene, node: returnSpawn });
   }
 
   /* After a tournament game: the rest of the round, played out, and the table. */
@@ -609,6 +623,29 @@ export function matchScreen(app, params) {
     tick();
   }
 
+  /* ---------------------------------------------------------- watchdog -- */
+  /* Nothing may leave the player waiting for an opponent move that no one
+     is computing. The match already retries and falls back; this catches any
+     path that never started the bot at all, and after repeated stalls offers
+     a way out instead of a frozen board. */
+  let stalls = 0;
+  let stallDialog = false;
+  const watchdog = setInterval(async () => {
+    if (finished || stallDialog || !match.botStalled) { if (!match.botStalled) stalls = 0; return; }
+    stalls += 1;
+    if (stalls < 3) { match.maybePlayBot(); return; }
+    stallDialog = true;
+    const choice = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
+      h('h2.pp-h2', { text: `${opponent.name.split(' ')[0]} can't find a move` }),
+      h('p', { text: 'The chess engine stopped answering. You can try again, or leave: this game will not count.' }),
+      h('div.pp-row', null, button('Try again', () => close('retry'), { cls: 'pp-btn--gold' }), button('Leave the game', () => close('leave')))),
+    { dismissable: false });
+    stallDialog = false;
+    stalls = 0;
+    if (choice === 'leave') { finished = true; app.go('scene', { sceneId: returnScene, node: returnSpawn }); return; }
+    match.maybePlayBot();
+  }, 2500);
+
   /* ------------------------------------------------------------- start -- */
   paintPosition();
   paintFocus();
@@ -620,6 +657,7 @@ export function matchScreen(app, params) {
     match,        // exposed for tools/cdp.py
     board,
     destroy() {
+      clearInterval(watchdog);
       document.removeEventListener('keydown', onKey);
       stopEngineWatch();
       match.dispose();

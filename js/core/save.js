@@ -49,10 +49,29 @@ function browserStorage() {
   }
 }
 
-let storage = (typeof window !== 'undefined' && browserStorage()) || memoryStorage();
+const initial = typeof window !== 'undefined' ? browserStorage() : null;
+let storage = initial || memoryStorage();
+
+/* Is progress really being kept? The memory fallback keeps the game playable
+   when the browser refuses storage (private mode, blocked site data, a full
+   quota), but then nothing survives a reload, and the player must be told. */
+const status = { persistent: !!initial, lastWriteOk: true, error: null };
+const statusListeners = new Set();
+const setStatus = (patch) => {
+  const before = storageOk();
+  Object.assign(status, patch);
+  if (storageOk() !== before) for (const fn of [...statusListeners]) { try { fn(storageStatus()); } catch { /* a listener never breaks saving */ } }
+};
+const storageOk = () => status.persistent && status.lastWriteOk;
+/** { ok, persistent, lastWriteOk, error } */
+export const storageStatus = () => ({ ok: storageOk(), ...status });
+export function onStorageStatus(fn) { statusListeners.add(fn); return () => statusListeners.delete(fn); }
 
 /** Tests (and a private-mode browser) swap the backend here. */
-export function useStorage(backend) { storage = backend || memoryStorage(); }
+export function useStorage(backend, { persistent = !!backend } = {}) {
+  storage = backend || memoryStorage();
+  setStatus({ persistent, lastWriteOk: true, error: null });
+}
 export const createMemoryStorage = memoryStorage;
 
 function read(key) {
@@ -63,7 +82,14 @@ function read(key) {
 }
 
 function write(key, value) {
-  try { storage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+  try {
+    storage.setItem(key, JSON.stringify(value));
+    setStatus({ lastWriteOk: true, error: null });
+    return true;
+  } catch (error) {
+    setStatus({ lastWriteOk: false, error: String(error?.name || error) });
+    return false;
+  }
 }
 
 export const hasCareer = () => !!read(KEYS.career);
@@ -77,4 +103,4 @@ export function deleteCareer() { try { storage.removeItem(KEYS.career); } catch 
 export const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...(read(KEYS.settings) || {}) });
 export const saveSettings = (settings) => write(KEYS.settings, settings);
 
-export default { KEYS, SAVE_PREFIX, hasCareer, loadCareer, saveCareer, deleteCareer, loadSettings, saveSettings, useStorage };
+export default { KEYS, SAVE_PREFIX, hasCareer, loadCareer, saveCareer, deleteCareer, loadSettings, saveSettings, useStorage, storageStatus, onStorageStatus };

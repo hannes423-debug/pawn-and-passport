@@ -45,6 +45,10 @@ import { createWalkGrid, walkerFor } from '../../core/freeWalk.js';
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
 const WALK_SPEED = 42;           // percent of the stage height per second
 
+/* Scene picture sizes, so a scene can lay out before (or without) its art. */
+let sizesPromise = null;
+const sceneSizes = () => (sizesPromise = sizesPromise || fetch('assets/manifest.json').then((r) => r.json()).then((m) => m.scenes || {}).catch(() => ({})));
+
 const ordinal = (n) => {
   const teen = n % 100 >= 11 && n % 100 <= 13;
   return `${n}${teen ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')}`;
@@ -99,23 +103,33 @@ export async function sceneScreen(app, params) {
   const dock = h('div.pp-scene__dock');
   const el = h('div.pp-screen.pp-scene', null, app.hud({ where: app.locationName() }), viewport, dock);
 
-  /* The background must really arrive. A failed request (the dev server was
-     killed for memory once, mid-play) used to leave a dark, image-less stage
-     until the scene was re-entered, so retry with a cache-busting query. */
-  await new Promise((resolve) => {
-    let tries = 0;
-    const done = () => (bg.naturalWidth ? resolve() : retry());
-    const retry = () => {
-      tries += 1;
-      if (tries > 5) { resolve(); return; }
-      setTimeout(() => { bg.src = `${scene.image}?retry=${tries}`; }, 400 * tries);
-    };
-    bg.onload = done;
-    bg.onerror = retry;
-    if (bg.complete) done();
+  /* The background should arrive, but a scene must never wait on it: after a
+     short wait the room is shown anyway (sized from assets/manifest.json, so
+     walking and hotspots already work), with a readable placeholder and a
+     Retry button while the art keeps retrying in the background. */
+  const sizes = await sceneSizes();
+  let refit = () => {};                    // becomes fit() once the layout code below exists
+  let tries = 0;
+  let artShown = false;
+  const missing = h('div.pp-scene__missing', null,
+    h('b', { text: app.locationName() }),
+    h('span', { text: 'The picture of this place did not load. Everything still works: use the buttons below.' }),
+    h('button.pp-btn.pp-btn--small', { type: 'button', text: 'Retry picture', onclick: (e) => { e.stopPropagation(); tries = 0; retryArt(true); } }));
+  const artReady = new Promise((resolve) => {
+    bg.onload = () => { if (bg.naturalWidth) { artShown = true; missing.remove(); stage.classList.remove('is-missing'); refit(); resolve(true); } };
+    bg.onerror = () => retryArt(false);
+    if (bg.complete && bg.naturalWidth) bg.onload();
   });
-  bg.onload = () => fit();
-  const aspect = (bg.naturalWidth || 16) / (bg.naturalHeight || 9);
+  function retryArt(now) {
+    if (artShown) return;
+    tries += 1;
+    if (tries > 5 && !now) return;                       // the Retry button starts a new round
+    setTimeout(() => { bg.src = `${scene.image}?retry=${Date.now()}`; }, now ? 0 : 400 * tries);
+  }
+  await Promise.race([artReady, wait(2500)]);
+  if (!artShown) { stage.classList.add('is-missing'); stage.append(missing); }
+  const known = sizes[scene.id];
+  const aspect = known ? known[0] / known[1] : (bg.naturalWidth ? bg.naturalWidth / bg.naturalHeight : 4 / 3);
 
   /* ---------------------------------------------------------- layout -- */
   let stageH = 600;
@@ -141,6 +155,8 @@ export async function sceneScreen(app, params) {
     follow();
     requestAnimationFrame(nudgeLabels);
   };
+
+  refit = () => fit();
 
   function follow() {
     if (!camera) { stage.style.transform = ''; return; }

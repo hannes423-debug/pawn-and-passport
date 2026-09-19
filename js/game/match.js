@@ -27,6 +27,42 @@ import { pvToSan, applyUci } from '../chess/core/rules.js';
 import { otherColour } from '../chess/core/constants.js';
 import { FOCUS, MASTERY, BOOK, GRADING, UNDO, HINTS, GUIDE } from '../data/config.js';
 import { rollHint, refundFor, QUALITY_META } from '../core/focusHints.js';
+import { legalMoves } from '../chess/core/rules.js';
+import { PIECE_VALUE } from '../chess/core/constants.js';
+
+/* Opponent recovery: how long one engine move may take, and how many tries
+   before a safe fallback move is played instead. */
+export const BOT_RECOVERY = { timeoutMs: 30000, attempts: 2 };
+
+const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms);
+  promise.then((v) => { clearTimeout(timer); resolve(v); }, (e) => { clearTimeout(timer); reject(e); });
+});
+const uciOf = (m) => m.from + m.to + (m.promotion || '');
+const legalUcis = (fen) => new Set(legalMoves(fen).map(uciOf));
+
+/**
+ * A sensible move without an engine: mate if there is one, else the most
+ * valuable capture, a check, development toward the centre - never the
+ * engine's strength, but never a softlock either. Deterministic.
+ */
+export function fallbackMove(fen) {
+  const moves = legalMoves(fen);
+  if (!moves.length) return null;
+  const value = (p) => (p ? PIECE_VALUE[p] || 0 : 0);
+  let best = null;
+  for (const m of moves) {
+    let score = 0;
+    if (m.san?.includes('#')) score += 100000;
+    if (m.captured) score += value(m.captured) * 10 - Math.min(value(m.piece), 900);
+    if (m.san?.includes('+')) score += 30;
+    if (m.promotion) score += value(m.promotion);
+    const file = m.to.charCodeAt(0) - 97; const rank = Number(m.to[1]) - 1;
+    score += 6 - (Math.abs(3.5 - file) + Math.abs(3.5 - rank));
+    if (!best || score > best.score) best = { uci: uciOf(m), score };
+  }
+  return best.uci;
+}
 import { profileForOpponent } from '../core/difficulty.js';
 import { fullBook, bookForOpening } from '../core/openingBook.js';
 import { hintQuote } from '../core/hints.js';
@@ -94,6 +130,8 @@ export class PapMatch {
     this._listeners = new Set();
     this._botToken = 0;
     this.status = 'idle';
+    /* One id per game: career.commitMatchResult pays a game out once only. */
+    this.gameId = `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
     this.game.on(({ type, payload }) => {
       if (type === 'end') this.status = 'finished';
@@ -190,29 +228,64 @@ export class PapMatch {
     }
   }
 
+  /**
+   * The opponent's move. It must ALWAYS arrive while the game is on: a
+   * failed or hung engine is retried once, then a safe legal move is played
+   * instead (bot-fallback), so the player can never be left waiting forever.
+   * A call made stale by Undo or a newer call leaves the state to that one.
+   */
   async maybePlayBot() {
     if (!this.game.waitingOnBot || this.game.status !== 'active') return null;
     const token = ++this._botToken;
+    const stale = () => token !== this._botToken || this.game.status !== 'active';
     this.thinking = true;
     this.emit('thinking', true);
     try {
-      const choice = await this.bot.chooseMove(this.game.fen, { ply: this.game.ply });
-      if (token !== this._botToken || this.game.status !== 'active' || !choice.uci) return null;
-      // A beat of "thinking" so an instant book reply does not feel robotic.
-      await new Promise((r) => setTimeout(r, 250 + Math.random() * 350));
-      if (token !== this._botToken || this.game.status !== 'active') return null;
-      const record = this.game.move(choice.uci);
+      const fen = this.game.fen;
+      let uci = null;
+      let lastError = null;
+      for (let attempt = 0; attempt < BOT_RECOVERY.attempts && !uci; attempt += 1) {
+        try {
+          const choice = await withTimeout(this.bot.chooseMove(fen, { ply: this.game.ply }), BOT_RECOVERY.timeoutMs);
+          if (stale()) return null;
+          if (choice?.uci && legalUcis(fen).has(choice.uci)) uci = choice.uci;
+          else lastError = new Error(`no legal move from the bot (${choice?.uci ?? 'none'})`);
+        } catch (error) {
+          if (stale()) return null;
+          lastError = error;
+          console.warn('[PapMatch] bot move failed', attempt + 1, error);
+        }
+      }
+      const fallback = !uci;
+      if (fallback) {
+        uci = fallbackMove(fen);
+        if (!uci) return null;                 // no legal moves: the game is already over
+        this.emit('bot-error', lastError);
+        this.emit('bot-fallback', { uci, error: lastError?.message || String(lastError) });
+      } else {
+        // A beat of "thinking" so an instant book reply does not feel robotic.
+        await new Promise((r) => setTimeout(r, 250 + Math.random() * 350));
+      }
+      if (stale() || this.game.fen !== fen) return null;
+      const record = this.game.move(uci);
       if (record) this._noteOpening(record);
       if (record && this.hint?.plans.some((p) => p.awaiting)) this._continueHint();
       return record;
     } catch (error) {
-      console.error('[PapMatch] bot failed', error);
+      console.error('[PapMatch] bot turn failed', error);
       this.emit('bot-error', error);
       return null;
     } finally {
-      this.thinking = false;
-      this.emit('thinking', false);
+      if (token === this._botToken) {
+        this.thinking = false;
+        this.emit('thinking', false);
+      }
     }
+  }
+
+  /** Is the game waiting on an opponent move that nobody is computing? (the screen's watchdog asks) */
+  get botStalled() {
+    return this.status === 'active' && this.game.status === 'active' && this.game.waitingOnBot && !this.thinking;
   }
 
   _noteOpening(record) {
@@ -298,7 +371,13 @@ export class PapMatch {
     const fen = this.game.fen;
     const ply = this.game.ply;
     try {
-      const result = await this.service.analyze(fen, { ...quote.search, multiPv: HINTS.candidates, useCache: true });
+      let result;
+      try {
+        result = await this.service.analyze(fen, { ...quote.search, multiPv: HINTS.candidates, useCache: true });
+      } catch (error) {
+        console.warn('[PapMatch] hint search failed', error);
+        return { ok: false, reason: 'engine', quote };      // nothing was spent
+      }
       if (!result.lines?.[0]?.pv?.length) return { ok: false, reason: this.service.available === false ? 'engine' : 'no-line' };
       if (this.game.ply !== ply) return { ok: false, reason: 'stale' };
       const { rolls, plans } = rollHint(result.lines, this.career.level, random);
@@ -435,7 +514,8 @@ export class PapMatch {
 
   /** Everything the result screen and the career need, once grading settles. */
   async summary() {
-    await Promise.allSettled(this._pending);
+    // Grading is best-effort: a hung engine must not hold the result screen.
+    await Promise.race([Promise.allSettled(this._pending), new Promise((r) => setTimeout(r, 8000))]);
     const result = this.game.result;
     const score = result ? result.scoreFor(this.playerColour) : 0;
     const mine = this.game.history.filter((m) => m.color === this.playerColour);

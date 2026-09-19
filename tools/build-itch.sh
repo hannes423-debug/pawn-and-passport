@@ -10,6 +10,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Content and rules first: never package broken puzzles, lessons or drills.
+./tools/predeploy.sh >/dev/null
+
 version=$(node -e "import('./js/data/config.js').then(m => console.log(m.GAME.version))")
 out="dist/pawn-and-passport-${version}"
 rm -rf "$out" "$out.zip"

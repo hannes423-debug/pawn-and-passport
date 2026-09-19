@@ -188,6 +188,19 @@ export function migrateCareer(career) {
   for (const [clubId, run] of Object.entries(career.tournaments || {})) {
     if (!run || !run.format) delete career.tournaments[clubId];
   }
+  // Repairs: a run that cannot continue restarts, an unknown place becomes the club's garden.
+  for (const [clubId, run] of Object.entries(career.tournaments || {})) {
+    let ok = true;
+    try { ok = run.completed || !!currentRound(career, clubId); } catch { ok = false; }
+    if (!ok) delete career.tournaments[clubId];
+  }
+  const place = clubById(career.location?.clubId) || (career.location?.clubId === FINALE.id ? FINALE : null);
+  const scenes = place ? Object.values(place.scenes).filter(Boolean) : [];
+  if (!place || !scenes.includes(career.location.sceneId)) {
+    const home = place || clubById(career.startClubId) || CLUBS[0];
+    career.location = { clubId: home.clubId || home.id, sceneId: home.scenes.exterior };
+  }
+  if (typeof career.xp === 'number') career.level = levelForXp(career.xp);
   const slots = repertoireSlots(career.level || 1);
   career.equipped = career.equipped.filter((id, i, all) => all.indexOf(id) === i && (career.openings[id] ?? 0) > 0).slice(0, slots);
   career.version = GAME.saveVersion;
@@ -488,6 +501,91 @@ export function applyGameResult(career, g, now = Date.now()) {
   return { eloDelta, elo: career.elo, xp, mastery };
 }
 
+/**
+ * Commit EVERYTHING a finished game earns, exactly once per game.
+ *
+ * `gameId` is unique per match; a second call with the same id (a doubled
+ * end event, a retried finale after a presentation error) changes nothing
+ * and returns the first result again. Elo, XP, opening mastery, coins,
+ * tournament progress and the finale are all inside this one guard.
+ *
+ * @returns {{duplicate:boolean, rewards:Object, progress:Object|null, coinDelta:number}}
+ */
+export function commitMatchResult(career, { gameId, kind, clubId, summary, opponent = {} }, now = Date.now(), random = Math.random) {
+  career.committedGames = career.committedGames || {};
+  const done = career.committedGames[gameId];
+  if (done) return { ...done, duplicate: true };
+  const rewards = applyGameResult(career, summary, now);
+  let progress = null;
+  let coinDelta = 0;
+  if (kind === 'tournament' || kind === 'star') { progress = recordTournamentGame(career, clubId, summary.score, now, random); coinDelta = progress.coins; }
+  if (kind === 'finale') progress = recordFinaleGame(career, summary.score, now);
+  if (kind === 'challenge') {
+    coinDelta = settleChallenge(career, summary.score, opponent.stake || 0);
+    const records = career.memberRecords = career.memberRecords || {};
+    const rec = records[opponent.id] || (records[opponent.id] = { w: 0, d: 0, l: 0 });
+    rec[summary.score === 1 ? 'w' : summary.score === 0.5 ? 'd' : 'l'] += 1;
+  }
+  const out = { rewards, progress, coinDelta };
+  // Keep the last few ids only: the guard is for THIS game's end, not history.
+  career.committedGames[gameId] = out;
+  const ids = Object.keys(career.committedGames);
+  for (const id of ids.slice(0, Math.max(0, ids.length - 5))) delete career.committedGames[id];
+  return { ...out, duplicate: false };
+}
+
+/* --------------------------------------------------- resume and repair -- */
+
+/**
+ * The player's next useful action, from the career alone. What the title's
+ * Continue, the HUD and the tests all agree on.
+ * @returns {{type:'ending'|'finale'|'tournament'|'final'|'enter'|'travel', clubId?:string, label:string}}
+ */
+export function nextStep(career) {
+  if (career.completed) return { type: 'ending', label: 'The tour is complete.' };
+  if (career.finale.unlocked) {
+    const round = currentFinaleRound(career);
+    return { type: 'finale', clubId: FINALE.id, label: `Madrid: ${round ? round.label : 'the Grand Finale'}` };
+  }
+  const here = career.location.clubId;
+  const club = clubById(here);
+  if (club && !career.trophies[here]) {
+    const round = currentRound(career, here);
+    if (round) return { type: round.kind === 'star' ? 'final' : 'tournament', clubId: here, label: `${club.tournamentConfig.name}: ${round.label} vs ${round.name}` };
+    return { type: 'enter', clubId: here, label: `Enter the ${club.tournamentConfig.name}` };
+  }
+  const next = CLUBS.find((c) => !career.trophies[c.clubId]);
+  return { type: 'travel', clubId: next.clubId, label: `Travel to ${next.city} for the next trophy` };
+}
+
+/**
+ * Everything a saved career must satisfy for the game to resume on a valid
+ * screen with a valid next action. [] when all is well.
+ */
+export function validateCareer(career, { sceneExists = () => true } = {}) {
+  const problems = [];
+  if (!career || typeof career !== 'object') return ['no career'];
+  const { clubId, sceneId } = career.location || {};
+  if (!(clubById(clubId) || clubId === FINALE.id)) problems.push(`unknown location club ${clubId}`);
+  if (!sceneExists(sceneId)) problems.push(`unknown scene ${sceneId}`);
+  if (career.level !== levelForXp(career.xp)) problems.push(`level ${career.level} does not match ${career.xp} XP`);
+  if (typeof career.coins !== 'number' || career.coins < 0) problems.push(`coins ${career.coins}`);
+  for (const id of Object.keys(career.trophies)) if (!clubById(id)) problems.push(`trophy for unknown club ${id}`);
+  for (const id of career.equipped || []) if (!((career.openings[id] ?? 0) > 0)) problems.push(`equipped unknown opening ${id}`);
+  for (const [id, run] of Object.entries(career.tournaments || {})) {
+    if (!run) continue;
+    let round = null;
+    try { round = currentRound(career, id); } catch { round = null; }
+    if (!run.completed && !round) problems.push(`${id}: event running but no game to play`);
+    if (run.completed && !run.outcome) problems.push(`${id}: event finished without an outcome`);
+  }
+  const f = career.finale;
+  if (f.opponents && !f.won && !currentFinaleRound(career)) problems.push('finale running but no round to play');
+  if (f.won && !career.completed) problems.push('finale won but the campaign is not complete');
+  if (f.unlocked && !hasAllTrophies(career)) problems.push('Madrid unlocked without six trophies');
+  return problems;
+}
+
 /* ------------------------------------------------------------- missions -- */
 
 export function missionProgress(career, missionId) {
@@ -543,7 +641,7 @@ export default {
   newCareer, levelForXp, xpProgress, grantXp, maxFocus, hintPlies, masteryState, learnFromPlay,
   tier, trophyCount, postcardCount, hasAllTrophies, hasAllPostcards, regularElo, starElo, travelTo, meetStar,
   enterTournament, currentRound, recordTournamentGame, awardTrophy, canReenter, tournamentField, memberElo,
-  stakeFor, canAfford, earnCoins, settleChallenge,
+  stakeFor, canAfford, earnCoins, settleChallenge, nextStep, validateCareer, commitMatchResult,
   enterFinale, currentFinaleRound, recordFinaleGame, applyGameResult, missionProgress, recordPuzzleSolved,
   repertoireSlots, isUnlocked, equippedMastery, equipOpening, unequipOpening, migrateCareer
 };

@@ -47,16 +47,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let passed = 0;
 const failures = [];
 
-const running = [];
-function test(name, fn) {
-  try {
-    const out = fn();
-    // An async test is awaited before the report.
-    if (out && typeof out.then === 'function') running.push(out.then(() => { passed += 1; }, (error) => failures.push(`${name}: ${error.message}`)));
-    else passed += 1;
-  } catch (error) { failures.push(`${name}: ${error.message}`); }
-}
+/* Tests run one at a time, in file order, at the end: async tests share
+   modules (the save backend, the console) and must not interleave. */
+const queue = [];
+function test(name, fn) { queue.push({ name, fn }); }
 function assert(cond, message = 'assertion failed') { if (!cond) throw new Error(message); }
+function seeded(s0) { let s = s0; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
 const eq = (a, b, m) => assert(a === b, `${m || ''} expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
 
 /* ------------------------------------------------------------------ data */
@@ -391,7 +387,7 @@ import * as FocusHints from '../js/core/focusHints.js';
 import { GRADE_META as GM } from '../js/core/grading.js';
 
 /** Stockfish stand-in: every legal move, best first, 15 cp apart; `bad` moves score -900. */
-function fakeEngine({ bad = [] } = {}) {
+function fakeEngine({ bad = [], failing = null } = {}) {
   const lines = (fen, n = 3) => {
     const r = createRules(fen);
     const moves = r.moves({ verbose: true }).map((m) => m.from + m.to + (m.promotion || ''));
@@ -401,8 +397,9 @@ function fakeEngine({ bad = [] } = {}) {
   return {
     available: true, status: 'ready', statusText: 'fake',
     ready: async () => true, newGame: async () => {}, onStatus: () => () => {},
-    analyze: async (fen, o = {}) => ({ lines: lines(fen, o.multiPv || 1), depth: 18 }),
-    review: async (fen, o = {}) => ({ lines: lines(fen, o.multiPv || 3), depth: 18 })
+    // `failing()` true: every search rejects, like a dead worker.
+    analyze: async (fen, o = {}) => { if (failing?.()) throw new Error('engine down'); return { lines: lines(fen, o.multiPv || 1), depth: 18 }; },
+    review: async (fen, o = {}) => { if (failing?.()) throw new Error('engine down'); return { lines: lines(fen, o.multiPv || 3), depth: 18 }; }
   };
 }
 
@@ -504,6 +501,331 @@ test('a mastered opening keeps guiding after the opponent leaves the book', asyn
   eq(partial.filled.length, 0, 'below 100% the guide stops where the book stops');
 });
 
+/* ------------------------------------------------ softlock protection */
+
+import { fallbackMove } from '../js/game/match.js';
+
+async function brokenMatch({ colour = 'w', failFrom = 0 } = {}) {
+  let searches = 0;
+  const state = { down: false };
+  const svc = fakeEngine({ failing: () => state.down || (failFrom >= 0 && ++searches > failFrom && failFrom > 0) });
+  const career = Career.newCareer({ name: 'S', avatar: 'boy', startClubId: 'nyc' });
+  const match = new PapMatch({ career, kind: 'friendly', playerColour: colour, service: svc,
+    opponent: { id: 'x', name: 'X', elo: 1200, style: 'balanced', openingId: null } });
+  const events = [];
+  match.on((e) => events.push(e.type));
+  return { match, state, events };
+}
+const quiet = (fn) => async () => { const w = console.warn; const e = console.error; console.warn = () => {}; console.error = () => {}; try { await fn(); } finally { console.warn = w; console.error = e; } };
+const playerCanMove = (m) => m.isPlayersTurn && !m.thinking && m.game.status === 'active';
+
+test('a dead engine before the first opponent move: the opponent still moves', quiet(async () => {
+  const { match, state, events } = await brokenMatch({ colour: 'b' });
+  state.down = true;
+  await match.start();
+  eq(match.game.ply, 1, 'White (the bot) moved');
+  assert(playerCanMove(match), `the player is free to move (${events.join()})`);
+  for (let k = 0; k < 6 && match.game.status === 'active'; k += 1) {
+    await match.playMove(createRules(match.fen).moves({ verbose: true }).map((m) => m.from + m.to + (m.promotion || ''))[0]);
+    assert(playerCanMove(match) || match.game.status !== 'active', `move ${k}: the engine-less opponent keeps answering`);
+  }
+  assert(events.includes('bot-fallback'), 'through the fallback');
+}));
+
+test('the engine dies halfway through, after Undo and around a Hint: never stuck', quiet(async () => {
+  const { match, state } = await brokenMatch();
+  await match.start();
+  for (const uci of ['e2e4', 'g1f3', 'f1c4']) { await match.playMove(uci); assert(playerCanMove(match), `after ${uci}`); }
+  state.down = true;                                            // halfway
+  await match.playMove('b1c3');
+  assert(playerCanMove(match), 'the opponent answered with the engine down');
+  match.focus = match.focusMax;
+  const u = match.undo();
+  assert(u.ok && playerCanMove(match), 'undo with the engine down');
+  match.focus = match.focusMax;
+  const before = match.focus;
+  const h1 = await match.requestHint();
+  assert(!h1.ok && h1.reason === 'engine' && match.focus === before, `a failed hint costs nothing (${JSON.stringify({ ok: h1.ok, reason: h1.reason, before, after: match.focus })})`);
+  const legal = createRules(match.fen).moves({ verbose: true })[0];
+  await match.playMove(legal.from + legal.to);
+  assert(playerCanMove(match), 'the move after a failed hint is answered');
+  state.down = false;                                           // engine back: a hint works again
+  match.focus = match.focusMax;
+  const h2 = await match.requestHint(() => 0.99);
+  assert(h2.ok, 'hints work once the engine is back');
+  state.down = true;                                            // dies with a plan waiting
+  await match.playMove(h2.hint.plans[0].uci);
+  assert(playerCanMove(match), 'following a plan with the engine down');
+}));
+
+test('a stale bot call after Undo never plays a move into the new position', quiet(async () => {
+  const { match } = await brokenMatch();
+  await match.start();
+  await match.playMove('e2e4');
+  match.focus = match.focusMax;
+  let release;
+  match.bot.chooseMove = () => new Promise((r) => { release = r; });
+  const pending = match.playMove('d2d4');
+  await new Promise((r) => setTimeout(r, 10));
+  match.undo();                                                 // back to White to move
+  release({ uci: 'e7e5' });
+  await pending;
+  eq(match.game.ply, 2, 'the stale reply was dropped');
+  assert(playerCanMove(match), 'and the player still has the move');
+}));
+
+test('the fallback move finds mate, so a game can still end with the engine down', () => {
+  // After 1.f3 e5 2.g4 Black mates with Qh4#.
+  eq(fallbackMove('rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq g3 0 2'), 'd8h4');
+  eq(fallbackMove('7k/8/8/8/8/8/8/K7 w - - 0 1') !== null, true);
+});
+
+test('a game pays out once: a second commit changes nothing', () => {
+  const summary = { kind: 'tournament', score: 1, opponentElo: 700, grades: { BEST: 3 }, accuracy: 80,
+    matchScore: { total: 900, letter: 'C' }, hintsUsed: 0, openingsReached: ['italian'] };
+  for (const kind of ['tournament', 'challenge', 'finale', 'friendly']) {
+    const c = Career.newCareer({ name: 'Once', avatar: 'boy', startClubId: 'nyc' });
+    if (kind === 'tournament') Career.enterTournament(c, 'nyc', seeded(1));
+    if (kind === 'finale') { for (const club of CLUBS) c.trophies[club.clubId] = { wonAt: 1 }; Career.enterFinale(c, seeded(2)); }
+    const args = { gameId: 'g1', kind, clubId: 'nyc', summary: { ...summary, kind }, opponent: { id: 'nyc-danny', stake: 20 } };
+    const first = Career.commitMatchResult(c, args, 1, seeded(3));
+    const snap = JSON.stringify({ elo: c.elo, xp: c.xp, o: c.openings, coins: c.coins, t: c.tournaments, f: c.finale, s: c.stats, r: c.memberRecords });
+    const again = Career.commitMatchResult(c, args, 2, seeded(4));
+    assert(!first.duplicate && again.duplicate, `${kind}: the second call is a duplicate`);
+    eq(JSON.stringify({ elo: c.elo, xp: c.xp, o: c.openings, coins: c.coins, t: c.tournaments, f: c.finale, s: c.stats, r: c.memberRecords }), snap, `${kind}: nothing paid twice`);
+    eq(again.rewards.eloDelta, first.rewards.eloDelta, `${kind}: the same result is shown again`);
+  }
+});
+
+test('save status: a refused write is reported once, and cleared when saving works again', () => {
+  const seen = [];
+  const stop = Save.onStorageStatus((st) => seen.push(st.ok));
+  let full = true;
+  Save.useStorage({ getItem: () => null, removeItem() {}, setItem() { if (full) { const e = new Error('full'); e.name = 'QuotaExceededError'; throw e; } } }, { persistent: true });
+  const c = Career.newCareer({ name: 'Q', avatar: 'boy', startClubId: 'nyc' });
+  eq(Save.saveCareer(c), false, 'the write failed');
+  Save.saveCareer(c); Save.saveCareer(c);
+  eq(Save.storageStatus().ok, false); eq(Save.storageStatus().error, 'QuotaExceededError');
+  eq(seen.join(), 'false', 'one warning, not three');
+  full = false;
+  eq(Save.saveCareer(c), true); eq(Save.storageStatus().ok, true); eq(seen.join(), 'false,true');
+  Save.useStorage(null);                                   // the memory fallback is NOT persistent
+  eq(Save.storageStatus().ok, false, 'memory-only storage counts as not saving');
+  stop();
+  Save.useStorage(Save.createMemoryStorage(), { persistent: true });
+});
+
+/* --------------------------------------------- full campaign smoke runs */
+
+/** Play one club's event through commitMatchResult, the same path the match screen uses. */
+function playEvent(c, clubId, scores, random) {
+  const out = [];
+  Career.enterTournament(c, clubId, random);
+  let i = 0;
+  while (true) {
+    const run = c.tournaments[clubId];
+    if (run.completed) break;
+    const round = Career.currentRound(c, clubId);
+    assert(round, `${clubId}: the event is not finished, so there must be a game to play`);
+    const score = scores[Math.min(i, scores.length - 1)]; i += 1;
+    const summary = { kind: round.kind === 'star' ? 'star' : 'tournament', score, opponentElo: round.elo, grades: {}, accuracy: 70,
+      matchScore: { total: 500, letter: 'C' }, hintsUsed: 0, openingsReached: [] };
+    out.push(Career.commitMatchResult(c, { gameId: `${clubId}-${run.attempt}-${i}`, kind: summary.kind, clubId, summary }, i, random));
+    assert(i < 20, 'an event never takes more than 6 games');
+  }
+  return out;
+}
+
+test('the whole campaign, from every starting city, to the ending', () => {
+  for (const start of CLUBS.map((club) => club.clubId)) {
+    const random = seeded(start.charCodeAt(0) * 7 + start.charCodeAt(2));
+    const c = Career.newCareer({ name: 'Run', avatar: start === 'lon' ? 'girl' : 'boy', startClubId: start });
+    eq(c.openings[CLUBS.find((x) => x.clubId === start).openingId], 40, `${start}: home opening at 40%`);
+    const order = [start, ...CLUBS.map((x) => x.clubId).filter((id) => id !== start)];
+    order.forEach((clubId, n) => {
+      Career.travelTo(c, clubId, `${clubId}-ext`);
+      const games = playEvent(c, clubId, [1], random);
+      eq(games.length, 6, `${start}/${clubId}: five rounds and the final`);
+      assert(games.at(-1).progress.trophy, `${start}/${clubId}: trophy`);
+      eq(Career.trophyCount(c), n + 1);
+      eq(c.finale.unlocked, n === 5, `${start}: Madrid opens with the sixth trophy only`);
+    });
+    const f = Career.enterFinale(c, random);
+    eq(f.opponents[2], CLUBS.find((x) => x.clubId === start).starPlayerId, `${start}: the last round is the home rival`);
+    for (let r = 0; r < 3; r += 1) {
+      const round = Career.currentFinaleRound(c);
+      const summary = { kind: 'finale', score: 1, opponentElo: round.elo, grades: {}, accuracy: 70, matchScore: { total: 500, letter: 'C' }, hintsUsed: 0, openingsReached: [] };
+      Career.commitMatchResult(c, { gameId: `${start}-f${r}`, kind: 'finale', clubId: 'mad', summary }, 1, random);
+    }
+    assert(c.completed && c.finale.won, `${start}: campaign complete`);
+    eq(Career.currentFinaleRound(c), null, `${start}: nothing left to play`);
+  }
+});
+
+test('losing, re-entering, runner-up and a lost Madrid round are all recoverable', () => {
+  const random = seeded(77);
+  const c = Career.newCareer({ name: 'Lose', avatar: 'girl', startClubId: 'nyc' });
+  // Swiss, all losses: finished, not first, no trophy; then re-entry works.
+  playEvent(c, 'nyc', [0], random);
+  let run = c.tournaments.nyc;
+  assert(run.completed && run.outcome === 'placed' && !c.trophies.nyc, 'lost Swiss');
+  // Knockout loss in round 1.
+  const ko = playEvent(c, 'lon', [0], random);
+  eq(ko.length, 1); eq(c.tournaments.lon.outcome, 'eliminated');
+  // Star final lost: runner-up, then the next entry replays and wins it.
+  playEvent(c, 'vie', [1, 1, 1, 1, 1, 0], random);
+  eq(c.tournaments.vie.outcome, 'runner-up'); assert(!c.trophies.vie);
+  playEvent(c, 'vie', [1], random);
+  eq(c.tournaments.vie.attempt, 2); assert(c.trophies.vie, 'the replayed final wins the trophy');
+  // Re-entry after a lost event, then winning.
+  playEvent(c, 'nyc', [1], random);
+  eq(c.tournaments.nyc.attempt, 2); assert(c.trophies.nyc);
+  for (const club of ['lon', 'ist', 'che', 'wen']) playEvent(c, club, [1], random);
+  assert(Career.hasAllTrophies(c) && c.finale.unlocked);
+  Career.enterFinale(c, random);
+  const game = (score, id) => Career.commitMatchResult(c, { gameId: id, kind: 'finale', clubId: 'mad',
+    summary: { kind: 'finale', score, opponentElo: 1400, grades: {}, accuracy: 60, matchScore: { total: 1, letter: 'D' }, hintsUsed: 0, openingsReached: [] } }, 1, random);
+  game(0, 'm1'); eq(c.finale.round, 0, 'a lost quarter-final is replayed');
+  game(0.5, 'm2'); eq(c.finale.round, 0, 'a drawn one too');
+  game(1, 'm3'); game(0, 'm4'); eq(c.finale.round, 1, 'a lost semi-final stays the semi-final');
+  game(1, 'm5'); game(1, 'm6');
+  assert(c.completed, 'Madrid completed after the replays');
+});
+
+test('a reload at any point of the campaign resumes on a valid scene with a valid next step', () => {
+  const store = Save.createMemoryStorage();
+  Save.useStorage(store, { persistent: true });
+  const random = seeded(12);
+  let c = Career.newCareer({ name: 'Reload', avatar: 'girl', startClubId: 'che' });
+  const checkpoints = [];
+  const reload = (label) => {
+    Save.saveCareer(c);
+    const back = Career.migrateCareer(Save.loadCareer());
+    const problems = Career.validateCareer(back, { sceneExists: (id) => !!SCENES[id] });
+    assert(!problems.length, `${label}: ${problems.join('; ')}`);
+    const step = Career.nextStep(back);
+    assert(step && step.type && step.label, `${label}: no next step`);
+    if (step.type === 'tournament' || step.type === 'final') assert(Career.currentRound(back, step.clubId), `${label}: ${step.type} without a round`);
+    if (step.type === 'finale' && back.finale.opponents) assert(Career.currentFinaleRound(back), `${label}: finale without a round`);
+    checkpoints.push(`${label}=${step.type}`);
+    c = back;                                            // play on from the RELOADED career
+  };
+  reload('created');
+  learnTutorialAndDrill: {
+    Career.learnFromTutorial(c, 'caro'); reload('tutorial');
+    Career.learnFromDrill(c, 'caro', 8, 8); reload('drill');
+  }
+  const levelBefore = c.level;
+  Career.grantXp(c, 300); assert(c.level > levelBefore); reload('level-up');
+  for (const [n, clubId] of ['che', 'wen', 'nyc', 'lon', 'vie', 'ist'].entries()) {
+    Career.travelTo(c, clubId, `${clubId}-ext`); reload(`travel ${clubId}`);
+    Career.enterTournament(c, clubId, random); reload(`enter ${clubId}`);
+    let g = 0;
+    while (!c.tournaments[clubId].completed) {
+      const round = Career.currentRound(c, clubId);
+      Career.commitMatchResult(c, { gameId: `${clubId}${g}`, kind: round.kind === 'star' ? 'star' : 'tournament', clubId,
+        summary: { score: 1, opponentElo: round.elo, grades: {}, accuracy: 70, matchScore: { total: 1, letter: 'D' }, hintsUsed: 0, openingsReached: [] } }, 1, random);
+      g += 1;
+      reload(`${clubId} game ${g}`);
+    }
+    assert(c.trophies[clubId], `${clubId} trophy`); reload(`trophy ${clubId}`);
+    if (n === 0) {
+      const mission = MISSIONS.find((m) => m.clubId === clubId);
+      for (const p of PUZZLES.filter((x) => x.mission === clubId)) Career.recordPuzzleSolved(c, p.id);
+      assert(c.postcards[mission.postcardId]); reload('postcard');
+    }
+  }
+  assert(c.finale.unlocked); reload('Madrid unlocked');
+  Career.travelTo(c, 'mad', 'mad-ext'); reload('travel Madrid');
+  Career.enterFinale(c, random); reload('finale entered');
+  const play = (score, id) => { Career.commitMatchResult(c, { gameId: id, kind: 'finale', clubId: 'mad',
+    summary: { score, opponentElo: 1450, grades: {}, accuracy: 60, matchScore: { total: 1, letter: 'D' }, hintsUsed: 0, openingsReached: [] } }, 1, random); };
+  play(0, 'F1'); reload('finale loss');
+  play(1, 'F2'); reload('finale win 1');
+  play(1, 'F3'); reload('finale win 2');
+  play(1, 'F4'); reload('complete');
+  assert(c.completed && Career.nextStep(c).type === 'ending');
+  assert(checkpoints.length > 50, `${checkpoints.length} reload checkpoints`);
+});
+
+test('validateCareer catches a career that could not resume', () => {
+  const c = Career.newCareer({ name: 'Bad', avatar: 'boy', startClubId: 'nyc' });
+  c.location.sceneId = 'nowhere';
+  c.tournaments.nyc = { completed: false, format: 'swiss', stage: 'rounds', rounds: [], players: [], round: 7 };
+  const problems = Career.validateCareer(c, { sceneExists: (id) => !!SCENES[id] });
+  assert(problems.some((p) => p.includes('scene')) && problems.some((p) => p.includes('no game to play')), problems.join('; '));
+  Career.migrateCareer(c);
+  eq(Career.validateCareer(c, { sceneExists: (id) => !!SCENES[id] }).length, 0, 'migrateCareer repairs it');
+  eq(c.location.sceneId, 'nyc-ext');
+});
+
+test('tournament fuzz: every club, random results, the invariants always hold', () => {
+  const random = seeded(4242);
+  for (const club of CLUBS) {
+    const format = Career.tournamentFormat(club.clubId);
+    for (let trial = 0; trial < 40; trial += 1) {
+      const c = Career.newCareer({ name: 'Fuzz', avatar: 'boy', startClubId: club.clubId });
+      let attempts = 0;
+      while (!c.trophies[club.clubId] && attempts < 12) {
+        attempts += 1;
+        const coinsBefore = c.coins;
+        const run = Career.enterTournament(c, club.clubId, random);
+        eq(run.format, format); eq(run.attempt, attempts, 'attempt counter');
+        eq(run.players.length, format === 'swiss' ? 16 : 32);
+        let games = 0; let last = null;
+        while (!run.completed) {
+          const round = Career.currentRound(c, club.clubId);
+          assert(round, `${club.clubId}: running event with no round (stage ${run.stage}, round ${run.round})`);
+          const score = attempts > 4 ? 1 : [1, 1, 0.5, 0, 1][Math.floor(random() * 5)];
+          last = Career.commitMatchResult(c, { gameId: `${club.clubId}-${trial}-${attempts}-${games}`, kind: round.kind === 'star' ? 'star' : 'tournament', clubId: club.clubId,
+            summary: { score, opponentElo: round.elo, grades: {}, accuracy: 70, matchScore: { total: 1, letter: 'D' }, hintsUsed: 0, openingsReached: [] } }, 1, random).progress;
+          games += 1;
+          // Structural checks after every game.
+          const r = run.rounds.at(-1);
+          const ids = r.pairings.flatMap((p) => [p.w, p.b]);
+          eq(new Set(ids).size, ids.length, 'nobody paired twice in a round');
+          if (format === 'swiss') eq(r.pairings.length, 8);
+          else eq(r.pairings.length, 16 / 2 ** (run.rounds.length - 1));
+          assert(games <= 6, 'at most five rounds and a final');
+        }
+        // Outcomes are consistent with the path.
+        const pts = Event.playerPoints(run);
+        let prize = pts * COINS.perTournamentPoint + (run.outcome === 'runner-up' ? COINS.finalist : 0) + (run.outcome === 'champion' ? COINS.champion : 0);
+        eq(c.coins - coinsBefore, prize, `${club.clubId}: prize money (${run.outcome}, ${pts} pts)`);
+        if (run.outcome === 'champion') { assert(c.trophies[club.clubId] && last.trophy, 'champion = trophy'); eq(c.openings[club.openingId], 100); }
+        else { assert(!c.trophies[club.clubId], `${run.outcome}: no trophy`); assert(c.openings[club.openingId] <= Math.max(TOURNAMENT.masteryCap, 40), 'mastery capped'); }
+        if (run.outcome === 'eliminated') eq(format, 'knockout');
+        if (run.outcome === 'placed') { eq(format, 'swiss'); assert(Event.standings(run).find((x) => x.id === 'you').rank > 1); }
+        if (run.outcome === 'runner-up' || run.outcome === 'champion') assert(run.final.playerIn);
+        if (format === 'swiss') eq(Event.standings(run).reduce((a, x) => a + x.points, 0), 40, 'Swiss points add up');
+      }
+      assert(c.trophies[club.clubId], `${club.clubId}: won within 12 attempts`);
+      const trophiesJson = JSON.stringify(c.trophies);
+      eq(Career.awardTrophy(c, club.clubId, 999), null, 'trophy exactly once');
+      eq(Career.currentRound(c, club.clubId), null, 'no event after the trophy');
+      eq(JSON.stringify(c.trophies), trophiesJson);
+    }
+  }
+});
+
+test('knockout draws go to Black, for the player too', () => {
+  for (const [colour, through] of [['b', true], ['w', false]]) {
+    for (let seed = 1; seed < 60; seed += 1) {
+      const c = Career.newCareer({ name: 'D', avatar: 'boy', startClubId: 'lon' });
+      Career.enterTournament(c, 'lon', seeded(seed));
+      if (Career.currentRound(c, 'lon').colour !== colour) continue;
+      const res = Career.recordTournamentGame(c, 'lon', 0.5, 1, seeded(seed));
+      eq(!res.eliminated, through, `a draw as ${colour}`);
+      break;
+    }
+  }
+  // Swiss: a draw is half a point and the event goes on.
+  const c = Career.newCareer({ name: 'D', avatar: 'boy', startClubId: 'nyc' });
+  Career.enterTournament(c, 'nyc', seeded(3));
+  Career.recordTournamentGame(c, 'nyc', 0.5, 1, seeded(3));
+  eq(Event.swissPoints(c.tournaments.nyc, 'you'), 0.5); eq(c.tournaments.nyc.round, 1);
+});
+
 /* ------------------------------------------------ tournaments and coins */
 
 import * as Event from '../js/core/tournament.js';
@@ -511,7 +833,6 @@ import { MEMBERS, membersForClub, VISITORS } from '../js/data/members.js';
 import { MEMBER_SPOTS } from '../js/data/memberSpots.js';
 import { TOURNAMENT, COINS } from '../js/data/config.js';
 
-const seeded = (s0) => { let s = s0; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; };
 
 test('simulated games follow Elo: upsets rare across a big gap, common within 100', () => {
   const rate = (gap, n = 20000) => {
@@ -734,6 +1055,47 @@ test('layered scenes: every hotspot reachable from the spawn, nothing walks thro
   }
 });
 
+test('every scene: every arrival reaches every interaction, and random walking never traps the player', () => {
+  const sizes = JSON.parse(readFileSync(path.join(ROOT, 'assets/manifest.json'), 'utf8')).scenes;
+  const USE_RADIUS = 8;                                   // scene.js: screen-space percent of the scene height
+  const random = seeded(99);
+  let checked = 0;
+  for (const scene of Object.values(SCENES)) {
+    const layers = SCENE_LAYERS[scene.id];
+    if (!layers) {                                        // a waypoint scene: the graph test above covers it
+      for (const spawn of Object.values(scene.spawn)) for (const h of scene.hotspots) assert(findPath(scene, spawn, h.node), `${scene.id}: ${spawn} -> ${h.id}`);
+      continue;
+    }
+    const [w, hgt] = sizes[scene.id];
+    const aspect = w / hgt;
+    const grid = createWalkGrid(layers, { aspect, walker: walkerFor(scene.actorHeight ?? 0.1) });
+    const dist = (a, b) => Math.hypot((a[0] - b[0]) * aspect, a[1] - b[1]);
+    const exits = scene.hotspots.filter((h) => ['leave', 'scene'].includes(h.action.type));
+    assert(exits.length, `${scene.id}: has a way out`);
+    for (const [name, node] of Object.entries(scene.spawn)) {
+      const start = grid.nearestFree(...scene.nodes[node]);
+      assert(start, `${scene.id}: spawn ${name} on the floor`);
+      for (const h of scene.hotspots) {
+        const route = grid.path(start, scene.nodes[h.node]);
+        assert(route, `${scene.id}: from ${name} to ${h.id}`);
+        assert(dist(route.at(-1), scene.nodes[h.node]) <= USE_RADIUS, `${scene.id}: ${h.id} can be reached close enough to use`);
+      }
+      // Wander: 30 random walks of 120 pushes each, the same slide-along-walls move the joystick uses.
+      for (let walk = 0; walk < 30; walk += 1) {
+        let pos = start;
+        for (let step = 0; step < 120; step += 1) {
+          const t = random() * Math.PI * 2;
+          const r = grid.move(pos[0], pos[1], (Math.cos(t) * 1.5) / aspect, Math.sin(t) * 1.5);
+          pos = [r.x, r.y];
+        }
+        for (const exit of exits) assert(grid.path(pos, scene.nodes[exit.node]), `${scene.id}: trapped at ${pos.map((v) => v.toFixed(1))} (no way to ${exit.id})`);
+        checked += 1;
+      }
+    }
+  }
+  assert(checked > 500, `${checked} random walks`);
+});
+
 test('free walking slides along obstacles instead of passing through', () => {
   const layers = { floor: [[[0, 0], [100, 0], [100, 100], [0, 100]]], blocks: [[40, 40, 60, 60]], props: [] };
   const grid = createWalkGrid(layers, { aspect: 1 });
@@ -817,7 +1179,9 @@ test('every practice challenge is playable: legal position, legal answer', () =>
 
 /* ---------------------------------------------------------------- report */
 
-await Promise.all(running);
+for (const { name, fn } of queue) {
+  try { await fn(); passed += 1; } catch (error) { failures.push(`${name}: ${error.message}`); }
+}
 console.log(`${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  FAIL ${f}`);
 process.exit(failures.length ? 1 : 0);

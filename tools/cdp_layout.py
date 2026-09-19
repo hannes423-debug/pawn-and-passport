@@ -60,6 +60,18 @@ PROBE = r"""(() => {
       out.problems.push(`overlap ${name(a)} x ${name(b)} (${Math.round(w)}x${Math.round(hgt)})`);
     }
   }
+  // World labels must not hide under the HUD or the touch controls.
+  const blockers = [...document.querySelectorAll('.pp-hud, .pp-pad__stick, .pp-pad__action')]
+    .filter((el) => el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden').map((el) => [el.className.split(' ')[0], el.getBoundingClientRect()]);
+  for (const label of document.querySelectorAll('.pp-hotspot__label')) {
+    const r = label.getBoundingClientRect();
+    if (!r.width || r.right < 0 || r.left > vw) continue;          // off camera: walked into view later
+    for (const [name, b] of blockers) {
+      const w = Math.min(r.right, b.right) - Math.max(r.left, b.left);
+      const hh = Math.min(r.bottom, b.bottom) - Math.max(r.top, b.top);
+      if (w > 6 && hh > 6) out.problems.push(`label "${label.textContent.trim().slice(0, 24)}" under ${name}`);
+    }
+  }
   const inset = (side) => { const d = document.createElement('div'); d.style.cssText = `position:fixed;padding-top:env(safe-area-inset-${side})`; document.body.append(d); const v = parseFloat(getComputedStyle(d).paddingTop) || 0; d.remove(); return v; };
   const safe = { top: inset('top'), bottom: inset('bottom'), left: inset('left'), right: inset('right') };
   const inView = (r) => r.left >= -1 && r.top >= -1 && r.right <= vw + 1 && r.bottom <= vh + 1;
@@ -132,7 +144,7 @@ def run_viewport(spec, failures):
         c.eval(NEW_CAREER % ("girl", "nyc"), await_promise=True)
         go("window.__pap.go('map')", settle=1.5)
         check("map")
-        for sid in ["nyc-ext", "nyc-int", "lon-venue"]:
+        for sid in ["nyc-ext", "nyc-int", "lon-venue", "che-venue", "vie-venue", "mad-int"]:
             go(f"window.__pap.go('scene', {{ sceneId: '{sid}' }})", "!!document.querySelector('.pp-actor')")
             check(f"scene-{sid}")
         for tab in ["passport", "openings", "postcards", "career"]:
@@ -142,6 +154,15 @@ def run_viewport(spec, failures):
         check("settings")
         go("window.__pap.go('ending', { creditsOnly: true })")
         check("credits")
+        go("window.__pap.go('drill', { openingId: 'italian', clubId: 'nyc', returnScene: 'nyc-int' })", "document.querySelectorAll('.cwt-piece').length > 0")
+        check("drill")
+        # The real ending, on a finished campaign (a copy: the career is restored after).
+        c.eval("""(() => { window.__saved = JSON.stringify(window.__pap.career); const c = window.__pap.career;
+          c.completed = true; c.finale.won = true; c.finale.unlocked = true;
+          for (const id of ['nyc','lon','vie','ist','che','wen']) c.trophies[id] = { wonAt: 1, starElo: 900, tier: 0 }; })()""")
+        go("window.__pap.go('ending', {})")
+        check("ending")
+        c.eval("window.__pap.career = JSON.parse(window.__saved)")
         go("window.__pap.go('puzzle', { missionId: 'm-lon', returnScene: 'lon-venue' })", "document.querySelectorAll('.cwt-piece').length > 0")
         check("puzzle")
 
@@ -164,7 +185,7 @@ def run_viewport(spec, failures):
             c.pump(1.2)
         c.wait_for("document.querySelector('.cwt-board')?.dataset.interactive === 'true'", timeout=60)
         c.eval("document.querySelector('.pp-hintbtn').click()")
-        c.wait_for("!!document.querySelector('.cwt-arrow--hint')", timeout=40)
+        c.wait_for("!!document.querySelector('[class*=cwt-arrow--hint-]') || !!document.querySelector('.pp-hint-card:not([hidden])')", timeout=40)
         c.pump(3)
         after = rect()
         if before != after:
