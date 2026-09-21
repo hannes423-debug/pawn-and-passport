@@ -85,6 +85,57 @@ crashes or stops answering is restarted. The match screen shows the engine's
 status, so "grades don't work" always comes with a reason. `?engine=asm`
 forces the fallback for testing on a device.
 
+## Difficulty
+
+Three modes, chosen at New Game (Normal preselected) and changeable any time
+in Settings. The choice lives on the CAREER, so it is part of the save, and it
+only ever affects games not yet played: a tournament already under way keeps
+the field it was drawn with, and trophies, rating and history never move.
+There is no rubber-banding anywhere - the strength is chosen, not adapted.
+
+| | first club | sixth club | finale |
+|---|---|---|---|
+| **Easy** "Learning the ropes" | 550 | 950 | 980-1100 |
+| **Normal** "Chess career" | 600 | 1250 | 1300-1450 |
+| **Hard** "Club challenge" | 800 | 1450 | 1500-1600 |
+
+`DIFFICULTY` in `js/data/config.js` owns all three ladders and nothing else in
+the game branches on the mode. A target Elo becomes a bot through
+`js/core/difficulty.js` and the `BOT_STRENGTH` table beside it.
+
+Those numbers are MEASURED, not labels. Stockfish refuses to limit itself
+below UCI_Elo 1320, so under about 1200 the engine is not what is being turned
+down - three knobs on the bot layer are: how often an unforced error happens,
+how much it may hand over (a hung queen at the bottom, a dropped pawn near the
+top) and how aimless it is. Openings stay sensible at every level because the
+opening book runs before any of it.
+
+```bash
+node tools/dev/calibrate_bots.mjs          # every mode and tier: ACPL vs a depth-12 reference
+node tools/dev/calibrate_bots.mjs --elo 600,1000,1400
+```
+
+The floor is about 600: below that the only lever left is random play, which
+is the one thing an Easy mode must not be.
+
+## Soundtrack
+
+Four tracks in `assets/audio/`. **Town Square Afternoon** plays everywhere
+outside a match and does not restart when the player changes screen, because
+asking `js/ui/music.js` for the track already sounding does nothing. In a
+match, **Tactical Tension** is the default, **Tense Battle Theme** the sharp
+middle and **Checkmate Approaching** the rare last one, crossfaded over 900ms.
+
+`js/core/musicMood.js` chooses, and it is deliberately blind to the
+evaluation: no centipawn score, no mate score, nothing derived from one, so
+the music can never become a hidden eval bar telling the player they are
+losing. It reads what is already visible on the board - checks, captures and
+promotions in the last six plies, being in check, having two legal moves or
+fewer, a mate actually available this move, the phase, a clock about to flag -
+and adds hysteresis and a 15s dwell so it does not flicker. A quiet positional
+game never leaves the first track; Morphy's Opera Game reaches the last one
+only for the closing queen sacrifice.
+
 ## Practice room and openings
 
 Every club's practice room (the Practice hotspot) offers the **practice tree**,
@@ -141,11 +192,23 @@ line, so the player walks behind a lamp and in front of a table.
 
 ```bash
 python3 tools/build_layers.py --preview   # cut-outs + js/data/sceneLayers.js; previews in tools/shots/layers-<scene>.png
+python3 tools/build_layers.py --data      # collision data only, no re-cutting (geometry-only changes)
+python3 tools/build_layers.py --check     # is the committed sceneLayers.js still what LAYERS makes?
 python3 tools/cdp_depth.py                # browser: cut-outs, walking with collision, depth order, every hotspot
+node tools/dev/clearance.mjs              # any floor walled off from the spawn?
+open '...?debugCollision=1'               # paint the walk grid over the art, in play
 ```
 
 Each prop is a rect (GrabCut seeds from it), a base line and a footprint;
-each scene has floor polygons and extra blocks. To use hand-made layers
+each scene has floor polygons and extra blocks.
+
+**Walls are the GAP between floor polygons**, not blocks, in every interior.
+The grid therefore marks solid first and then grows it by the walker's own
+half-size, so a wall spelled as a gap stops a body exactly as hard as an
+explicit block does. Growing only the blocks, which is what `freeWalk.js` used
+to do, left the floor edge unguarded and let a character stand half inside
+every wall in the game. `tests/run.js` pins that: in all 24 scenes, no
+standable cell puts a body off the floor. To use hand-made layers
 instead of GrabCut, put a transparent PNG the size of the scene at
 `<City folder>/layers/<scene>.png` (for example `London/layers/lon-venue.png`)
 and rebuild: each prop then takes that file's pixels inside its rect.
@@ -155,8 +218,14 @@ and rebuild: each prop then takes that file's pixels inside its rect.
 ```bash
 python3 tools/build_assets.py          # only after new scene/UI art arrives
 python3 tools/build_characters.py      # only after new character sheets arrive
-./tools/build-itch.sh                  # -> dist/pawn-and-passport-<version>.zip (about 20 MB)
+./tools/build-itch.sh                  # -> dist/pawn-and-passport-<version>.zip
 ```
+
+`index.html` is at the ROOT of that zip, which is what itch.io serves; the
+build asserts it, and refuses to ship a wrapper folder, a missing soundtrack
+or a dev page. `tools/predeploy.sh` runs first and additionally checks that
+the generated collision data still matches its generator and that no scene has
+a doorway a body cannot fit through.
 
 ## Layout
 
@@ -167,7 +236,8 @@ css/board.css           World Tour board CSS + the ornate-board skin
 css/touch.css           phone/tablet layout and the scene joystick
 js/main.js              boot + screen registry
 js/data/                ALL campaign content and every tunable number
-  config.js             levels, XP, Elo bands, Focus, hint cost, scoring, bot strength
+  config.js             levels, XP, DIFFICULTY (the three Elo ladders), Focus,
+                        hint cost, scoring, BOT_STRENGTH (the measured bot table)
   clubs.js              6 clubs + the Madrid finale (13 locations)
   openings.js           6 openings, lines in SAN
   starPlayers.js        6 rivals with linear dialogue
@@ -176,9 +246,15 @@ js/data/                ALL campaign content and every tunable number
   postcards.js          6 postcards + the Beyond the Tour secret
   scenes.js             24 walkable scenes: waypoints + hotspots
 js/core/                pure rules, no DOM (Node-tested)
-  career.js save.js hints.js grading.js scoring.js openingBook.js difficulty.js dialogue.js
+  career.js save.js hints.js grading.js scoring.js openingBook.js dialogue.js
+  difficulty.js         a target Elo -> a bot profile
+  musicMood.js          which match track plays; reads the BOARD, never the evaluation
+  freeWalk.js           the walk grid: solid mask, eroded by the walker's size
 js/game/match.js        one game: bot, live grading, Focus, hints, guide arrows
-js/ui/                  app shell, board, effects, sprites, audio, screens/
+js/ui/                  app shell, board, effects, sprites, screens/
+  audio.js              synthesised sound effects
+  music.js              the four-track soundtrack: crossfades, autoplay, volume
+  difficultyPicker.js   Easy / Normal / Hard, shared by new-game and Settings
 js/chess/               the reused Chess: World Tour chess core (see docs/DESIGN.md)
 vendor/                 chess.js, Stockfish 18 lite single-threaded WASM
 assets/                 web copies of the art (tools/build_assets.py writes them)
