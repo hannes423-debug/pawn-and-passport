@@ -218,8 +218,12 @@ and rebuild: each prop then takes that file's pixels inside its rect.
 ```bash
 python3 tools/build_assets.py          # only after new scene/UI art arrives
 python3 tools/build_characters.py      # only after new character sheets arrive
-./tools/build-itch.sh                  # -> dist/pawn-and-passport-<version>.zip
+./tools/build-itch.sh                  # -> dist/pawn-and-passport-<version>.zip (about 73 MB)
 ```
+
+Most of that is art: 23 MB of prop cut-outs, 11 MB of scene paintings, 13 MB
+of music and 18 MB of Stockfish. Nothing is preloaded that does not need to
+be - a track is fetched the first time it plays, not at boot.
 
 `index.html` is at the ROOT of that zip, which is what itch.io serves; the
 build asserts it, and refuses to ship a wrapper folder, a missing soundtrack
