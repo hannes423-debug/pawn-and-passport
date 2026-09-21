@@ -31,6 +31,10 @@ cp -r css js vendor "$out/"
 mkdir -p "$out/assets"
 cp -r assets/ui assets/scenes assets/cities assets/postcards assets/pieces assets/board \
       assets/fonts assets/characters assets/layers assets/audio "$out/assets/"
+# assets/manifest.json is a FILE at the top of assets/, not a folder, so the
+# line above never took it. The game fetches it for every scene's size; without
+# it a room lays out from whatever the bitmap happens to report once it loads.
+cp assets/manifest.json "$out/assets/"
 cp docs/LICENSES.md "$out/LICENSES.md"
 cp vendor/stockfish/COPYING-GPLv3.txt "$out/COPYING-GPLv3.txt"
 
@@ -45,7 +49,7 @@ for f in $(find "$out/js" -name '*.js'); do node --check "$f" >/dev/null; done
 missing=0
 while IFS= read -r ref; do
   [ -e "$out/$ref" ] || { echo "MISSING in build: $ref"; missing=1; }
-done < <(grep -rhoE "assets/[A-Za-z0-9_./-]+\.(webp|png|woff2|mp3)" "$out/js" "$out/css" "$out/index.html" \
+done < <(grep -rhoE "assets/[A-Za-z0-9_./-]+\.(webp|png|woff2|mp3|json)" "$out/js" "$out/css" "$out/index.html" \
          | sed 's#^\.\./##' | sort -u | grep -v '\${')
 [ "$missing" = 0 ] || exit 1
 
