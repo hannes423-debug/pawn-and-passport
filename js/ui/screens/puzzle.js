@@ -16,7 +16,8 @@ import { HIGHLIGHT } from '../../chess/render/boardRenderer.js';
 import { missionById } from '../../data/missions.js';
 import { clubById } from '../../data/clubs.js';
 import { PUZZLES } from '../../data/puzzles.js';
-import { recordPuzzleSolved, recordClubPuzzleSolved, missionProgress } from '../../core/career.js';
+import { recordPuzzleSolved, recordClubPuzzleSolved, missionProgress, postcardCount } from '../../core/career.js';
+import { POSTCARDS } from '../../data/postcards.js';
 import { puzzlesForClub } from '../../data/clubPuzzles.js';
 import { postcardFlip } from './journal.js';
 import { tapWord } from '../touch.js';
@@ -183,10 +184,18 @@ export function puzzleScreen(app, params) {
   async function postcardReward(postcard, all) {
     sfx.postcard();
     await app.dialogue({ name: mission.host.name, role: club.casualLocationName, look: mission.host.look, lines: mission.outro });
-    await app.overlay((close) => h('div.pp-panel.pp-modal', { style: { textAlign: 'center' } },
-      h('h2.pp-h2', { text: 'Postcard collected!' }),
-      h('p.pp-small', { text: `${tapWord()[0].toUpperCase()}${tapWord().slice(1)} the card to turn it over.` }),
+    const count = postcardCount(career);
+    /* The first letter of every back, in journal order: the slots fill in as
+       the cards arrive, and only a full set shows the word. */
+    const letters = [...POSTCARDS].sort((x, y) => x.order - y.order)
+      .map((pc) => h('span', { class: career.postcards[pc.id] ? `is-got${pc.id === postcard.id ? ' is-new' : ''}` : '', text: career.postcards[pc.id] ? pc.letter : '?' }));
+    await app.overlay((close) => h('div.pp-panel.pp-modal.pp-postcard-reward', { style: { textAlign: 'center' } },
+      h('div.pp-postcard-reward__count', { text: `✉ Postcard ${count} of 6` }),
+      h('h2.pp-h1', { text: `Greetings from ${club.city}!` }),
+      h('p.pp-small', { text: `${tapWord()[0].toUpperCase()}${tapWord().slice(1)} the card to turn it over and read the back.` }),
       postcardFlip(postcard, { collected: true, startFlipped: false }),
+      h('div.pp-letters', { 'aria-label': 'Letters from the backs of your postcards' }, letters),
+      h('p.pp-small.pp-muted', { text: all ? '' : 'Each back begins with a letter. Six cards, six letters...' }),
       all ? h('p', null, h('b', { text: 'All six postcards! Something strange appears in your journal...' })) : null,
       button(all ? 'Open the journal' : 'Keep it', () => close(), { cls: 'pp-btn--gold' })), { dismissable: false });
     if (!all) return false;

@@ -22,12 +22,12 @@ import { HIGHLIGHT, ARROW } from '../../chess/render/boardRenderer.js';
 import { hex } from '../../chess/render/feedback.js';
 import { GRADE_META, GRADE_ORDER } from '../../core/grading.js';
 import { openingById } from '../../data/openings.js';
-import { clubById, FINALE } from '../../data/clubs.js';
+import { clubById, FINALE, CLUBS } from '../../data/clubs.js';
 import { starById } from '../../data/starPlayers.js';
 import { applyUci } from '../../chess/core/rules.js';
 import {
   applyGameResult, recordTournamentGame, recordFinaleGame, maxFocus, hintPlies, masteryState, currentRound,
-  repertoireSlots, commitMatchResult
+  repertoireSlots, commitMatchResult, undoUses
 } from '../../core/career.js';
 import { roundReport, roundLabel } from '../tournamentView.js';
 import { QUALITY_META } from '../../core/focusHints.js';
@@ -121,14 +121,16 @@ export function matchScreen(app, params) {
       // The two Focus abilities side by side, at every viewport.
       h('div.pp-abilities', null, hintBtn, undoBtn),
       hintInfo,
-      h('div.pp-small.pp-muted.pp-match__note', { text: `Level ${career.level} hint: ${band.label}, one per candidate move. Each roll can fail, or come up green (1 move), purple (2) or gold (3).` })));
+      h('div.pp-small.pp-muted.pp-match__note', { text: `Hint: ${band.label} · green 1 move, purple 2, gold 3` })));
 
   /* The engine's state, always visible: a phone that cannot run Stockfish used
      to lose grades and hints without a word. */
   const engineLine = h('div.pp-engine');
+  /* Only worth a line when it is NOT simply working. */
   const paintEngine = () => {
     engineLine.dataset.status = engineService.status;
     engineLine.textContent = `⚙ ${engineService.statusText}`;
+    engineLine.hidden = engineService.status === 'ready';
   };
   const stopEngineWatch = engineService.onStatus(paintEngine);
   paintEngine();
@@ -141,11 +143,23 @@ export function matchScreen(app, params) {
     guideBtn.querySelector('span:last-child').textContent = guideOn ? 'Guide arrows: on' : 'Guide arrows: off';
     paintGuide();
   }, { cls: 'pp-btn--small' });
+  const moreBody = h('div.pp-col.pp-match__morebody', { hidden: true });
+  const moreBtn = h('button.pp-match__more', { type: 'button', 'aria-expanded': 'false', text: '▸ More: guide, notes, draw, resign',
+    onclick: () => {
+      moreBody.hidden = !moreBody.hidden;
+      moreBtn.setAttribute('aria-expanded', String(!moreBody.hidden));
+      moreBtn.textContent = `${moreBody.hidden ? '▸' : '▾'} More: guide, notes, draw, resign`;
+    } });
   const right = h('aside.pp-match__right', null,
     hintCard,
     h('div.pp-panel.pp-panel--dark.pp-match__banner', null, openingBanner),
     h('div.pp-panel.pp-col.pp-match__moves', null, h('h3.pp-h3', { text: 'Moves' }), moveList, lastGrade, engineLine),
+    /* Everything a game can do without: folded away, one tap to open. */
     h('div.pp-panel.pp-col.pp-match__tools', null,
+      moreBtn,
+      moreBody));
+  /* The folded options, opened by moreBtn. */
+  moreBody.append(
       h('div.pp-row.pp-match__toggles', null, guideBtn, notesBtn),
       h('div.pp-small.pp-muted', { text: `Blue arrows come from your equipped openings, as deep as you know them (a mastered opening keeps guiding after the book ends). Free, no Focus. ${tapWord() === 'tap' ? 'Tap' : 'Hover'} a suggested square for details.` }),
       h('div.pp-small', null, h('b', { text: `Repertoire ${(career.equipped || []).length}/${repertoireSlots(career.level)}: ` }),
@@ -162,7 +176,7 @@ export function matchScreen(app, params) {
             h('h2.pp-h2', { text: 'Resign this game?' }),
             h('div.pp-row', null, button('Resign', () => close(true), { cls: 'pp-btn--red' }), button('Keep playing', () => close(false)))));
           if (ok) match.resign();
-        }, { cls: 'pp-btn--small pp-btn--red' }))));
+        }, { cls: 'pp-btn--small pp-btn--red' })));
 
   const el = h('div.pp-screen.pp-match', null, left, h('main.pp-match__board', null, board.frame), right, tip);
 
@@ -228,6 +242,7 @@ export function matchScreen(app, params) {
     };
     const book = match.guide();
     draw(book);
+    if (book.length) app.coach('guide', 'Blue arrows are your own opening preparation: free, no Focus. Follow them while you know the line; the more you master an opening, the further they go.', { title: 'Opening guide', host: right });
     /* A mastered opening keeps guiding when the opponent leaves the book. */
     if (!book.length) {
       const token = ++guideToken;
@@ -344,6 +359,9 @@ export function matchScreen(app, params) {
         paintPosition(record);
         if (record.checkmate || record.check) sfx.check(); else if (record.capturedPiece) sfx.capture(); else sfx.move();
         paintMoves(); paintGuide(); paintFocus();
+        if (record.color === colour && match.game.history.filter((m) => m.color === colour).length >= 4) {
+          app.coach('hint', 'Stuck? 💡 Hint spends ✦ Focus and rolls for ideas: green shows one move, purple a two-move plan, gold three. Play a lesser idea, or your own move, and some Focus comes back.', { title: 'Focus and Hint', host: right });
+        }
         break;
       }
       case 'graded': {
@@ -541,13 +559,18 @@ export function matchScreen(app, params) {
     return next ? `${roundLabel(run, progress.roundIndex)} done. Next: ${next.label} against ${next.name} (${next.elo}).` : 'Round done.';
   }
 
+  /**
+   * The reward sequence, in the order a player cares about it: the result,
+   * Elo, XP, the opening, what a level-up improved, and what it means for the
+   * event. Score breakdown and move grades are one tap away underneath.
+   */
   function showResult({ summary, rewards, progress, levelBefore, focusBefore, pliesBefore, coinDelta = 0 }) {
     const ms = summary.matchScore;
-    if (career.level > levelBefore) sfx.levelUp();
+    const levelled = career.level > levelBefore;
+    if (levelled) sfx.levelUp();
+    const outcome = summary.score === 1 ? 'win' : summary.score === 0.5 ? 'draw' : 'loss';
     const gradeTiles = GRADE_ORDER.filter((g) => summary.grades[g]).map((g) =>
       h(`div.pp-tile.pp-tile--${GRADE_META[g].tier}`, null, h('b', { text: summary.grades[g], style: { color: hex(GRADE_META[g].tier) } }), h('span', { text: GRADE_META[g].label })));
-    const masteryLines = Object.entries(rewards.mastery).map(([id, gain]) =>
-      h('li', null, h('span', { text: openingById(id).name }), h('b', { text: `+${gain}% → ${career.openings[id]}%` })));
     let progressText = null;
     if (kind === 'tournament' || kind === 'star') progressText = tournamentText(progress);
     if (kind === 'challenge') {
@@ -555,54 +578,74 @@ export function matchScreen(app, params) {
       progressText = coinDelta > 0 ? `You win ${coinDelta} coins from ${first}.` : coinDelta < 0 ? `${first} takes ${-coinDelta} of your coins.` : `A draw: ${first} hands your stake back.`;
     }
     if (kind === 'finale') {
-      progressText = progress.won ? 'You won the Grand Finale!' : progress.cleared ? 'Through to the next round!' : 'Eliminated this time. The round can be replayed.';
+      progressText = progress.won ? 'You won the Grand Finale!' : progress.cleared ? 'Through to the next round!' : 'Not this time. The round can be replayed.';
     }
+    const row = (icon, label, value, cls = '') => h(`li.pp-reward${cls ? `.${cls}` : ''}`, null, h('span.pp-reward__icon', { text: icon }), h('span', { text: label }), h('b', { text: value }));
+    const rewardsList = [
+      row('♟', 'Elo', kind === 'friendly' ? `unrated · ${career.elo}` : `${rewards.eloDelta >= 0 ? '+' : ''}${rewards.eloDelta} → ${career.elo}`, rewards.eloDelta < 0 ? 'is-neg' : ''),
+      row('★', 'XP', `+${rewards.xp.xp}${progress?.trophy ? ` +${progress.trophy.xp.xp} trophy` : ''}${progress?.won && progress.xp ? ` +${progress.xp.xp} finale` : ''}`),
+      ...Object.entries(rewards.mastery).map(([id, gain]) => row('📖', openingById(id).name, `+${gain}% → ${career.openings[id]}%`)),
+      progress?.mastery ? row('📖', `${openingById(club.openingId).name} (tournament)`, `+${progress.mastery}% → ${career.openings[club.openingId]}%`) : null,
+      coinDelta ? row('🪙', kind === 'challenge' ? 'Stake' : 'Prize money', `${coinDelta > 0 ? '+' : ''}${coinDelta} → ${career.coins}`, coinDelta < 0 ? 'is-neg' : '') : null
+    ].filter(Boolean);
+    /* A level-up says exactly what got better. */
+    const improved = [];
+    if (maxFocus(career.level) > focusBefore) improved.push(`Max Focus ${focusBefore} → ${maxFocus(career.level)}`);
+    if (hintPlies(career.level).rolls > pliesBefore) improved.push(`Hint: ${hintPlies(levelBefore).label} → ${hintPlies(career.level).label}`);
+    else if (hintPlies(career.level).odds !== hintPlies(levelBefore).odds) improved.push('Hint rolls: better odds of purple and gold');
+    if (repertoireSlots(career.level) > repertoireSlots(levelBefore)) improved.push(`Repertoire slots ${repertoireSlots(levelBefore)} → ${repertoireSlots(career.level)}: equip another opening in the Journal`);
+    if (undoUses(career.level) > undoUses(levelBefore)) improved.push(`Undo ${undoUses(levelBefore)} → ${undoUses(career.level)} per game`);
 
-    return app.overlay((close) => h('div.pp-panel.pp-modal.pp-modal--wide', null,
+    return app.overlay((close) => h('div.pp-panel.pp-modal.pp-modal--wide.pp-result', null,
       h('div.pp-result__head', null,
-        h('div.pp-h3', { text: `${KIND_LABEL[kind]} · ${summary.headline}` }),
-        h('div.pp-result__letter', { text: ms.letter }),
-        h('div.pp-result__score', { text: `Match Score ${ms.total.toLocaleString('en')}` }),
-        progressText ? h('p', null, h('b', { text: progressText })) : null),
-      h('div.pp-result__grid', null,
-        h('div.pp-col', null,
-          h('h3.pp-h3', { text: 'Score breakdown' }),
-          h('ul.pp-lines', null, ms.lines.map((l) => h('li', null, h('span', { text: l.label }), h(`b${l.points < 0 ? '.neg' : ''}`, { text: `${l.points > 0 ? '+' : ''}${l.points}` }))))),
-        h('div.pp-col', null,
-          h('h3.pp-h3', { text: 'Your moves' }),
-          summary.accuracy === null ? h('p.pp-small', { text: engineService.available === false
-            ? `Moves were not graded: ${engineService.statusText}`
-            : 'Too few of your moves were graded to give an accuracy.' }) : null,
-          h('div.pp-tiles', null,
-            h('div.pp-tile', null, h('b', { text: summary.accuracy === null ? 'not graded' : `${summary.accuracy}%` }), h('span', { text: 'Accuracy' })),
-            gradeTiles),
-          h('h3.pp-h3', { text: 'Career' }),
-          h('ul.pp-lines', null,
-            h('li', null, h('span', { text: 'Elo' }), h('b', { class: rewards.eloDelta < 0 ? 'neg' : '', text: kind === 'friendly' ? `unrated · ${career.elo}` : `${rewards.eloDelta >= 0 ? '+' : ''}${rewards.eloDelta} → ${career.elo}` })),
-            h('li', null, h('span', { text: 'XP' }), h('b', { text: `+${rewards.xp.xp}` })),
-            coinDelta ? h('li', null, h('span', { text: kind === 'challenge' ? '🪙 Stake' : '🪙 Prize money' }), h('b', { class: coinDelta < 0 ? 'neg' : '', text: `${coinDelta > 0 ? '+' : ''}${coinDelta} → ${career.coins}` })) : null,
-            progress?.mastery ? h('li', null, h('span', { text: `📖 ${openingById(club.openingId).name} (tournament)` }), h('b', { text: `+${progress.mastery}% → ${career.openings[club.openingId]}%` })) : null,
-            progress?.trophy ? h('li', null, h('span', { text: `🏆 ${progress.trophy.trophyName}` }), h('b', { text: `+${progress.trophy.xp.xp} XP` })) : null,
-            progress?.won && progress.xp ? h('li', null, h('span', { text: '🥇 Grand Finale' }), h('b', { text: `+${progress.xp.xp} XP` })) : null,
-            career.level > levelBefore ? h('li', null, h('span', { text: '⬆ LEVEL UP' }), h('b', { text: `Level ${career.level}` })) : null,
-            maxFocus(career.level) > focusBefore ? h('li', null, h('span', { text: 'Max Focus' }), h('b', { text: `${focusBefore} → ${maxFocus(career.level)}` })) : null,
-            hintPlies(career.level).rolls > pliesBefore ? h('li', null, h('span', { text: 'Hint upgraded' }), h('b', { text: hintPlies(career.level).label })) : null,
-            masteryLines))),
-      h('div.pp-row', { style: { justifyContent: 'center', marginTop: '12px' } },
+        h(`div.pp-result__word.is-${outcome}`, { text: outcome === 'win' ? 'Victory!' : outcome === 'draw' ? 'Draw' : 'Defeat' }),
+        h('div.pp-small', { text: `${KIND_LABEL[kind]} · ${summary.headline}` })),
+      h('ul.pp-rewards', null, rewardsList),
+      levelled ? h('div.pp-levelup', null, h('b', { text: `⬆ Level ${career.level}!` }), improved.length ? h('ul', null, improved.map((t) => h('li', { text: t }))) : null) : null,
+      progressText ? h('p.pp-result__next', null, h('b', { text: progressText })) : null,
+      h('details.pp-result__details', null,
+        h('summary', { text: `Match details · Score ${ms.letter} ${ms.total.toLocaleString('en')}${summary.accuracy === null ? '' : ` · accuracy ${summary.accuracy}%`}` }),
+        h('div.pp-result__grid', null,
+          h('div.pp-col', null,
+            h('h3.pp-h3', { text: 'Score breakdown' }),
+            h('ul.pp-lines', null, ms.lines.map((l) => h('li', null, h('span', { text: l.label }), h(`b${l.points < 0 ? '.neg' : ''}`, { text: `${l.points > 0 ? '+' : ''}${l.points}` }))))),
+          h('div.pp-col', null,
+            h('h3.pp-h3', { text: 'Your moves' }),
+            summary.accuracy === null ? h('p.pp-small', { text: engineService.available === false
+              ? `Moves were not graded: ${engineService.statusText}`
+              : 'Too few of your moves were graded to give an accuracy.' }) : null,
+            h('div.pp-tiles', null, gradeTiles)))),
+      h('div.pp-row', { style: { justifyContent: 'center', marginTop: '10px' } },
         button('Continue', () => close(), { cls: 'pp-btn--gold', icon: '▶' }))), { dismissable: false });
   }
 
+  /* One of the game's main rewards: the trophy, the rival beaten, the opening
+     mastered, the passport stamped, the count toward Madrid. */
   function trophyCeremony(trophy) {
     const o = openingById(trophy.openingId);
+    const star = starById(club.starPlayerId);
+    const count = Object.keys(career.trophies).length;
     sfx.trophy();
     confetti();
-    return app.overlay((close) => h('div.pp-panel.pp-modal', { style: { textAlign: 'center' } },
-      h('div', { style: { fontSize: '84px', lineHeight: '1' }, text: '🏆' }),
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return app.overlay((close) => h('div.pp-panel.pp-modal.pp-ceremony', null,
+      h('div.pp-ceremony__cup', { text: '🏆' }),
       h('h2.pp-h1', { text: trophy.trophyName }),
-      h('p', { text: `${club.clubName} champion!` }),
-      h('p', null, 'Opening mastered: ', h('b', { text: `${o.name} ${trophy.masteryBefore}% → 100%` })),
-      h('p.pp-small', { text: `+${trophy.xp.xp} XP` }),
-      trophy.finaleUnlocked ? h('p', null, h('b', { text: '🏟 All six trophies! The Madrid Grand Finale is now open on the world map.' })) : null,
+      h('p', null, h('b', { text: `${club.clubName} champion!` }), ` You beat ${star.name} in the final.`),
+      h('div.pp-stamp', { 'aria-label': 'Passport stamp' },
+        h('span.pp-stamp__city', { text: club.city.toUpperCase() }),
+        h('span.pp-stamp__cup', { text: '🏆' }),
+        h('span.pp-stamp__date', { text: date })),
+      h('ul.pp-rewards', null,
+        h('li.pp-reward', null, h('span.pp-reward__icon', { text: '📖' }), h('span', { text: `${o.name} mastered` }), h('b', { text: `${trophy.masteryBefore}% → 100%` })),
+        h('li.pp-reward', null, h('span.pp-reward__icon', { text: '★' }), h('span', { text: 'Trophy XP' }), h('b', { text: `+${trophy.xp.xp}` }))),
+      trophy.equipped ? null : h('p.pp-small', { text: `Your repertoire is full: equip the ${o.name} in the Journal (Openings) to get its guide arrows.` }),
+      h('div.pp-ceremony__shelf', { 'aria-label': `${count} of 6 Club Trophies` },
+        CLUBS.map((cl) => h('span', { class: career.trophies[cl.clubId] ? `is-won${cl.clubId === club.clubId ? ' is-new' : ''}` : '', title: cl.trophyName, text: '🏆' })),
+        h('b', { text: `${count}/6` })),
+      trophy.finaleUnlocked
+        ? h('p.pp-ceremony__madrid', null, h('b', { text: '🏟 All six trophies! You are invited to the Grand Finale in Madrid.' }))
+        : h('p.pp-small', { text: `${6 - count} more ${6 - count === 1 ? 'trophy' : 'trophies'} to an invitation to Madrid.` }),
       button('Add it to my passport', () => close(), { cls: 'pp-btn--gold' })), { dismissable: false });
   }
 
@@ -651,6 +694,7 @@ export function matchScreen(app, params) {
   paintFocus();
   paintMoves();
   match.start().then(() => { paintPosition(match.game.lastMove); paintFocus(); paintGuide(); });
+  app.coach('match', `${tapWord() === 'tap' ? 'Tap a piece, then the square' : 'Drag a piece (or click it, then its square)'} to move. ${kind === 'friendly' || kind === 'challenge' ? 'Win and the game is yours.' : 'Win to go through; in a Swiss round a draw still scores half a point.'}`, { title: 'Your move', host: right });
 
   return {
     el,

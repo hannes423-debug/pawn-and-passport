@@ -112,7 +112,7 @@ export function practiceScreen(app, params) {
       h('header.pp-panel.pp-tree__top', null,
         h('div', null,
           h('h2.pp-h2', { text: 'Practice tree' }),
-          h('p.pp-small', { text: `Read it, watch it, then do it. ${summary.lessonsOpen} lessons open of ${summary.lessonsTotal}, ${summary.lessonsDone} complete — and nothing here is compulsory: start where you like and go back whenever you want.` }),
+          h('p.pp-small', { text: `Optional extra practice: read, watch, then try. ${summary.lessonsOpen} of ${summary.lessonsTotal} lessons open, ${summary.lessonsDone} done. Start anywhere.` }),
           next
             ? h('p.pp-small.pp-muted', { text: `${next.tier.label} opens after ${next.trophiesNeeded} more Club ${next.trophiesNeeded === 1 ? 'Trophy' : 'Trophies'}.` })
             : h('p.pp-small.pp-muted', { text: 'Every tier is open: you hold all six Club Trophies.' })),

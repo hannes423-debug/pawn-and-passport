@@ -41,7 +41,14 @@ export function settingsScreen(app, params) {
     row('Dialogue speed', select('textSpeed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']])),
     h('div.pp-row', null,
       button('Done', () => app.go(back.screen, back.params), { cls: 'pp-btn--gold' }),
-      button('Reset settings', () => { app.settings = { ...Save.DEFAULT_SETTINGS }; app.applySettings(); app.go('settings', params); }, { cls: 'pp-btn--small' })),
+      button('Reset settings', async () => {
+        const ok = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
+          h('h2.pp-h2', { text: 'Reset every setting?' }),
+          h('p', { text: 'Sound, board, assistance and accessibility go back to their defaults. Your career is not touched.' }),
+          h('div.pp-row', null, button('Reset', () => close(true), { cls: 'pp-btn--red' }), button('Keep my settings', () => close(false), { cls: 'pp-btn--gold' }))));
+        if (!ok) return;
+        app.settings = { ...Save.DEFAULT_SETTINGS }; app.applySettings(); app.go('settings', params);
+      }, { cls: 'pp-btn--small' })),
     h('p.pp-small.pp-muted', { text: `${GAME.title}: ${GAME.subtitle} v${GAME.version}. Saves use the ${Save.SAVE_PREFIX} prefix.` }));
 
   // The notebook art has painted sliders; a parchment sheet covers them.

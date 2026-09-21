@@ -80,7 +80,7 @@ try:
     check(fallbacks > 0 and told, f"fallback moves were played ({fallbacks}) and the player was told ({told})")
     elo_before = c.eval("window.__pap.career.elo")
     c.eval("window.__pap.current.match.game.resign('b')")
-    ok = c.wait_for("!!document.querySelector('.pp-result__letter')", timeout=40)
+    ok = c.wait_for("!!document.querySelector('.pp-result__word')", timeout=40)
     check(ok, "the game still ends with a result card")
     for _ in range(4):
         c.eval("[...document.querySelectorAll('.pp-overlay button')].find(b => /Continue|passport/.test(b.textContent))?.click()")

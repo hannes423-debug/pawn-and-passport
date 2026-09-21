@@ -50,7 +50,7 @@ def finish_game(c, resign=True):
     c.pump(1.5)
     if resign:
         c.eval("window.__pap.current.match.resign()")
-    return c.wait_for("!!document.querySelector('.pp-result__letter')", timeout=40)
+    return c.wait_for("!!document.querySelector('.pp-result__word')", timeout=40)
 
 
 c = cdp.Chrome(W, H)
@@ -100,7 +100,7 @@ try:
     c.eval("document.querySelector('.pp-notesbtn').click()")
 
     check(finish_game(c), "the challenge ends with a result card")
-    coins_text = c.eval("document.querySelector('.pp-result__head').textContent")
+    coins_text = c.eval("document.querySelector('.pp-result').textContent")
     check("coins" in coins_text, f"the result says what the stake did ({coins_text[-60:]!r})")
     c.shot(f"m4-challenge-result-{spec}")
     c.eval("[...document.querySelectorAll('.pp-modal button')].find(b => b.textContent.includes('Continue')).click()")

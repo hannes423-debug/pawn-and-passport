@@ -5,11 +5,21 @@
  * scene: x right, y down, the same space as js/data/scenes.js and
  * js/data/sceneLayers.js.
  *
- * The walkable area is baked once into a grid: a cell is free when its centre
- * lies inside a floor polygon and outside every block and prop footprint,
- * grown by the walker's own half-size so a character's body never overlaps an
- * object. Distances are measured in screen space (x scaled by the scene's
- * aspect ratio) so moving sideways costs the same as moving up.
+ * The walkable area is baked once into a grid in two passes:
+ *
+ *   1. SOLID: a cell is solid when its centre is outside every floor polygon
+ *      (that is the wall side of a wall), or inside a block or prop footprint.
+ *   2. ERODE: the solid mask is grown by the walker's own half-size, so a cell
+ *      is free only when the walker's whole body fits there.
+ *
+ * Step 2 is what keeps a character out of walls. Growing only the blocks (as
+ * this file used to) leaves the FLOOR EDGE unguarded, so a body could stand
+ * half inside a wall wherever a wall was spelled as a gap between floor
+ * polygons rather than as an explicit block - which is how every interior is
+ * drawn. Eroding the solid mask treats both spellings the same.
+ *
+ * Distances are measured in screen space (x scaled by the scene's aspect
+ * ratio) so moving sideways costs the same as moving up.
  *
  *   const walk = createWalkGrid(layers, { aspect })
  *   walk.free(x, y)             is this point walkable
@@ -18,7 +28,7 @@
  *   walk.path(from, to)         [[x, y], ...] smoothed, or null when unreachable
  */
 
-export const GRID = Object.freeze({ cols: 200, rows: 150 });
+export const GRID = Object.freeze({ cols: 300, rows: 225 });
 /* The walker's feet: half-width in screen-space percent of the scene height,
    and half-depth (the feet are a flat ellipse, not a tall box). */
 export const WALKER = Object.freeze({ halfWidth: 1.6, halfDepth: 0.9 });
@@ -44,19 +54,46 @@ export function createWalkGrid(layers, { aspect = 4 / 3, cols = GRID.cols, rows 
   const ch = 100 / rows;
   const padX = walker.halfWidth / aspect;   // screen-space width back to percent of scene width
   const padY = walker.halfDepth;
+  const floor = layers.floor || [];
   const rects = [
     ...(layers.blocks || []),
     ...(layers.props || []).map((p) => p.foot).filter(Boolean)
-  ].map(([x0, y0, x1, y1]) => [x0 - padX, y0 - padY, x1 + padX, y1 + padY]);
+  ];
 
-  const cells = new Uint8Array(cols * rows);
+  /* 1. Solid: off the floor, or standing on something. Unpadded - the walker's
+     size is applied once, in the erosion below, so a wall drawn as a gap
+     between floor polygons blocks exactly as hard as an explicit block. */
+  const solid = new Uint8Array(cols * rows);
   for (let j = 0; j < rows; j += 1) {
     for (let i = 0; i < cols; i += 1) {
       const x = (i + 0.5) * cw;
       const y = (j + 0.5) * ch;
-      const onFloor = (layers.floor || []).some((poly) => pointInPolygon(x, y, poly));
+      const onFloor = floor.some((poly) => pointInPolygon(x, y, poly));
       const hit = onFloor && rects.some(([x0, y0, x1, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1);
-      cells[j * cols + i] = onFloor && !hit ? 1 : 0;
+      solid[j * cols + i] = onFloor && !hit ? 0 : 1;
+    }
+  }
+
+  /* 2. Erode by the walker's half-size (separable, and outside the grid counts
+     as solid). The feet are treated as a box rather than the ellipse they are
+     drawn as: a box is the conservative superset and keeps this a two-pass
+     min-filter instead of a distance transform. */
+  const rx = Math.max(1, Math.ceil(padX / cw));
+  const ry = Math.max(1, Math.ceil(padY / ch));
+  const wide = new Uint8Array(cols * rows);
+  for (let j = 0; j < rows; j += 1) {
+    for (let i = 0; i < cols; i += 1) {
+      let blocked = i < rx || i >= cols - rx;
+      for (let k = -rx; !blocked && k <= rx; k += 1) blocked = solid[j * cols + i + k] === 1;
+      wide[j * cols + i] = blocked ? 1 : 0;
+    }
+  }
+  const cells = new Uint8Array(cols * rows);
+  for (let j = 0; j < rows; j += 1) {
+    for (let i = 0; i < cols; i += 1) {
+      let blocked = j < ry || j >= rows - ry;
+      for (let k = -ry; !blocked && k <= ry; k += 1) blocked = wide[(j + k) * cols + i] === 1;
+      cells[j * cols + i] = blocked ? 0 : 1;
     }
   }
 

@@ -7,7 +7,7 @@
 
 import { h } from './dom.js';
 import { TOURNAMENT } from '../data/config.js';
-import { YOU, standings, roundResults, knockoutRoundName, stillIn, playerPoints } from '../core/tournament.js';
+import { YOU, standings, roundResults, knockoutRoundName, stillIn, playerPoints, exitRound } from '../core/tournament.js';
 
 const fmt = (points) => (points % 1 ? `${Math.floor(points)}½` : String(points)).replace(/^0½$/, '½');
 
@@ -74,9 +74,38 @@ export function eventView(run) {
   return h('div.pp-event', null, parts.filter(Boolean));
 }
 
+const ordinal = (n) => {
+  const teen = n % 100 >= 11 && n % 100 <= 13;
+  return `${n}${teen ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')}`;
+};
+
+/**
+ * Where the player stands, in one line: still competing, table position,
+ * eliminated, final reached, champion. `tone` picks the colour.
+ * @returns {{text:string, tone:'final'|'good'|'out'|'win'|'neutral'}}
+ */
+export function eventStatus(run, starName = 'the Star Player') {
+  if (run.outcome === 'champion') return { text: `🏆 Champion! You beat ${starName}.`, tone: 'win' };
+  if (run.outcome === 'runner-up') return { text: `Runner-up: ${starName} won the final.`, tone: 'out' };
+  if (run.outcome === 'eliminated') return { text: `Knocked out in the ${roundLabel(run, exitRound(run)).toLowerCase()}.`, tone: 'out' };
+  if (run.outcome === 'placed') return { text: `Finished ${ordinal(run.place)} of ${run.players.length}: only first place reaches the final.`, tone: 'out' };
+  if (run.stage === 'final') return { text: `FINAL! You meet ${starName} for the trophy.`, tone: 'final' };
+  const played = run.rounds.filter((r) => r.pairings.some((p) => (p.w === YOU || p.b === YOU) && p.result !== null)).length;
+  if (!played) return { text: `${roundLabel(run, 0)} is next.`, tone: 'neutral' };
+  if (run.format === 'knockout') return { text: `Still in! Next: the ${roundLabel(run, run.round).toLowerCase()}.`, tone: 'good' };
+  const me = standings(run).find((r) => r.id === YOU);
+  const tail = me.rank === 1 ? 'top of the table' : `${ordinal(me.rank)} of ${run.players.length}`;
+  return { text: `Still in it: ${tail} after ${played} ${played === 1 ? 'round' : 'rounds'} (${fmt(me.points)} ${me.points === 1 ? 'point' : 'points'}).`, tone: me.rank <= 3 ? 'good' : 'neutral' };
+}
+
+export function statusBanner(run, starName) {
+  const st = eventStatus(run, starName);
+  return h(`div.pp-event__status.is-${st.tone}`, { text: st.text });
+}
+
 /** What happened in the round the player just played, then where they stand. */
 export function roundReport(run, index) {
-  const parts = [h('h3.pp-h3', { text: `${roundLabel(run, index)}: results` })];
+  const parts = [statusBanner(run, run.star?.name), h('h3.pp-h3', { text: `${roundLabel(run, index)}: results` })];
   if (index < run.rounds.length) parts.push(h('div.pp-event__scroll', null, resultsList(run, index)));
   if (run.format === 'swiss' && index < TOURNAMENT.rounds) {
     parts.push(h('h3.pp-h3', { text: 'Standings' }), h('div.pp-event__scroll', null, standingsTable(run, { limit: 5 })));
@@ -85,4 +114,4 @@ export function roundReport(run, index) {
   return h('div.pp-event', null, parts.filter(Boolean));
 }
 
-export default { formatBlurb, roundLabel, standingsTable, resultsList, finalLine, eventView, roundReport };
+export default { eventStatus, statusBanner, formatBlurb, roundLabel, standingsTable, resultsList, finalLine, eventView, roundReport };

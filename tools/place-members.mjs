@@ -100,9 +100,11 @@ function main() {
           if (avoid.some((a) => dist(a.p, [x, y]) < a.r)) continue;
           // A club garden's floor runs out onto the street: members stay inside the gate.
           if (scene.kind === 'exterior' && scene.nodes.gate && y > scene.nodes.gate[1] - H * 0.8) continue;
-          // Open floor only: free all round at half a body height, so nobody
-          // is wedged into a corner, against a wall or on a thin strip of pavement.
-          const ring = H * 0.5;
+          // Open floor only: free all round, so nobody is wedged into a corner,
+          // against a wall or on a thin strip of pavement. Half a body height,
+          // but capped: in a close-up venue a body is a quarter of the picture
+          // and half of one is wider than any real standing spot there.
+          const ring = Math.min(H * 0.5, 6);
           let open = 0;
           for (let k = 0; k < 8; k += 1) {
             const t = (k / 8) * Math.PI * 2;
@@ -114,7 +116,7 @@ function main() {
       }
       // Close-up scenes (big characters) have little fully open floor: relax there only.
       let need = 8;
-      while (need > 5 && candidates.filter((c) => c.open >= need).length < members.length * 20) need -= 1;
+      while (need > 4 && candidates.filter((c) => c.open >= need).length < members.length * 20) need -= 1;
       const pool = candidates.filter((c) => c.open >= need).map((c) => c.p);
       for (const member of members) {
         let at = PINS[member.id] || null;

@@ -17,7 +17,7 @@
 
 import { h, button, wait, clear } from '../dom.js';
 import { sfx, stopMusic } from '../audio.js';
-import { drawCharacter, PLAYER_LOOKS, CELL } from '../sprites.js';
+import { drawCharacter, PLAYER_LOOKS, CELL, portraitUrl } from '../sprites.js';
 import { sceneById, findPath } from '../../data/scenes.js';
 import { CLUBS, FINALE, clubById } from '../../data/clubs.js';
 import { STAR_PLAYERS, starById, starForClub } from '../../data/starPlayers.js';
@@ -32,10 +32,10 @@ import {
 import { MEMBERS, CHESS_TIPS } from '../../data/members.js';
 import { MEMBER_SPOTS } from '../../data/memberSpots.js';
 import { TOURNAMENT } from '../../data/config.js';
-import { formatBlurb, eventView, roundLabel } from '../tournamentView.js';
+import { formatBlurb, eventView, roundLabel, statusBanner } from '../tournamentView.js';
 import { exitRound } from '../../core/tournament.js';
 import { starLines, loungeLines } from '../../core/dialogue.js';
-import { createTouchpad, tapWord } from '../touch.js';
+import { createTouchpad, tapWord, isTouch } from '../touch.js';
 import { openOpeningStudy } from '../openingStudy.js';
 import { learnFromTutorial } from '../../core/career.js';
 import { practiceSummary } from '../../core/lessons.js';
@@ -44,6 +44,50 @@ import { createWalkGrid, walkerFor } from '../../core/freeWalk.js';
 
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
 const WALK_SPEED = 42;           // percent of the stage height per second
+
+/* What a hotspot is FOR decides how its label looks (css: .pp-hotspot.is-*). */
+const KIND_ICON = { goal: '🏆', star: '★', practice: '📖', puzzle: '🧩', exit: '⇦', member: '💬', info: '•' };
+function spotKind(spot) {
+  if (spot.member) return 'member';
+  const t = spot.action.type;
+  if (t === 'tournament' || t === 'finale') return 'goal';
+  if (t === 'star' || t === 'rivals') return 'star';
+  if (t === 'friendly') return 'practice';
+  if (t === 'mission') return 'puzzle';
+  if (t === 'leave' || t === 'scene') return 'exit';
+  return 'info';
+}
+
+/** Is ?debugCollision=1 (or #debugCollision=1) in the address bar? */
+export function collisionDebugOn() {
+  if (typeof window === 'undefined') return false;
+  const q = `${window.location.search}&${window.location.hash.replace('#', '&')}`;
+  return /[?&]debugCollision=1(&|$)/.test(q);
+}
+
+/** A canvas of the walk grid, plus a box per prop footprint. Debug only. */
+function collisionOverlay(grid, layers) {
+  const canvas = h('canvas.pp-scene__collision', { width: String(grid.cols), height: String(grid.rows) });
+  Object.assign(canvas.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', pointerEvents: 'none', zIndex: '9000', opacity: '0.45' });
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(grid.cols, grid.rows);
+  for (let n = 0; n < grid.cells.length; n += 1) {
+    const free = grid.cells[n] === 1;
+    img.data[n * 4] = free ? 40 : 220;
+    img.data[n * 4 + 1] = free ? 230 : 30;
+    img.data[n * 4 + 2] = free ? 90 : 40;
+    img.data[n * 4 + 3] = free ? 150 : 190;
+  }
+  ctx.putImageData(img, 0, 0);
+  ctx.strokeStyle = 'rgba(255, 220, 0, 0.9)';
+  ctx.lineWidth = 0.6;
+  for (const prop of layers.props || []) {
+    if (!prop.foot) continue;
+    const [x0, y0, x1, y1] = prop.foot;
+    ctx.strokeRect((x0 / 100) * grid.cols, (y0 / 100) * grid.rows, ((x1 - x0) / 100) * grid.cols, ((y1 - y0) / 100) * grid.rows);
+  }
+  return canvas;
+}
 
 /* Scene picture sizes, so a scene can lay out before (or without) its art. */
 let sizesPromise = null;
@@ -261,6 +305,12 @@ export async function sceneScreen(app, params) {
     }
   }
 
+  /* ?debugCollision=1 paints the grid the player actually walks on, over the
+     art: green where a body fits, red where it does not, yellow round every
+     prop footprint. Off unless the flag is in the URL - it is a development
+     aid, never part of a build's normal run. */
+  if (freeMode && collisionDebugOn()) stage.append(collisionOverlay(grid, layers));
+
   const spawnNode = (params.node && scene.nodes[params.node] ? params.node : null) || scene.spawn[params.spawn] || scene.spawn.default;
   let playerNode = spawnNode;
   const spawnAt = freeMode ? (grid.nearestFree(...scene.nodes[spawnNode]) || scene.nodes[spawnNode]) : scene.nodes[spawnNode];
@@ -416,12 +466,13 @@ export async function sceneScreen(app, params) {
       const [x, y] = scene.nodes[spot.node];
       // Labels float just above a character's head, however tall characters are drawn here.
       const labelY = spot.npc?.at ? Math.min(y, spot.npc.at[1]) - ACTOR_H * 95 - 1 : y - Math.max(7, ACTOR_H * 70);
+      const kind = spotKind(spot);
       hotspotLayer.append(h('button.pp-hotspot', {
-        type: 'button', class: `${spotState(spot)}${spot.member ? ' is-member' : ''}`,
+        type: 'button', class: `${spotState(spot)} is-${kind}`,
         style: { left: `${spot.npc?.at ? spot.npc.at[0] : x}%`, top: `${Math.max(4, labelY)}%` },
         'aria-label': `${spot.verb}: ${spot.label}`,
         onclick: (e) => { e.stopPropagation(); use(spot); }
-      }, h('span.pp-hotspot__label', { text: spot.member ? spot.label : `${i + 1}  ${spot.label}` }), h('span.pp-hotspot__arrow', { text: '▼' })));
+      }, h('span.pp-hotspot__label', null, spot.member ? null : h('small.pp-hotspot__key', { text: String(i + 1) }), `${KIND_ICON[kind]} ${spot.label}`), h('span.pp-hotspot__arrow', { text: '▼' })));
       if (spot.member) people.append(button(spot.label.split(' ')[0], () => use(spot), { cls: 'pp-btn--small', title: `Talk to ${spot.label}` }));
       else list.append(button(`${i + 1}. ${spot.verb}`, () => use(spot), { cls: 'pp-btn--small', title: spot.label }));
     });
@@ -563,7 +614,7 @@ export async function sceneScreen(app, params) {
     }
   }
 
-  const USE_RADIUS = 8;     // screen-space percent of the scene height
+  const USE_RADIUS = 10;    // screen-space percent of the scene height: forgiving on purpose
   const distanceTo = (spot) => {
     const [x, y] = scene.nodes[spot.node];
     return Math.hypot((x - player.x) * aspect, y - player.y);
@@ -682,15 +733,24 @@ export async function sceneScreen(app, params) {
     }
     const round = currentRound(career, clubId);
     if (!round) return;
-    const choice = await app.overlay((close) => h('div.pp-panel.pp-modal.pp-modal--wide', null,
-      h('h2.pp-h2', { text: `${event} · ${round.label}` }),
-      h('p.pp-small', { text: formatBlurb(run, star.name) }),
-      eventView(run),
-      h('p', null, h('b', { text: round.kind === 'star' ? `Final: ★ ${round.name}` : `Next: ${round.name}` }), ` · ${round.elo} Elo · ${round.style} · you play ${round.colour === 'w' ? 'White' : 'Black'}`),
-      h('p.pp-small.pp-muted', { text: `Difficulty tier ${run.tier + 1}/6 (set by the trophies you had when you entered). Attempt ${run.attempt || 1}.` }),
-      h('div.pp-row', null,
-        button(round.kind === 'star' ? `Play the final` : `Play ${round.label.toLowerCase()}`, () => close('play'), { cls: 'pp-btn--gold', icon: '♞' }),
-        button('Not yet', () => close(null), { cls: 'pp-btn--small' }))));
+    const isFinal = round.kind === 'star';
+    const choice = await app.overlay((close) => h('div.pp-panel.pp-modal.pp-modal--wide.pp-desk', null,
+      h('h2.pp-h2', { text: event }),
+      statusBanner(run, star.name),
+      /* Round, opponent, Elo, colour, Play: the only things needed to go on. */
+      h(`div.pp-desk__next${isFinal ? '.is-final' : ''}`, null,
+        h('div.pp-desk__round', { text: isFinal ? '★ The final' : round.label }),
+        h('div.pp-desk__opp', null,
+          h('img', { alt: '', src: portraitUrl(round.look || GUIDE_LOOK) }),
+          h('div', null,
+            h('div.pp-desk__name', { text: round.name }),
+            h('div', { text: `${round.elo} Elo · you play ${round.colour === 'w' ? 'White ♔' : 'Black ♚'}` }))),
+        h('div.pp-row', null,
+          button(isFinal ? 'Play the final' : `Play ${round.label.toLowerCase()}`, () => close('play'), { cls: 'pp-btn--gold', icon: '♞' }),
+          button('Not yet', () => close(null), { cls: 'pp-btn--small' }))),
+      h('details.pp-desk__more', { open: !isTouch() }, h('summary', { text: run.format === 'swiss' ? 'Standings' : 'This round' }), eventView(run)),
+      h('details.pp-desk__more', null, h('summary', { text: 'How this event works' }), h('p.pp-small', { text: formatBlurb(run, star.name) }),
+        h('p.pp-small.pp-muted', { text: `Difficulty tier ${run.tier + 1}/6, set by the trophies you had when you entered. Attempt ${run.attempt || 1}.` }))));
     if (choice !== 'play') return;
     if (round.kind === 'star') {
       meetStar(career, star.id);
@@ -775,12 +835,13 @@ export async function sceneScreen(app, params) {
       return h('div.pp-panel.pp-modal.pp-practice', null,
         h('h2.pp-h2', { text: `${club.clubName}: practice room` }),
         h('p.pp-small', { text: `${host.name} runs the practice room. Nothing here changes your rating.` }),
+        /* The club's opening first: it is what this club's tournament is about. */
         h('div.pp-col', null,
-          option('lessons', '🌱', 'Practice tree', treeLine, tree.lessonsDone < tree.lessonsOpen ? 'is-new' : ''),
+          option('tutorial', '📖', `Tutorial: ${opening.name}`, tutored ? 'Walk through every line again.' : mastery > 0 ? `Every line with notes. You know ${mastery}%.` : `Every line with notes. Finishing it unlocks the opening (${MASTERY.tutorialGrant}%).`, tutored ? '' : 'is-new'),
+          option('drill', '🎯', `Drills: ${opening.name}`, mastery > 0 ? `Find the book move. Pass a set: +${MASTERY.drillGain}% mastery (you know ${mastery}%).` : 'Do the tutorial first.'),
           option('friendly', '♞', 'Friendly game', 'Unrated. Play a club member as White or Black.'),
-          option('puzzles', '🧩', 'Puzzles', `This club's own set: positions from real ${opening.name} games. The venue puzzles are a different set.`),
-          option('tutorial', '📖', `Tutorial: ${opening.name}`, tutored ? 'Walk through every line again.' : mastery > 0 ? 'Every line with notes.' : `Every line with notes. Finishing it unlocks the opening (${MASTERY.tutorialGrant}%).`, tutored ? '' : 'is-new'),
-          option('drill', '🎯', `Drills: ${opening.name}`, mastery > 0 ? `Find the book move. Passing a set: +${MASTERY.drillGain}% (you know ${mastery}%).` : 'Do the tutorial first.')),
+          option('puzzles', '🧩', 'Puzzles', `This club's own set, from real ${opening.name} games.`),
+          option('lessons', '🌱', 'Practice tree (optional)', treeLine)),
         h('div.pp-row', { style: { justifyContent: 'flex-end' } }, button('Leave', () => c(null), { cls: 'pp-btn--small' })));
     });
     if (choice === 'lessons') return app.go('practice', { clubId, returnScene: scene.id });
@@ -880,6 +941,27 @@ export async function sceneScreen(app, params) {
 
   /* Standing characters hold still: no idle animation. */
 
+  /* One-time tips for what this place is for (app.coach never repeats one). */
+  function teachHere() {
+    if (isFinale || !club) return;
+    const star = starForClub(clubId);
+    if (scene.kind === 'interior' && !career.trophies[clubId]) {
+      app.coach('desk', `The Tournament hall is where it starts: enter the ${club.tournamentConfig.name}, win your way to the final, then beat ${star.name} for the trophy.`, { title: 'Your goal here' });
+    }
+    if (scene.kind === 'venue') {
+      app.coach('venue', `A casual venue. The host has a puzzle set: solve all of it for ${club.city}'s postcard. Postcards are optional, but their backs hide a message...`, { title: 'Puzzles and postcards' });
+    }
+    if (trophyCount(career) >= 1 && !career.trophies[clubId] && scene.kind === 'exterior') {
+      app.coach('members', 'The people around the club like a game too. Talk to them for tips, or play them for coins.', { title: 'Club members' });
+    }
+    if (trophyCount(career) >= 1 && career.trophies[clubId] && !hasAllTrophies(career)) {
+      app.coach('travel', 'Trophy won! Open the 🗺 Map (top bar) and fly to another city for the next one.', { title: 'Time to travel' });
+    }
+    if (scene.kind === 'interior' && (career.tournaments[clubId]?.attempt || 0) >= 1 && !career.trophies[clubId]) {
+      app.coach('practice', `Want to get better at the ${openingById(club.openingId).name}? The practice room has its tutorial and drills. Optional, but it raises your mastery.`, { title: 'Practice room' });
+    }
+  }
+
   /* ---------------------------------------------------------- arrival -- */
   window.addEventListener('resize', fit);
   const viewportObserver = new ResizeObserver(() => fit());
@@ -905,15 +987,20 @@ export async function sceneScreen(app, params) {
     }
     if (params.intro) {
       const opening = openingById(club.openingId);
+      /* Only what the first minute needs. Everything else is taught when it
+         first matters (app.coach): the desk, Focus, the guide, the map... */
+      void opening;
       await app.dialogue({ name: 'Passport officer', role: 'Welcome desk', look: GUIDE_LOOK, lines: [
-        `Welcome to ${club.city}, ${career.name}. Your chess passport is issued.`,
-        `It has six empty pages for Club Trophies. Win a club's tournament and beat its Star Player to fill one.`,
-        `You already know a little of the ${opening.name}: ${MASTERY.starting}%. Win this club and you will master it.`,
-        'Every city also has a casual venue with a puzzle challenge. Solve it for a postcard. Collect all six... and read the backs.',
+        `Welcome to ${club.city}, ${career.name}! Here is your chess passport: six empty pages, one for each city's Club Trophy.`,
+        `To win a trophy, enter the club tournament inside, then beat the club's Star Player in the final.`,
         tapWord() === 'tap'
-          ? 'Tap anything with a label, or walk with the stick and press A. Good games!'
-          : 'Walk to anything with a label, or press its number. Good games!'
+          ? 'Tap the club door, or walk with the stick and press A. Good games!'
+          : 'Click the club door (or walk there with the arrow keys). Good games!'
       ] });
+    }
+    teachHere();
+    if (params.intro) {
+      /* handled above */
     } else if (params.firstVisit && club) {
       const opening = openingById(club.openingId);
       const mastery = career.openings[club.openingId] ?? 0;

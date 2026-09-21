@@ -10,7 +10,8 @@
 import { OPENINGS } from '../js/data/openings.js';
 import { spriteId, setPlayerAvatar, PLAYER_LOOKS } from '../js/ui/sprites.js';
 import { SCENE_LAYERS } from '../js/data/sceneLayers.js';
-import { createWalkGrid, walkerFor } from '../js/core/freeWalk.js';
+import { createWalkGrid, walkerFor, pointInPolygon } from '../js/core/freeWalk.js';
+import { collisionDebugOn } from '../js/ui/screens/scene.js';
 import { sceneById } from '../js/data/scenes.js';
 import { CLUB_PUZZLES } from '../js/data/clubPuzzles.js';
 import { PapMatch } from '../js/game/match.js';
@@ -1057,7 +1058,7 @@ test('layered scenes: every hotspot reachable from the spawn, nothing walks thro
 
 test('every scene: every arrival reaches every interaction, and random walking never traps the player', () => {
   const sizes = JSON.parse(readFileSync(path.join(ROOT, 'assets/manifest.json'), 'utf8')).scenes;
-  const USE_RADIUS = 8;                                   // scene.js: screen-space percent of the scene height
+  const USE_RADIUS = 10;                                  // scene.js: screen-space percent of the scene height
   const random = seeded(99);
   let checked = 0;
   for (const scene of Object.values(SCENES)) {
@@ -1094,6 +1095,111 @@ test('every scene: every arrival reaches every interaction, and random walking n
     }
   }
   assert(checked > 500, `${checked} random walks`);
+});
+
+test('a walker\'s body never leaves the floor, in any scene', () => {
+  /* The bug this pins: the grid used to grow only the BLOCKS by the walker's
+     size and leave the floor edge alone, so wherever a wall was spelled as the
+     gap between two floor polygons - which is how every interior is drawn - a
+     body could stand half inside it. Every scene had it, 3% to 16% of its
+     standable cells. Measured here against the floor polygons directly, not
+     against the grid that is derived from them. */
+  const sizes = JSON.parse(readFileSync(path.join(ROOT, 'assets/manifest.json'), 'utf8')).scenes;
+  const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1], [-1, 0], [1, 0], [0, -1], [0, 1]];
+  for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
+    const scene = sceneById(id);
+    const [w, h] = sizes[id];
+    const aspect = w / h;
+    const walker = walkerFor(scene.actorHeight ?? 0.1);
+    const grid = createWalkGrid(layers, { aspect, walker });
+    const padX = walker.halfWidth / aspect;
+    const padY = walker.halfDepth;
+    const cw = 100 / grid.cols;
+    const ch = 100 / grid.rows;
+    const onFloor = (x, y) => layers.floor.some((poly) => pointInPolygon(x, y, poly));
+    let outside = 0;
+    for (let j = 0; j < grid.rows; j += 1) {
+      for (let i = 0; i < grid.cols; i += 1) {
+        if (grid.cells[j * grid.cols + i] !== 1) continue;
+        const x = (i + 0.5) * cw;
+        const y = (j + 0.5) * ch;
+        if (corners.some(([ox, oy]) => !onFloor(x + ox * padX, y + oy * padY))) outside += 1;
+      }
+    }
+    eq(outside, 0, `${id}: standable cells whose body reaches off the floor`);
+  }
+});
+
+test('every scene: walkable floor is reachable, apart from nooks inside the furniture', () => {
+  /* Floor the player can stand on but can never walk to means a doorway that
+     a body no longer fits through. Small pockets are fine and intended: the
+     inside of a ring of armchairs, the strip behind a display case. */
+  const sizes = JSON.parse(readFileSync(path.join(ROOT, 'assets/manifest.json'), 'utf8')).scenes;
+  const NOOK = 600;                       // cells; a doorway loses far more than this
+  for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
+    const scene = sceneById(id);
+    const [w, h] = sizes[id];
+    const grid = createWalkGrid(layers, { aspect: w / h, walker: walkerFor(scene.actorHeight ?? 0.1) });
+    const { cols, rows, cells } = grid;
+    const start = grid.nearestFree(...scene.nodes[scene.spawn.default]);
+    assert(start, `${id}: spawn finds floor`);
+    const seen = new Uint8Array(cols * rows);
+    const cw = 100 / cols;
+    const ch = 100 / rows;
+    const first = Math.floor(start[1] / ch) * cols + Math.floor(start[0] / cw);
+    const stack = [first];
+    seen[first] = 1;
+    while (stack.length) {
+      const n = stack.pop();
+      const i = n % cols;
+      const j = (n - i) / cols;
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const ni = i + di;
+        const nj = j + dj;
+        if (ni < 0 || nj < 0 || ni >= cols || nj >= rows) continue;
+        const m = nj * cols + ni;
+        if (!seen[m] && cells[m] === 1) { seen[m] = 1; stack.push(m); }
+      }
+    }
+    // Biggest cut-off clump.
+    const mark = new Uint8Array(cols * rows);
+    let worst = 0;
+    for (let n = 0; n < cells.length; n += 1) {
+      if (cells[n] !== 1 || seen[n] || mark[n]) continue;
+      const q = [n];
+      mark[n] = 1;
+      let area = 0;
+      while (q.length) {
+        const c = q.pop();
+        area += 1;
+        const i = c % cols;
+        const j = (c - i) / cols;
+        for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const ni = i + di;
+          const nj = j + dj;
+          if (ni < 0 || nj < 0 || ni >= cols || nj >= rows) continue;
+          const m = nj * cols + ni;
+          if (!mark[m] && cells[m] === 1 && !seen[m]) { mark[m] = 1; q.push(m); }
+        }
+      }
+      worst = Math.max(worst, area);
+    }
+    assert(worst <= NOOK, `${id}: ${worst} cells of floor are walled off from the spawn`);
+  }
+});
+
+test('the collision debug overlay is off unless the URL asks for it', () => {
+  const saved = globalThis.window;
+  const check = (search, hash) => {
+    globalThis.window = { location: { search, hash } };
+    try { return collisionDebugOn(); } finally { globalThis.window = saved; }
+  };
+  assert(!check('', ''), 'off with no query at all');
+  assert(!check('?city=nyc', ''), 'off for an unrelated query');
+  assert(!check('?debugCollision=0', ''), 'off when explicitly 0');
+  assert(check('?debugCollision=1', ''), 'on with the flag');
+  assert(check('?city=nyc&debugCollision=1', ''), 'on with the flag after another');
+  assert(check('', '#debugCollision=1'), 'on from the hash too');
 });
 
 test('free walking slides along obstacles instead of passing through', () => {

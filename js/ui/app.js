@@ -11,7 +11,7 @@ import { sfx, unlockAudio, configureAudio } from './audio.js';
 import { configureTouch, installTouchDetection, tapWord, canFullscreen, toggleFullscreen } from './touch.js';
 import { portraitUrl, PLAYER_LOOKS, setPlayerAvatar } from './sprites.js';
 import * as Save from '../core/save.js';
-import { xpProgress, maxFocus, trophyCount, postcardCount, migrateCareer } from '../core/career.js';
+import { xpProgress, maxFocus, trophyCount, postcardCount, migrateCareer, nextStep } from '../core/career.js';
 import { clubById, FINALE } from '../data/clubs.js';
 import { sceneById } from '../data/scenes.js';
 
@@ -37,6 +37,7 @@ export function createApp(root, screens) {
       try { app.current?.destroy?.(); } catch (error) { console.error(error); }
       clear(root);
       document.querySelectorAll('.pp-overlay, .pp-dialogue').forEach((el) => el.remove());
+      app.dropCoach?.();
       app.currentName = name;
       const token = (app._goToken = (app._goToken || 0) + 1);
       const screen = await factory(app, params);
@@ -54,8 +55,12 @@ export function createApp(root, screens) {
       // device (two rows on a phone held upright, the iPhone status bar inset).
       hudObserver.disconnect();
       const hud = screen.el.querySelector(':scope > .pp-hud');
+      if (!hud) document.documentElement.style.setProperty('--coach-top', '0px');
       if (hud) {
-        const publish = () => screen.el.style.setProperty('--hud-h', `${hud.offsetHeight}px`);
+        const publish = () => {
+          screen.el.style.setProperty('--hud-h', `${hud.offsetHeight}px`);
+          document.documentElement.style.setProperty('--coach-top', `${hud.getBoundingClientRect().bottom}px`);
+        };
         publish();
         hudObserver = new ResizeObserver(publish);
         hudObserver.observe(hud);
@@ -195,7 +200,9 @@ export function createApp(root, screens) {
         h('button.pp-btn.pp-btn--small.pp-btn--ghost', { type: 'button', 'aria-label': 'Map', onclick: () => { sfx.click(); app.go('map'); } }, '🗺', h('span.pp-hud__label', { text: ' Map' })),
         h('button.pp-btn.pp-btn--small.pp-btn--ghost', { type: 'button', 'aria-label': 'Journal', onclick: () => { sfx.click(); app.go('journal', { back: app.backParams() }); } }, '📔', h('span.pp-hud__label', { text: ' Journal' })),
         canFullscreen() ? h('button.pp-btn.pp-btn--small.pp-btn--ghost.pp-hud__fullscreen', { type: 'button', 'aria-label': 'Fullscreen', title: 'Fullscreen', onclick: () => { sfx.click(); toggleFullscreen(); } }, '⛶') : null,
-        h('button.pp-btn.pp-btn--small.pp-btn--ghost', { type: 'button', 'aria-label': 'Settings', onclick: () => { sfx.click(); app.go('settings', { back: app.backParams() }); } }, '⚙'));
+        h('button.pp-btn.pp-btn--small.pp-btn--ghost', { type: 'button', 'aria-label': 'Settings', onclick: () => { sfx.click(); app.go('settings', { back: app.backParams() }); } }, '⚙'),
+        /* The one thing to do next, always in view. */
+        h('div.pp-hud__next', { role: 'status', title: 'Your next goal' }, h('b', { text: '▶ Next: ' }), nextStep(c).label));
       return bar;
     },
 
@@ -216,11 +223,53 @@ export function createApp(root, screens) {
       return `${club.city} · ${part}`;
     },
 
+    /**
+     * A one-time tip, shown when a system first matters rather than all at
+     * once in an intro. Non-blocking: play goes on underneath. Remembered in
+     * the career (`taught`), so it never repeats.
+     */
+    coach(key, text, { title = null, host = null } = {}) {
+      const c = app.career;
+      if (!c || c.taught?.[key] || coachQueue.some((t) => t.key === key) || coachEl?.dataset.key === key) return false;
+      coachQueue.push({ key, text, title, host });
+      if (!coachEl) showNextCoach();
+      return true;
+    },
+
     async celebrate(kind, text, { ms = 1800 } = {}) {
       sfx[kind]?.();
       app.toast(text, { ms });
       await wait(200);
     }
+  };
+
+  const coachQueue = [];
+  let coachEl = null;
+  function showNextCoach() {
+    const tip = coachQueue.shift();
+    if (!tip) { coachEl = null; return; }
+    const close = () => { learned(tip.key); coachEl?.remove(); coachEl = null; setTimeout(showNextCoach, 250); };
+    /* With a host (a match's side panel) the tip sits inline in it and never
+       floats over the board or its buttons. */
+    coachEl = h(`div.pp-coach${tip.host ? '.pp-coach--inline' : ''}`, { role: 'note', dataset: { key: tip.key, shownAt: String(Date.now()) } },
+      tip.title ? h('b.pp-coach__title', { text: tip.title }) : null,
+      h('div', { text: tip.text }),
+      h('button.pp-btn.pp-btn--small', { type: 'button', text: 'Got it', onclick: (e) => { e.stopPropagation(); sfx.click(); close(); } }));
+    if (tip.host?.isConnected) tip.host.prepend(coachEl); else document.body.append(coachEl);
+  }
+
+  /* A tip counts as learned once dismissed, or once it was on screen long
+     enough to read; one cut short by leaving the screen comes back later. */
+  function learned(key) {
+    if (!app.career) return;
+    app.career.taught = { ...(app.career.taught || {}), [key]: true };
+    app.save();
+  }
+  app.dropCoach = () => {
+    if (coachEl && Date.now() - Number(coachEl.dataset.shownAt) > 4000) learned(coachEl.dataset.key);
+    coachEl?.remove();
+    coachEl = null;
+    coachQueue.length = 0;
   };
 
   /* One quiet, persistent banner while progress cannot be kept: shown once,

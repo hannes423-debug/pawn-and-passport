@@ -22,7 +22,7 @@ import { OPENINGS } from '../../data/openings.js';
 import { POSTCARDS, BEYOND_THE_TOUR } from '../../data/postcards.js';
 import { starById } from '../../data/starPlayers.js';
 import { GRADE_META } from '../../core/grading.js';
-import { hasAllPostcards, masteryState, trophyCount, postcardCount, missionProgress, xpProgress, maxFocus, hintPlies, repertoireSlots, equipOpening, unequipOpening, isUnlocked } from '../../core/career.js';
+import { hasAllPostcards, masteryState, trophyCount, postcardCount, missionProgress, xpProgress, maxFocus, hintPlies, repertoireSlots, equipOpening, unequipOpening, isUnlocked, nextStep } from '../../core/career.js';
 
 const pct = (x0, y0, x1, y1) => ({ left: `${x0}%`, top: `${y0}%`, width: `${x1 - x0}%`, height: `${y1 - y0}%` });
 
@@ -57,6 +57,9 @@ export function postcardFlip(postcard, { collected = true, startFlipped = false 
         h('div.pp-postcard__stamp', { text: postcard.stamp }))));
   return card;
 }
+
+/* The distinction the Openings page exists to make. */
+const KNOWN_VS_EQUIPPED = 'Known = you have learned it. Equipped = it works for you in games: blue guide arrows and cheaper hints.';
 
 export function journalScreen(app, params) {
   const career = app.career;
@@ -108,7 +111,7 @@ export function journalScreen(app, params) {
     ALBUM.fields.forEach((rect, i) => book.append(h('div.pp-slot', { style: { ...rect, justifyContent: 'flex-start', flexDirection: 'row', paddingLeft: '2%', fontWeight: i === 0 ? 700 : 600, fontSize: 'max(9px, 1.24cqw)', whiteSpace: 'nowrap' }, text: rows[i] })));
     book.append(h('div.pp-slot', { style: { ...ALBUM.notes, fontSize: 'max(9px, 1.18cqw)', padding: '1%', textAlign: 'left', alignItems: 'flex-start' } },
       h('div', null, h('b', { text: 'Focus ' }), `${maxFocus(career.level)} max · `, h('b', { text: 'Hint ' }), hintPlies(career.level).label.toLowerCase()),
-      h('div', null, career.completed ? '★ Qualified for the Big Leagues!' : career.finale.unlocked ? '🏟 Grand Finale unlocked: fly to Madrid.' : `Next goal: win ${6 - trophyCount(career)} more Club Trophies.`)));
+      h('div', null, h('b', { text: '▶ Next: ' }), nextStep(career).label)));
     // The ribbon is narrow and curls at both ends: one short word in its middle.
     book.append(h('div.pp-slot', { style: { ...ALBUM.banner, fontFamily: 'var(--font-pixel)', fontSize: '0.95cqw', color: '#4a2e18', paddingBottom: '0.3cqw' }, text: 'TROPHIES' }));
     const shelf = [...CLUBS.map((c) => ({ label: c.trophyName, sub: c.city, won: !!career.trophies[c.clubId] })),
@@ -148,8 +151,8 @@ export function journalScreen(app, params) {
         h('div', null, h('b', { text: `${m}%` }), ` ${masteryState(m).label}`),
         h('div', { style: { display: 'flex', gap: '4%', justifyContent: 'center', flexWrap: 'wrap' } }, toggle, studyBtn)));
     }
-    book.append(h('div.pp-slot', { style: { left: '12%', top: '84%', width: '30%', height: '5%', fontSize: 'max(10px, 1.05cqw)', background: 'rgba(255,248,230,0.92)', borderRadius: '4px' } },
-      h('b', { text: `Repertoire ${equipped.length}/${slots}` }), h('span.pp-muted', { text: slots < 6 ? `more slots at higher levels` : 'all six can be equipped' })));
+    book.append(h('div.pp-slot', { style: { left: '12%', top: '82%', width: '34%', height: '9%', fontSize: 'max(9px, 0.95cqw)', background: 'rgba(255,248,230,0.94)', borderRadius: '4px', padding: '0.4%' }, title: KNOWN_VS_EQUIPPED },
+      h('b', { text: `Repertoire ${equipped.length}/${slots}${slots < 6 ? ' (more slots at higher levels)' : ''}` }), h('span', { text: KNOWN_VS_EQUIPPED })));
     const places = [...CLUBS.map((c) => ({ id: c.clubId, city: c.city, img: `assets/cities/${c.clubId}.webp`, seen: !!career.visited[c.clubId], extra: `${career.trophies[c.clubId] ? '🏆' : ''}${career.postcards[c.postcardId] ? '✉' : ''}` })),
       { id: 'mad', city: 'Madrid', img: 'assets/cities/mad.webp', seen: career.location.clubId === 'mad' || career.finale.results.length > 0, extra: career.finale.won ? '🥇' : '' }];
     places.forEach((p, i) => book.append(h('div.pp-slot', { style: { ...BOOK.polaroids[i], justifyContent: 'flex-end' }, title: p.city },
@@ -190,8 +193,7 @@ export function journalScreen(app, params) {
           unlocked ? h('button.pp-btn.pp-btn--small.pp-btn--blue', { type: 'button', onclick: () => study(o.id) }, '📖 Study') : null));
     };
     return h('div.pp-journal__list', null,
-      h('div.pp-panel.pp-small', null, h('b', { text: `Repertoire ${equipped.length}/${slots}` }),
-        ' · Equipped openings draw guide arrows in games. Study shows the lines you know.'),
+      h('div.pp-panel.pp-small', null, h('b', { text: `Repertoire ${equipped.length}/${slots}` }), ' · ', KNOWN_VS_EQUIPPED),
       h('h3.pp-h3.pp-journal__shelf', { text: '♔ White' }), OPENINGS.filter((o) => o.side === 'w').map(card),
       h('h3.pp-h3.pp-journal__shelf', { text: '♚ Black' }), OPENINGS.filter((o) => o.side === 'b').map(card));
   };
@@ -207,9 +209,10 @@ export function journalScreen(app, params) {
         h('div', null,
           h('div.pp-player__name', { text: career.name }),
           h('div.pp-small', { text: `Level ${career.level}${xp.max ? ' (max)' : ` · ${xp.into}/${xp.needed} XP`} · ${career.elo} Elo` }),
-          h('div.pp-small', { text: `Home: ${home.city} · since ${new Date(career.createdAt).toLocaleDateString('en-GB')}` }),
+          h('div.pp-small', { text: `Home: ${home.city} · now in ${career.location.clubId === FINALE.id ? FINALE.city : clubById(career.location.clubId)?.city}` }),
           h('div.pp-small', { text: `🏆 ${trophyCount(career)}/6 · ✉ ${postcardCount(career)}/6 · score ${career.stats.careerScore.toLocaleString('en')}` }),
           h('div.pp-small.pp-muted', { text: `Focus ${maxFocus(career.level)} max · hint: ${hintPlies(career.level).label.toLowerCase()}` }))),
+      h('div.pp-panel.pp-small', null, h('b', { text: '▶ Next: ' }), nextStep(career).label),
       h('h3.pp-h3.pp-journal__shelf', { text: 'Trophies' }),
       h('div.pp-tiles', null, shelf.map((t) => h('div.pp-tile', { class: t.won ? 'pp-tile--epic' : '' },
         h('b.pp-trophy', { class: t.won ? '' : 'is-empty', text: '🏆' }), h('span', { text: t.label }), h('div.pp-small.pp-muted', { text: t.sub })))));

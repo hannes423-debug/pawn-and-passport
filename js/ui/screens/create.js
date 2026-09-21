@@ -60,8 +60,8 @@ export function createScreen(app) {
     for (const b of cityButtons) { const on = b.dataset.id === clubId; b.classList.toggle('is-picked', on); b.setAttribute('aria-pressed', String(on)); }
     const club = CLUBS.find((c) => c.clubId === clubId);
     summary.textContent = club
-      ? `${name.value.trim() || 'Rookie'} starts in ${club.city} knowing ${openingById(club.openingId).name} at ${MASTERY.starting}%. Every other opening is learned by travelling and winning.`
-      : 'Pick a starting city. It decides your first opening.';
+      ? `${name.value.trim() || 'Rookie'} starts in ${club.city}, already knowing a bit of the ${openingById(club.openingId).name} (${MASTERY.starting}%). The other openings are learned on the road.`
+      : 'Pick a home city below. It only decides your first opening.';
     start.disabled = !club;
   }
 
@@ -71,7 +71,7 @@ export function createScreen(app) {
       h('img.pp-create__sub', { src: 'assets/ui/logo-sub.webp', alt: 'A Chess Career RPG' }),
       h('div.pp-create__grid', null,
         h('section.pp-panel.pp-col.pp-create__who', null,
-          h('h2.pp-h2', { text: '1. Who are you?' }),
+          h('h2.pp-h2', { text: '1. Boy or girl?' }),
           h('div.pp-avatar-pick', null, avatarButtons),
           h('h2.pp-h2', { text: '2. Your name' }),
           name,
@@ -79,8 +79,8 @@ export function createScreen(app) {
           summary,
           h('div.pp-row', null, start, button('Back', () => app.go('title'), { cls: 'pp-btn--small' }))),
         h('section.pp-panel.pp-create__cities', null,
-          h('h2.pp-h2', { text: '3. Starting city' }),
-          h('p.pp-small.pp-muted', { text: 'Your home club. You can travel to every other city later, in any order.' }),
+          h('h2.pp-h2', { text: '3. Home city' }),
+          h('p.pp-small.pp-muted', { text: `Your home club's opening starts at ${MASTERY.starting}%. Don't worry: you can visit every city later, in any order.` }),
           h('div.pp-cities', null, cityButtons)))));
 
   refresh();

@@ -251,7 +251,7 @@ def match():
         c.eval("[...document.querySelectorAll('.pp-match__right button')].find(b => b.textContent.includes('Resign')).click()")
         c.pump(0.5)
         c.eval("[...document.querySelectorAll('.pp-overlay button')].find(b => b.textContent.includes('Resign')).click()")
-        ok = c.wait_for("!!document.querySelector('.pp-result__letter')", timeout=60)
+        ok = c.wait_for("!!document.querySelector('.pp-result__word')", timeout=60)
         c.pump(0.5)
         print("result", ok, c.shot("43-match-result"))
         if not ok:
@@ -363,9 +363,9 @@ def trophy():
         for _ in range(12):
             c.pump(0.8)
             c.eval("document.querySelector('.pp-dialogue')?.click()")
-            if c.eval("!!document.querySelector('.pp-result__letter')"):
+            if c.eval("!!document.querySelector('.pp-result__word')"):
                 break
-        ok = c.wait_for("!!document.querySelector('.pp-result__letter')", timeout=60)
+        ok = c.wait_for("!!document.querySelector('.pp-result__word')", timeout=60)
         print("result", ok, c.shot("61-star-result"))
         c.eval("[...document.querySelectorAll('.pp-overlay button')].find(b => b.textContent.includes('Continue'))?.click()")
         # The tournament report (the final's line) comes before the ceremony.

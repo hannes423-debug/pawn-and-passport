@@ -172,17 +172,20 @@ export function mapScreen(app) {
     const mastery = career.openings[club.openingId] ?? 0;
     const mission = missionProgress(career, club.puzzleMissionId);
     const isHere = here === club.clubId;
-    card.append(h('div.pp-panel', null,
-      h('h2.pp-h2', { text: `${club.city}, ${club.country}` }),
-      h('div.pp-col.pp-small', null,
-        h('div', null, '♜ ', h('b', { text: club.clubName }), career.trophies[club.clubId] ? ` · 🏆 ${club.trophyName}` : ` · ${club.trophyName} not won`),
-        h('div', null, '♟ ', h('b', { text: opening.name }), ` (${opening.side === 'w' ? 'White' : 'Black'}) · ${mastery}% ${masteryState(mastery).label}`),
-        h('div', null, '★ Star Player: ', h('b', { text: star.name })),
-        h('div', null, '☕ ', h('b', { text: club.casualLocationName }), ` · puzzles ${mission.solved}/${mission.total}${career.postcards[club.postcardId] ? ' · ✉ collected' : ''}`)),
-      h('div.pp-row', { style: { marginTop: '10px' } },
-        button(isHere ? 'Go to the club' : 'Fly to the club', () => (isHere ? app.go('scene', { sceneId: club.scenes.exterior }) : fly(entry, club.scenes.exterior)), { cls: 'pp-btn--gold', icon: '♜' }),
+    const won = !!career.trophies[club.clubId];
+    /* City, club, trophy state, Travel: first and biggest. The rest is detail. */
+    card.append(h('div.pp-panel.pp-mapcard', null,
+      h('h2.pp-h2', { text: club.city }),
+      h('div.pp-mapcard__club', null, h('b', { text: club.clubName })),
+      h(`div.pp-mapcard__trophy${won ? '.is-won' : ''}`, { text: won ? `🏆 ${club.trophyName}: won!` : `🏆 ${club.trophyName}: not won yet` }),
+      h('div.pp-row', { style: { marginTop: '8px' } },
+        button(isHere ? 'Go to the club' : 'Fly to the club', () => (isHere ? app.go('scene', { sceneId: club.scenes.exterior }) : fly(entry, club.scenes.exterior)), { cls: 'pp-btn--gold', icon: isHere ? '♜' : '✈' }),
         button(isHere ? 'Casual venue' : 'Fly to the venue', () => (isHere ? app.go('scene', { sceneId: club.scenes.venue }) : fly(entry, club.scenes.venue)), { icon: '☕' }),
-        button('Close', () => closeCard(), { cls: 'pp-btn--small' }))));
+        button('Close', () => closeCard(), { cls: 'pp-btn--small' })),
+      h('div.pp-col.pp-small.pp-muted.pp-mapcard__more', null,
+        h('div', null, `♟ ${opening.name} (${opening.side === 'w' ? 'White' : 'Black'}) · you know ${mastery}%`),
+        h('div', null, `★ Star Player: ${star.name}`),
+        h('div', null, `☕ ${club.casualLocationName} · puzzles ${mission.solved}/${mission.total}${career.postcards[club.postcardId] ? ' · ✉ postcard collected' : ''}`))));
   }
 
   const legend = h('div.pp-map__legend.pp-panel.pp-small', null,
@@ -202,7 +205,29 @@ export function mapScreen(app) {
     layout();
     centreOn(start.pin, false);
     if (start && !start.finale) select(start); else closeCard();
+    if (area.classList.contains('is-pannable')) area.append(h('div.pp-map__drag', { 'aria-hidden': 'true', text: '⇆ Drag the map to see every city' }));
+    welcome();
   });
+
+  /* The map's own lessons, once each: what it is for, and Madrid's invitation. */
+  async function welcome() {
+    if (finaleOpen && !career.taught?.madrid) {
+      career.taught = { ...(career.taught || {}), madrid: true };
+      app.save();
+      sfx.trophy();
+      const choice = await app.overlay((close) => h('div.pp-panel.pp-modal.pp-invite', null,
+        h('div.pp-invite__seal', { text: '🏟' }),
+        h('div.pp-small', { text: 'An invitation' }),
+        h('h2.pp-h1', { text: FINALE.eventName }),
+        h('p', { text: `${career.name}: with all six Club Trophies in your passport, you are invited to ${FINALE.venueName} in Madrid. The six Star Players are waiting, stronger than before. Win three rounds to qualify for the Big Leagues.` }),
+        h('div.pp-row', { style: { justifyContent: 'center' } },
+          button('Fly to Madrid', () => close('fly'), { cls: 'pp-btn--gold', icon: '✈' }),
+          button('Later', () => close(null), { cls: 'pp-btn--small' }))), { dismissable: false });
+      if (choice === 'fly') fly(pins.find((p) => p.finale), FINALE.scenes.exterior);
+      return;
+    }
+    app.coach('map', 'Pick a city, then Fly. Every city has its own club, Star Player and opening, in any order you like.', { title: 'World map' });
+  }
   return { el, destroy() { ro.disconnect(); } };
 }
 

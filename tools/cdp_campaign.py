@@ -90,7 +90,7 @@ def run(start):
         else:
             js("window.__pap.current.match.resign()")
         # A Star Player or finale game has the rival's words first.
-        settle_ui(prefer=r"^$", until="!!document.querySelector('.pp-result__letter')", timeout=60)
+        settle_ui(prefer=r"^$", until="!!document.querySelector('.pp-result__word')", timeout=60)
         games += 1
 
     def walk_to(label_pattern):
