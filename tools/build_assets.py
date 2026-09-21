@@ -31,68 +31,68 @@ OUT = os.path.join(ROOT, 'assets')
 
 # published name -> (source path relative to ROOT, max width)
 UI = {
-    'ui/title-bg': ('Pawn & Passport_ Matkailijan pelipöytä.png', 1672),
+    'ui/title-bg': ('title-background.png', 1672),
     # The portrait (phone held upright) title: no painted logo or menu, the game draws those.
-    'ui/title-bg-portrait': ('ChatGPT Image 17.9.2026 klo 04.54.38.png', 1024),
-    'ui/logo': ('Pixel Chess Travel Logo.png', 1200),
-    'ui/logo-sub': ('A Chess Career RPG retrotekstilogo.png', 1100),
-    'ui/world-map': ('Pikselitaiteinen maailman kartta(1).png', 1672),
-    'ui/book-openings': ('Pikselitaiteinen shakki- ja matkakirja.png', 1536),
-    'ui/book-album': ('Pikselityylinen matkapäiväkirja-albumi.png', 1536),
-    'ui/book-settings': ('Pikselitaiteinen asetusten muistikirja UI.png', 1536),
+    'ui/title-bg-portrait': ('title-background-portrait.png', 1024),
+    'ui/logo': ('logo-pawn-and-passport.png', 1200),
+    'ui/logo-sub': ('logo-subtitle.png', 1100),
+    'ui/world-map': ('world-map.png', 1672),
+    'ui/book-openings': ('book-openings.png', 1536),
+    'ui/book-album': ('book-album.png', 1536),
+    'ui/book-settings': ('book-settings.png', 1536),
 }
 
 SCENES = {
-    'nyc-ext': 'NYC/New Yorkin shakkiklubin palatsi.png',
-    'nyc-int': 'NYC/New Yorki malekerhon ylellinen pohjapiirros.png',
-    'nyc-up': 'NYC/Yläkerran ylellinen shakkiklubi.png',
-    'nyc-venue': 'NYC/Tyhjä Bethesda Terrace pikselitaiteena.png',
-    'lon-ext': 'London/Symmetrinen shakkiklubin kartanopiha.png',
-    'lon-int': 'London/Ylellinen shakkiklubin pohjapiirros(1)(1).png',
-    'lon-venue': 'London/Lontoon shakkikeidas Covent Gardenissa.png',
-    'vie-venue': 'Vienna/Wieniläinen shakkikahvila.png',
-    'ist-venue': 'Istanbul/Istanbulin iltateen shakki_terassi vedellä.png',
-    'che-venue': 'Chennai/Marinan rantabulevardin shakkikulma.png',
-    'wen-venue': 'Wenzhou/Värikäs jokirannan kiinalainen shakkipaviljonki.png',
-    'vie-ext': 'Vienna/Wienin elegantti shakkikerho puutarhoineen.png',
-    'vie-int': 'Vienna/Wienin ylellinen shakkiklubin pohjapiirros.png',
-    'vie-up': 'Vienna/Wienin shakkiklubin yläkerta.png',
-    'ist-ext': 'Istanbul/Istanbulin shakkiklubin puutarha.png',
-    'ist-int': 'Istanbul/Istanbulin shakkiklubin palatsimainen pohjapiirros(1).png',
-    'ist-up': 'Istanbul/İstanbul Satranç Kulübü Lobisi.png',
-    'che-ext': 'Chennai/Chennain shakkikerhon temppelipuutarha(1).png',
-    'che-int': 'Chennai/Chennai Chess Club_ Pixel-Art Hall.png',
-    'wen-ext': 'Wenzhou/Kiinan shakkiklubin temppelipiha.png',
-    'wen-int': 'Wenzhou/Kiinalainen shakkiklubin pohjapiirros kartoittuna.png',
-    'wen-up': 'Wenzhou/中国棋社阁楼平面图.png',
-    'mad-ext': 'Spain Madrid/Kansallisen shakkimestaruuden palatsipiha.png',
-    'mad-int': 'Spain Madrid/Kultainen kansainvälinen shakkimestaruussali.png',
+    'nyc-ext': 'NYC/nyc-ext-club-facade.png',
+    'nyc-int': 'NYC/nyc-int-club-interior.png',
+    'nyc-up': 'NYC/nyc-up-upstairs-lounge.png',
+    'nyc-venue': 'NYC/nyc-venue-bethesda-terrace.png',
+    'lon-ext': 'London/lon-ext-manor-courtyard.png',
+    'lon-int': 'London/lon-int-club-interior.png',
+    'lon-venue': 'London/lon-venue-covent-garden.png',
+    'vie-venue': 'Vienna/vie-venue-coffeehouse.png',
+    'ist-venue': 'Istanbul/ist-venue-tea-terrace.png',
+    'che-venue': 'Chennai/che-venue-marina-promenade.png',
+    'wen-venue': 'Wenzhou/wen-venue-riverside-pavilion.png',
+    'vie-ext': 'Vienna/vie-ext-club-garden.png',
+    'vie-int': 'Vienna/vie-int-club-interior.png',
+    'vie-up': 'Vienna/vie-up-upstairs-lounge.png',
+    'ist-ext': 'Istanbul/ist-ext-club-garden.png',
+    'ist-int': 'Istanbul/ist-int-club-interior.png',
+    'ist-up': 'Istanbul/ist-up-upstairs-lobby.png',
+    'che-ext': 'Chennai/che-ext-temple-garden.png',
+    'che-int': 'Chennai/che-int-club-hall.png',
+    'wen-ext': 'Wenzhou/wen-ext-temple-courtyard.png',
+    'wen-int': 'Wenzhou/wen-int-club-interior.png',
+    'wen-up': 'Wenzhou/wen-up-upstairs-loft.png',
+    'mad-ext': 'Spain Madrid/mad-ext-championship-courtyard.png',
+    'mad-int': 'Spain Madrid/mad-int-championship-hall.png',
 }
 
 CITIES = {
-    'nyc': 'NYC/ChatGPT Image 17.9.2026 klo 07.31.39.png',
-    'lon': 'London/ChatGPT Image 14.9.2026 klo 23.14.07 (5).png',
-    'vie': 'Vienna/ChatGPT Image 14.9.2026 klo 23.14.06 (1).png',
-    'ist': 'Istanbul/ChatGPT Image 14.9.2026 klo 23.14.06 (3).png',
-    'che': 'Chennai/ChatGPT Image 14.9.2026 klo 23.14.06 (2).png',
-    'wen': 'Wenzhou/ChatGPT Image 14.9.2026 klo 23.17.28 (1).png',
-    'mad': 'Spain Madrid/ChatGPT Image 14.9.2026 klo 23.17.28 (2).png',
+    'nyc': 'NYC/nyc-city-card.png',
+    'lon': 'London/lon-city-card.png',
+    'vie': 'Vienna/vie-city-card.png',
+    'ist': 'Istanbul/ist-city-card.png',
+    'che': 'Chennai/che-city-card.png',
+    'wen': 'Wenzhou/wen-city-card.png',
+    'mad': 'Spain Madrid/mad-city-card.png',
 }
 
 # Portrait loading screens (phone held upright), cities/<id>-portrait.
-# NYC/ also keeps an earlier portrait draft, ChatGPT Image 17.9.2026 klo 07.32.57.png.
+# NYC/ also keeps an earlier portrait draft, nyc-city-card-portrait-draft.png.
 CITIES_PORTRAIT = {
-    'nyc': 'NYC/ChatGPT Image 17.9.2026 klo 07.43.28 (3).png',
-    'lon': 'London/ChatGPT Image 17.9.2026 klo 07.43.27 (2).png',
-    'vie': 'Vienna/ChatGPT Image 17.9.2026 klo 07.43.30 (6).png',
-    'ist': 'Istanbul/ChatGPT Image 17.9.2026 klo 07.43.28 (4).png',
-    'che': 'Chennai/ChatGPT Image 17.9.2026 klo 07.43.29 (5).png',
-    'wen': 'Wenzhou/ChatGPT Image 17.9.2026 klo 07.35.27.png',
-    'mad': 'Spain Madrid/ChatGPT Image 17.9.2026 klo 07.43.26 (1).png',
+    'nyc': 'NYC/nyc-city-card-portrait.png',
+    'lon': 'London/lon-city-card-portrait.png',
+    'vie': 'Vienna/vie-city-card-portrait.png',
+    'ist': 'Istanbul/ist-city-card-portrait.png',
+    'che': 'Chennai/che-city-card-portrait.png',
+    'wen': 'Wenzhou/wen-city-card-portrait.png',
+    'mad': 'Spain Madrid/mad-city-card-portrait.png',
 }
 
-PIECE_SHEET = 'ChatGPT Image 14.9.2026 klo 23.20.56.png'
-BOARD = 'Koristeellinen pikselitaiteen shakkilauta.png'
+PIECE_SHEET = 'chess-piece-sheet.png'
+BOARD = 'chess-board.png'
 # The 8x8 grid inside the board art, measured from the source (1254x1254):
 # squares are 120.6 px wide but 122.8 px tall, so the art is resampled until
 # they are square rather than stretching pieces to fit.

@@ -70,7 +70,12 @@ function clump(lost, cols, rows, cw, ch) {
   return out.sort((a, b) => b.area - a.area);
 }
 
+/* A pocket this small is the inside of a ring of armchairs or the strip behind
+   a display case: floor nobody can reach because furniture surrounds it, which
+   is how a room looks. Anything bigger is a doorway a body no longer fits. */
+const NOOK = 600;
 let problems = 0;
+let failures = 0;
 for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
   if (only.length && !only.includes(id)) continue;
   const scene = sceneById(id);
@@ -83,6 +88,7 @@ for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
   const lost = new Uint8Array(body.cells.length);
   for (let n = 0; n < lost.length; n += 1) lost[n] = body.cells[n] === 1 && !b.seen[n] ? 1 : 0;
   const clumps = clump(lost, body.cols, body.rows, b.cw, b.ch).filter((c) => c.area > 25);
+  const tooBig = clumps.filter((c) => c.area > NOOK);
 
   const needed = [];
   for (const [name, node] of Object.entries(scene.spawn)) needed.push([`spawn:${name}`, scene.nodes[node]]);
@@ -92,10 +98,19 @@ for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
 
   if (!clumps.length && !unreachable.length) continue;
   problems += 1;
+  if (tooBig.length || unreachable.length) failures += 1;
   console.log(`\n${id}  (walker pad ${(walker.halfWidth / aspect).toFixed(2)} x ${walker.halfDepth.toFixed(2)})`);
   for (const [name] of unreachable) console.log(`   UNREACHABLE  ${name}`);
   for (const c of clumps.slice(0, 6)) {
-    console.log(`   island ${String(c.area).padStart(5)} cells  box [${c.box.map((v) => v.toFixed(1)).join(', ')}]`);
+    const mark = c.area > NOOK ? 'ISLAND' : 'nook  ';
+    console.log(`   ${mark} ${String(c.area).padStart(5)} cells  box [${c.box.map((v) => v.toFixed(1)).join(', ')}]`);
   }
 }
-console.log(problems ? `\n${problems} scene(s) with cut-off floor or unreachable targets` : '\nevery scene: all walkable floor is reachable from the spawn');
+if (!failures) {
+  console.log(problems
+    ? `\nevery scene: everything reachable; ${problems} scene(s) have furniture nooks, which is fine`
+    : '\nevery scene: all walkable floor is reachable from the spawn');
+} else {
+  console.log(`\n${failures} scene(s) with a doorway a body cannot fit through, or an unreachable target`);
+}
+process.exit(failures ? 1 : 0);

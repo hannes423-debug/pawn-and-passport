@@ -2,7 +2,7 @@
 """
 tools/build_ui_icons.py - cut the board markers out of the supplied UI pack.
 
-The artist's sheet ("Shakkipelin pikselitaidekäyttöliittymäpaketti.png") carries
+The artist's sheet ("ui-icon-pack.png") carries
 a row of small marker icons: a reticle, crossed swords, a shield, a sparkle and
 an alert. The board uses them to say what an arrow MEANS on the square it points
 at - the target of a suggestion, a piece under threat, the expected defence, a
@@ -27,7 +27,7 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-SHEET = os.path.join(ROOT, "Shakkipelin pikselitaidekäyttöliittymäpaketti.png")
+SHEET = os.path.join(ROOT, "ui-icon-pack.png")
 OUT = os.path.join(ROOT, "assets", "ui")
 
 # The marker row, and roughly where each icon sits in it. Boxes are generous:

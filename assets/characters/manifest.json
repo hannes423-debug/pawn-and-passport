@@ -28,7 +28,7 @@
         135,
         320
       ],
-      "from": "Shakkipojan pikselitaidean spritesheet.png"
+      "from": "boy-spritesheet.png"
     },
     "girl": {
       "src": "assets/characters/girl.png",
@@ -37,7 +37,7 @@
         154,
         320
       ],
-      "from": "Shakkia opiskeleva tytt\u00f6 \u2013 spritesheet.png"
+      "from": "girl-spritesheet.png"
     },
     "young-blue": {
       "src": "assets/characters/young-blue.png",
@@ -46,7 +46,7 @@
         134,
         320
       ],
-      "from": "Nuoren shakinpelaajan pikselianimaatiot.png"
+      "from": "young-blue-spritesheet.png"
     },
     "young-red": {
       "src": "assets/characters/young-red.png",
@@ -55,7 +55,7 @@
         134,
         320
       ],
-      "from": "Nuoren shakinpelaajan pikselisprite-sheet.png"
+      "from": "young-red-spritesheet.png"
     },
     "old-green": {
       "src": "assets/characters/old-green.png",
@@ -64,7 +64,7 @@
         136,
         320
       ],
-      "from": "Vanhan shakinpelaajan pikselihahmolevy.png"
+      "from": "old-green-spritesheet.png"
     },
     "old-scarf": {
       "src": "assets/characters/old-scarf.png",
@@ -73,7 +73,7 @@
         139,
         320
       ],
-      "from": "Vanhan shakinpelaajan pikselisprite-sheet.png"
+      "from": "old-scarf-spritesheet.png"
     },
     "woman": {
       "src": "assets/characters/woman.png",
@@ -82,7 +82,7 @@
         124,
         320
       ],
-      "from": "Aikuisen naisen pikselihahmojen spritesheet.png"
+      "from": "woman-spritesheet.png"
     },
     "woman-coat": {
       "src": "assets/characters/woman-coat.png",
@@ -91,7 +91,7 @@
         130,
         320
       ],
-      "from": "Aikuisen naisen pikselianimaatiosetti.png"
+      "from": "woman-coat-spritesheet.png"
     },
     "bug-catcher": {
       "src": "assets/characters/bug-catcher.png",
@@ -100,7 +100,7 @@
         180,
         320
       ],
-      "from": "ChatGPT Image 18.9.2026 klo 16.47.47.png"
+      "from": "bug-catcher-spritesheet.png"
     },
     "cs-student": {
       "src": "assets/characters/cs-student.png",
@@ -109,7 +109,7 @@
         213,
         320
       ],
-      "from": "ChatGPT Image 18.9.2026 klo 16.52.30.png"
+      "from": "cs-student-spritesheet.png"
     },
     "cn-student": {
       "src": "assets/characters/cn-student.png",
@@ -118,7 +118,7 @@
         152,
         320
       ],
-      "from": "ChatGPT Image 18.9.2026 klo 17.00.36.png"
+      "from": "cn-student-spritesheet.png"
     },
     "in-student": {
       "src": "assets/characters/in-student.png",
@@ -127,7 +127,7 @@
         151,
         320
       ],
-      "from": "ChatGPT Image 18.9.2026 klo 17.02.37.png"
+      "from": "in-student-spritesheet.png"
     },
     "tr-student": {
       "src": "assets/characters/tr-student.png",
@@ -136,7 +136,7 @@
         151,
         320
       ],
-      "from": "ChatGPT Image 18.9.2026 klo 17.07.45.png"
+      "from": "tr-student-spritesheet.png"
     },
     "nyc-student": {
       "src": "assets/characters/nyc-student.png",
@@ -145,7 +145,7 @@
         184,
         320
       ],
-      "from": "ChatGPT Image 18.9.2026 klo 17.09.28.png"
+      "from": "nyc-student-spritesheet.png"
     },
     "lon-boy": {
       "src": "assets/characters/lon-boy.png",
@@ -154,7 +154,7 @@
         159,
         320
       ],
-      "from": "ChatGPT Image 18.9.2026 klo 17.14.18.png"
+      "from": "lon-boy-spritesheet.png"
     },
     "lon-girl": {
       "src": "assets/characters/lon-girl.png",
@@ -163,7 +163,7 @@
         168,
         320
       ],
-      "from": "ChatGPT Image 18.9.2026 klo 17.18.28.png"
+      "from": "lon-girl-spritesheet.png"
     },
     "vie-student": {
       "src": "assets/characters/vie-student.png",
@@ -172,7 +172,7 @@
         130,
         320
       ],
-      "from": "ChatGPT Image 18.9.2026 klo 17.28.53.png"
+      "from": "vie-student-spritesheet.png"
     }
   }
 }

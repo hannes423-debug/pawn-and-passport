@@ -53,27 +53,27 @@ C = ['down', 'left', 'up', 'right']      # "IDLE | WALK 1-8", rows down/left/up/
 HERO = (0.0, 0.0, 0.2, 0.36)
 HERO_DARK = (0.0, 0.0, 0.19, 0.335)   # the dark pages print the title right under the figure
 SHEETS = {
-    'boy':          ('Shakkipojan pikselitaidean spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
-    'girl':         ('Shakkia opiskeleva tyttö – spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
-    'young-blue':   ('Nuoren shakinpelaajan pikselianimaatiot.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
-    'young-red':    ('Nuoren shakinpelaajan pikselisprite-sheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
-    'old-green':    ('Vanhan shakinpelaajan pikselihahmolevy.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
-    'old-scarf':    ('Vanhan shakinpelaajan pikselisprite-sheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
-    'woman':        ('Aikuisen naisen pikselihahmojen spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'boy':          ('boy-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'girl':         ('girl-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'young-blue':   ('young-blue-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'young-red':    ('young-red-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'old-green':    ('old-green-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'old-scarf':    ('old-scarf-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'woman':        ('woman-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
     # 2026-09-18 sheets. Most sit on a dark, blurred backdrop instead of
     # white, which the 'dark' cutter handles (see foreground_dark).
-    'woman-coat':   ('Aikuisen naisen pikselianimaatiosetti.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
-    'bug-catcher':  ('ChatGPT Image 18.9.2026 klo 16.47.47.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
-    'cs-student':   ('ChatGPT Image 18.9.2026 klo 16.52.30.png', A, 4, (0.24, 0.1, 1.0, 0.95), HERO_DARK, 'dark'),
-    'cn-student':   ('ChatGPT Image 18.9.2026 klo 17.00.36.png', A, 4, (0.27, 0.1, 1.0, 0.95), HERO_DARK, 'dark'),
-    'in-student':   ('ChatGPT Image 18.9.2026 klo 17.02.37.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
-    'tr-student':   ('ChatGPT Image 18.9.2026 klo 17.07.45.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
-    'nyc-student':  ('ChatGPT Image 18.9.2026 klo 17.09.28.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
-    'lon-boy':      ('ChatGPT Image 18.9.2026 klo 17.14.18.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
-    'lon-girl':     ('ChatGPT Image 18.9.2026 klo 17.18.28.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'woman-coat':   ('woman-coat-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO),
+    'bug-catcher':  ('bug-catcher-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'cs-student':   ('cs-student-spritesheet.png', A, 4, (0.24, 0.1, 1.0, 0.95), HERO_DARK, 'dark'),
+    'cn-student':   ('cn-student-spritesheet.png', A, 4, (0.27, 0.1, 1.0, 0.95), HERO_DARK, 'dark'),
+    'in-student':   ('in-student-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'tr-student':   ('tr-student-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'nyc-student':  ('nyc-student-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'lon-boy':      ('lon-boy-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
+    'lon-girl':     ('lon-girl-spritesheet.png', A, 4, (0.27, 0.12, 1.0, 0.95), HERO_DARK, 'dark'),
     # Vienna's page is a poster: 4 idle + 4 walk per row in a framed panel on
     # the right, and the hero stands in front of a painted street (GrabCut).
-    'vie-student':  ('ChatGPT Image 18.9.2026 klo 17.28.53.png', A, 4, (0.47, 0.07, 0.99, 0.85), (0.05, 0.05, 0.33, 0.7), 'dark', 4),
+    'vie-student':  ('vie-student-spritesheet.png', A, 4, (0.47, 0.07, 0.99, 0.85), (0.05, 0.05, 0.33, 0.7), 'dark', 4),
 }
 
 PORTRAIT_H = 320       # the hero figure is scaled to this height
