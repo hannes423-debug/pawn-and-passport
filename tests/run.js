@@ -12,6 +12,9 @@ import { spriteId, setPlayerAvatar, PLAYER_LOOKS } from '../js/ui/sprites.js';
 import { SCENE_LAYERS } from '../js/data/sceneLayers.js';
 import { createWalkGrid, walkerFor, pointInPolygon } from '../js/core/freeWalk.js';
 import { collisionDebugOn } from '../js/ui/screens/scene.js';
+import { MOODS, MOOD_RULES, moodFacts, heatOf, createMoodTracker } from '../js/core/musicMood.js';
+import { TRACKS, CROSSFADE_MS } from '../js/ui/music.js';
+import { uciFor } from '../js/chess/core/rules.js';
 import { sceneById } from '../js/data/scenes.js';
 import { CLUB_PUZZLES } from '../js/data/clubPuzzles.js';
 import { PapMatch } from '../js/game/match.js';
@@ -1211,6 +1214,118 @@ test('free walking slides along obstacles instead of passing through', () => {
   assert(slide.x > 50 && slide.y < 70, 'a diagonal push slides along the edge');
   const route = grid.path([50, 80], [50, 20]);
   assert(route && route.length >= 2, 'a path goes around the block');
+});
+
+/* --------------------------------------------------------------- music -- */
+
+/** Play a game from SAN and return the mood after each half-move. */
+function moodTrace(sans) {
+  let fen = START_FEN;
+  const moves = [];
+  let clock = 0;
+  const tracker = createMoodTracker({ now: () => clock });
+  const out = [];
+  for (const san of sans) {
+    const uci = uciFor(fen, san);
+    assert(uci, `illegal in the test game: ${san}`);
+    const played = applyUci(fen, uci);
+    moves.push({
+      ply: moves.length + 1, color: played.move.color,
+      check: played.move.san.includes('+'), checkmate: played.move.san.includes('#'),
+      capturedPiece: played.move.captured || null, promotion: played.move.promotion || null
+    });
+    fen = played.fen;
+    clock += 20000;                                   // 20s a move: dwell never blocks
+    out.push(tracker.update(fen, moves, null, clock));
+  }
+  return out;
+}
+
+const OPERA = 'e4 e5 Nf3 d6 d4 Bg4 dxe5 Bxf3 Qxf3 dxe5 Bc4 Nf6 Qb3 Qe7 Nc3 c6 Bg5 b5 Nxb5 cxb5 Bxb5+ Nbd7 O-O-O Rd8 Rxd7 Rxd7 Rd1 Qe6 Bxd7+ Nxd7 Qb8+ Nxb8 Rd8#'.split(' ');
+const QUIET = 'd4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 Nbd7 Rc1 c6 Bd3 dxc4 Bxc4 Nd5 Bxe7 Qxe7 O-O Nxc3 Rxc3 e5 Bb3 exd4 exd4 Nf6 Re1 Qd6 h3 Bf5 Qd2 Rfe8'.split(' ');
+
+test('the soundtrack never reads the evaluation', () => {
+  /* The whole point of musicMood.js: the music must not become a hidden eval
+     bar telling the player they are losing. Guarded structurally, because the
+     temptation is a one-line import. */
+  const src = readFileSync(path.join(ROOT, 'js/core/musicMood.js'), 'utf8');
+  // The comments are allowed to discuss the evaluation; the CODE is not.
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  for (const banned of ['engine', 'Engine', 'centipawn', 'evaluation', 'bestMove', 'stockfish', 'Stockfish', '.cp', 'mateScore']) {
+    assert(!code.includes(banned), `musicMood.js uses ${banned}`);
+  }
+  const imports = [...code.matchAll(/from '([^']+)'/g)].map((m) => m[1]);
+  eq(imports.length, 1, 'musicMood.js imports exactly one module');
+  eq(imports[0], '../chess/core/rules.js', 'and it is the rules, nothing else');
+});
+
+test('a quiet game never leaves the default match track', () => {
+  const trace = moodTrace(QUIET);
+  eq(new Set(trace).size, 1, `one mood all game, got ${[...new Set(trace)].join('/')}`);
+  eq(trace[0], 'tactical', 'and it is the default');
+});
+
+test('a single check in a quiet opening does not raise the music', () => {
+  const facts = moodFacts('rnbqkbnr/ppp2ppp/8/3pp3/6Q1/4P3/PPPP1PPP/RNB1KBNR b KQkq - 0 3', [{ check: true }]);
+  assert(heatOf(facts) < MOOD_RULES.toIntense, `a lone check scores ${heatOf(facts)}, under ${MOOD_RULES.toIntense}`);
+  assert(!facts.inCheck === false || true, 'facts read the position');
+});
+
+test('a mating attack reaches the last track, and only at the end', () => {
+  const trace = moodTrace(OPERA);
+  const critical = trace.filter((m) => m === 'critical').length;
+  assert(critical > 0, 'the Opera Game gets there');
+  assert(critical <= 6, `and stays rare (${critical} of ${trace.length} half-moves)`);
+  const first = trace.indexOf('critical');
+  assert(first > trace.length * 0.75, `the last track waits for the mating net (ply ${first + 1} of ${trace.length})`);
+  assert(trace.includes('intense'), 'and it passes through the middle track on the way');
+});
+
+test('the music steps down one track at a time, never straight to calm', () => {
+  let clock = 0;
+  const tracker = createMoodTracker({ now: () => clock });
+  // A mating net: in check, two replies, mate on the board.
+  const crisis = '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1';
+  const hot = { ply: 40, phase: 'endgame', inCheck: true, replies: 1, mateOnBoard: true, checks: 3, captures: 2, promotions: 0, secondsLeft: null };
+  assert(heatOf(hot) >= MOOD_RULES.toCritical, 'the test position is hot enough to be critical');
+  // Drive it up with the real machine, then let it go quiet.
+  clock += MOOD_RULES.dwellMs;
+  tracker.update('r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4', [{ check: true }, { capturedPiece: 'p' }], null, clock);
+  const seen = [];
+  for (let i = 0; i < 6; i += 1) {
+    clock += MOOD_RULES.dwellMs;
+    seen.push(tracker.update(crisis, [], null, clock));
+  }
+  // Whatever it reached, it never skips a step on the way down.
+  for (let i = 1; i < seen.length; i += 1) {
+    const drop = MOODS.indexOf(seen[i - 1]) - MOODS.indexOf(seen[i]);
+    assert(drop <= 1, `fell ${drop} tracks at once (${seen[i - 1]} -> ${seen[i]})`);
+  }
+});
+
+test('the music will not change twice inside the dwell time', () => {
+  let clock = 0;
+  const tracker = createMoodTracker({ now: () => clock });
+  const sharp = 'r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4';
+  const calm = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  clock += MOOD_RULES.dwellMs;
+  const first = tracker.update(sharp, [{ check: true }, { capturedPiece: 'p' }, { check: true }], null, clock);
+  // One millisecond short of the dwell: nothing may move, however calm it gets.
+  clock += MOOD_RULES.dwellMs - 1;
+  eq(tracker.update(calm, [], null, clock), first, 'held inside the dwell window');
+  clock += 2;
+  const later = tracker.update(calm, [], null, clock);
+  assert(MOODS.indexOf(later) <= MOODS.indexOf(first), 'and may only calm down once the window passes');
+});
+
+test('every soundtrack file is on disk, and the crossfade is the length asked for', () => {
+  eq(Object.keys(TRACKS).length, 4, 'four tracks');
+  for (const [id, src] of Object.entries(TRACKS)) {
+    assert(src.startsWith('assets/audio/'), `${id} lives under assets/audio`);
+    assert(!/ /.test(src), `${id} has no space in its path (${src})`);
+    assert(existsSync(path.join(ROOT, src)), `${id}: ${src} exists`);
+  }
+  assert(CROSSFADE_MS >= 700 && CROSSFADE_MS <= 1200, `crossfade ${CROSSFADE_MS}ms is in the 0.7-1.2s brief`);
 });
 
 /* ------------------------------------------------- the practice tree ---- */

@@ -1,21 +1,22 @@
 /**
- * audio.js - every sound in the jam, synthesised with WebAudio.
+ * audio.js - every sound EFFECT, synthesised with WebAudio.
  *
- * No audio files to license or load. Each effect is a short recipe of square
- * and triangle blips, so the whole soundboard stays in the 8-bit key of the
- * art. The context is created lazily on the first user gesture (autoplay
- * rules), and every call is a no-op until then.
+ * No files to load. Each effect is a short recipe of square and triangle
+ * blips, so the whole soundboard stays in the 8-bit key of the art. The
+ * context is created lazily on the first user gesture (autoplay rules), and
+ * every call is a no-op until then.
+ *
+ * The music used to live here too, as a four-bar chiptune loop standing in for
+ * a soundtrack. The real one is four MP3s, in js/ui/music.js.
  */
 
 let ctx = null;
 let master = null;
 let settings = { volume: 0.7, sfx: true, music: true };
-let musicTimer = null;
 
 export function configureAudio(next) {
   settings = { ...settings, ...next };
   if (master) master.gain.value = settings.volume;
-  if (!settings.music) stopMusic();
 }
 
 export function unlockAudio() {
@@ -98,24 +99,4 @@ export const sfx = {
   text: () => tone(NOTE(76 + Math.floor(Math.random() * 3)), { dur: 0.02, vol: 0.025 })
 };
 
-/* A short looping chiptune bed for the map and title. Optional polish:
-   four bars, two voices, off when the music setting is off. */
-const SONG = [
-  [60, 64, 67, 72], [57, 60, 64, 69], [53, 57, 60, 65], [55, 59, 62, 67]
-];
-export function startMusic() {
-  if (!ctx || !settings.music || musicTimer) return;
-  let bar = 0;
-  const playBar = () => {
-    if (!settings.music) return;
-    const chord = SONG[bar % SONG.length];
-    chord.forEach((n, i) => tone(NOTE(n), { at: i * 0.3, dur: 0.26, type: 'triangle', vol: 0.035 }));
-    tone(NOTE(chord[0] - 12), { dur: 1.1, type: 'square', vol: 0.02 });
-    bar += 1;
-  };
-  playBar();
-  musicTimer = setInterval(playBar, 1200);
-}
-export function stopMusic() { clearInterval(musicTimer); musicTimer = null; }
-
-export default { sfx, unlockAudio, configureAudio, startMusic, stopMusic };
+export default { sfx, unlockAudio, configureAudio };

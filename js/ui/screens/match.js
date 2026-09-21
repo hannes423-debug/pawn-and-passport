@@ -31,6 +31,8 @@ import {
 } from '../../core/career.js';
 import { roundReport, roundLabel } from '../tournamentView.js';
 import { QUALITY_META } from '../../core/focusHints.js';
+import * as music from '../music.js';
+import { createMoodTracker } from '../../core/musicMood.js';
 
 /* Arrow and square kinds for the three plan qualities (css/board.css). */
 const PLAN_KINDS = ['hint-green', 'hint-purple', 'hint-gold'];
@@ -348,6 +350,17 @@ export function matchScreen(app, params) {
     oppCard.classList.toggle('is-turn', !match.isPlayersTurn && !finished);
   }
 
+  /* --------------------------------------------------------- soundtrack -- */
+  /* Three match tracks, chosen from what is visible on the board - never from
+     the engine's opinion of the position (see js/core/musicMood.js). */
+  const mood = createMoodTracker();
+  music.play('tactical');
+  const retuneMusic = () => {
+    if (match.status !== 'active' || match.game.status !== 'active') return;
+    const clock = match.game.history.at(-1)?.clockAfter || null;
+    music.play(mood.update(match.fen, match.game.history, clock));
+  };
+
   /* ------------------------------------------------------------ events -- */
   match.on(async ({ type, payload }) => {
     switch (type) {
@@ -359,6 +372,7 @@ export function matchScreen(app, params) {
         paintPosition(record);
         if (record.checkmate || record.check) sfx.check(); else if (record.capturedPiece) sfx.capture(); else sfx.move();
         paintMoves(); paintGuide(); paintFocus();
+        retuneMusic();
         if (record.color === colour && match.game.history.filter((m) => m.color === colour).length >= 4) {
           app.coach('hint', 'Stuck? 💡 Hint spends ✦ Focus and rolls for ideas: green shows one move, purple a two-move plan, gold three. Play a lesser idea, or your own move, and some Focus comes back.', { title: 'Focus and Hint', host: right });
         }
@@ -386,6 +400,7 @@ export function matchScreen(app, params) {
         renderer.clearVerdicts();
         paintPosition(match.game.lastMove);
         paintMoves(); paintGuide(); paintFocus();
+        retuneMusic();
         board.fx.word('UNDO', '#c9a6ff', `${payload.state.left} left this game`);
         break;
       }
@@ -706,6 +721,10 @@ export function matchScreen(app, params) {
       stopEngineWatch();
       match.dispose();
       board.destroy();
+      /* Whatever the game did to the music, it does not follow the player out
+         of the match. app.go() puts the town theme back on the next screen;
+         this is the belt for the case where nothing else plays. */
+      music.play('town');
     }
   };
 }

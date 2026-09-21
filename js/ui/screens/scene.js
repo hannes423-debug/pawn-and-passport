@@ -16,7 +16,7 @@
  */
 
 import { h, button, wait, clear } from '../dom.js';
-import { sfx, stopMusic } from '../audio.js';
+import { sfx } from '../audio.js';
 import { drawCharacter, PLAYER_LOOKS, CELL, portraitUrl } from '../sprites.js';
 import { sceneById, findPath } from '../../data/scenes.js';
 import { CLUBS, FINALE, clubById } from '../../data/clubs.js';
@@ -134,7 +134,6 @@ export async function sceneScreen(app, params) {
   const isFinale = clubId === FINALE.id;
   travelTo(career, clubId, scene.id);
   app.save();
-  stopMusic();
 
   const bg = h('img.pp-scene__bg', { src: scene.image, alt: '', draggable: 'false' });
   const actors = h('div.pp-scene__actors');

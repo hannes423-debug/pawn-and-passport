@@ -8,7 +8,7 @@
  */
 
 import { h } from '../dom.js';
-import { sfx, startMusic } from '../audio.js';
+import { sfx } from '../audio.js';
 import { GAME } from '../../data/config.js';
 import { clubById } from '../../data/clubs.js';
 import * as Save from '../../core/save.js';
@@ -17,7 +17,7 @@ export function titleScreen(app) {
   const career = app.career;
   const item = (icon, label, onClick, { disabled = false } = {}) => h('button.pp-title__item', {
     type: 'button', disabled,
-    onclick: () => { sfx.click(); startMusic(); onClick(); },
+    onclick: () => { sfx.click(); onClick(); },
     onmouseenter: () => sfx.hover()
   }, h('span', { text: icon, 'aria-hidden': 'true' }), h('span', { text: label }));
 

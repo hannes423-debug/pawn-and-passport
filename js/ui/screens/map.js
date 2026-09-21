@@ -13,7 +13,7 @@
  */
 
 import { h, button, wait } from '../dom.js';
-import { sfx, startMusic } from '../audio.js';
+import { sfx } from '../audio.js';
 import { CLUBS, FINALE, clubById } from '../../data/clubs.js';
 import { openingById } from '../../data/openings.js';
 import { starById } from '../../data/starPlayers.js';
@@ -22,7 +22,6 @@ import { hasAllTrophies, trophyCount, postcardCount, missionProgress, masterySta
 
 export function mapScreen(app) {
   const career = app.career;
-  startMusic();
   const here = career.location.clubId;
   const stage = h('div.pp-map__stage', { role: 'main', 'aria-label': 'World map' });
   const area = h('div.pp-map__area', null, stage);

@@ -8,6 +8,7 @@
 
 import { h, clear, wait } from './dom.js';
 import { sfx, unlockAudio, configureAudio } from './audio.js';
+import * as music from './music.js';
 import { configureTouch, installTouchDetection, tapWord, canFullscreen, toggleFullscreen } from './touch.js';
 import { portraitUrl, PLAYER_LOOKS, setPlayerAvatar } from './sprites.js';
 import * as Save from '../core/save.js';
@@ -51,6 +52,11 @@ export function createApp(root, screens) {
       app.current = screen;
       root.append(screen.el);
       document.documentElement.dataset.screen = name;
+      /* One soundtrack for the whole game outside a match. Asking for the
+         track already playing does nothing, so walking from the map into a
+         club, a shop or the journal never restarts it. The match screen picks
+         its own track (js/core/musicMood.js) the moment it opens. */
+      if (name !== 'match') music.play('town');
       // Screens with the HUD lay out below it; its height changes with the
       // device (two rows on a phone held upright, the iPhone status bar inset).
       hudObserver.disconnect();
@@ -84,6 +90,7 @@ export function createApp(root, screens) {
     applySettings() {
       Save.saveSettings(app.settings);
       configureAudio(app.settings);
+      music.configure(app.settings);
       document.documentElement.dataset.reducedMotion = String(!!app.settings.reducedMotion);
       configureTouch(app.settings);
     },
@@ -290,7 +297,7 @@ export function createApp(root, screens) {
   paintSaveWarning();
 
   // First gesture unlocks WebAudio.
-  const unlock = () => { unlockAudio(); configureAudio(app.settings); };
+  const unlock = () => { unlockAudio(); configureAudio(app.settings); music.configure(app.settings); music.unlock(); };
   window.addEventListener('pointerdown', unlock, { once: false, passive: true });
   window.addEventListener('keydown', unlock, { once: false });
   installTouchDetection();

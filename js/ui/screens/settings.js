@@ -25,7 +25,7 @@ export function settingsScreen(app, params) {
     h('h2.pp-h2', { text: 'Sound' }),
     row('Volume', h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(s.volume), oninput: (e) => { s.volume = Number(e.target.value); app.applySettings(); }, onchange: () => sfx.best() })),
     row('Sound effects', toggle('sfx')),
-    row('Music', toggle('music'), 'A little chiptune loop on the title and map.'),
+    row('Music', toggle('music'), 'The soundtrack. One theme for travelling, and three that follow how sharp a game has become.'),
     h('h2.pp-h2', { text: 'Board' }),
     row('Piece animation', select('pieceAnimation', [['off', 'Off'], ['fast', 'Fast'], ['smooth', 'Smooth'], ['slow', 'Slow']])),
     row('Coordinates', toggle('coordinates')),
