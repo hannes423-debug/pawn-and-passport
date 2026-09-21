@@ -1,14 +1,17 @@
 /**
  * settings.js - the settings notebook.
  *
- * Only what the jam build actually honours: audio, board, assistance display
- * and accessibility. Stored under PAP_settings_v1.
+ * Only what the build actually honours: audio, board, assistance display and
+ * accessibility, stored under PAP_settings_v1 - plus the difficulty, which
+ * belongs to the CAREER (it is part of the save, not a preference) and so is
+ * written straight to it.
  */
 
 import { h, button } from '../dom.js';
 import { sfx } from '../audio.js';
 import * as Save from '../../core/save.js';
-import { GAME } from '../../data/config.js';
+import { GAME, difficultyMode } from '../../data/config.js';
+import { difficultyPicker } from '../difficultyPicker.js';
 
 export function settingsScreen(app, params) {
   const back = params.back || { screen: 'title', params: {} };
@@ -32,7 +35,27 @@ export function settingsScreen(app, params) {
     h('h2.pp-h2', { text: 'Controls' }),
     row('Touch controls', select('touchControls', [['auto', 'Auto (on for touch screens)'], ['on', 'Always on'], ['off', 'Off']]), 'Walking joystick, action button and the phone layout.'));
 
+  /* Difficulty lives on the career, not in the settings file: it is part of
+     the save. Changing it here changes the games AHEAD - the tournament you
+     are in keeps the opponents it was drawn with, and nothing already won,
+     rated or recorded moves. */
+  const career = app.career;
+  const difficultyBlock = career ? [
+    h('h2.pp-h2', { text: 'Difficulty' }),
+    difficultyPicker(career.difficulty, (id) => {
+      career.difficulty = difficultyMode(id).id;
+      app.save();
+      sfx.click();
+      app.toast(`Difficulty: ${difficultyMode(id).label}. This changes the games ahead, not the ones behind.`);
+    }),
+    h('p.pp-small.pp-muted', { text: 'Your trophies, rating and tournament progress are never touched. A tournament already under way keeps the opponents it was drawn with.' })
+  ] : [
+    h('h2.pp-h2', { text: 'Difficulty' }),
+    h('p.pp-small.pp-muted', { text: 'Start a career to choose how strong your opponents are.' })
+  ];
+
   const right = h('div.pp-book__page.pp-book__page--right', null,
+    ...difficultyBlock,
     h('h2.pp-h2', { text: 'Assistance' }),
     row('Live move grades', toggle('moveGrades'), 'Colour verdicts and Brilliant / Epic / Clutch effects on your moves.'),
     row('Opening guide arrows', toggle('guideArrows'), 'Blue arrows from your equipped openings. They never cost Focus.'),

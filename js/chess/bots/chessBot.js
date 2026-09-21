@@ -232,9 +232,42 @@ export class ChessBot {
     if (this.profile.difficulty === BOT_DIFFICULTY.RANDOM_BEGINNER && this.random() < 0.6) {
       return legal[Math.floor(this.random() * legal.length)];
     }
+    /* A weak player's mistake still LOOKS like a move: a capture, a check, a
+       piece going somewhere. What separates a 400 from a 1200 is not how often
+       they err but how MUCH it costs - the 400 leaves a queen hanging, the
+       1200 drops a pawn. `blunderSeverityCp` is that budget, and the static
+       exchange on the destination square is what it is spent on. */
+    const budget = this.profile.blunderSeverityCp ?? 100000;
+    /* WILDNESS is what separates a 400 from a 1200 when they both err. The
+       1200's mistake is still a move with an idea behind it - a capture, a
+       check, a piece going somewhere - it is just the wrong one. The 400 plays
+       something with no idea behind it at all. Openings stay sensible either
+       way, because the book runs before any of this. */
+    const wild = this.random() < (this.profile.wildness ?? 0);
     const plausible = legal.filter((m) => m.captured || m.san.includes('+') || m.piece !== 'p');
-    const pool = plausible.length ? plausible : legal;
-    return pool[Math.floor(this.random() * pool.length)];
+    let pool = wild || !plausible.length ? legal : plausible;
+    // A king wandering out for no reason is not a mistake a human makes; every
+    // other kind is. Only when nothing else is legal does the king go.
+    const notKing = pool.filter((m) => m.piece !== KING);
+    if (notKing.length) pool = notKing;
+    const affordable = pool.filter((m) => this._moveRisk(fen, m) <= budget);
+    const choosable = affordable.length ? affordable : pool;
+    return choosable[Math.floor(this.random() * choosable.length)];
+  }
+
+  /**
+   * Centipawns this move hands over on the spot: what the piece it moves is
+   * worth if the square it lands on is simply taken, minus whatever it took.
+   * Static and cheap - it is the "you just hung that" a beginner misses, not
+   * an evaluation.
+   */
+  _moveRisk(fen, move) {
+    const after = at(fen);
+    const played = after.move({ from: move.from, to: move.to, promotion: move.promotion || undefined });
+    if (!played) return 0;
+    const taken = move.captured ? (PIECE_VALUE[move.captured] || 0) : 0;
+    const exposed = see(after.fen(), move.to, otherColour(move.color));
+    return Math.max(0, exposed - taken);
   }
 
   /* ------------------------------------------------------------- timing */

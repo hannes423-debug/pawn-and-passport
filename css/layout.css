@@ -108,7 +108,10 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
 .pp-create__logo { width: auto; height: clamp(36px, 11vh, 120px); max-width: 80vw; margin: 0 auto 2px; flex: none; }
 .pp-create__sub { width: auto; height: clamp(14px, 4vh, 44px); max-width: 70vw; margin: 0 auto 10px; flex: none; }
 .pp-create__grid { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
-.pp-create__who { overflow-y: auto; min-height: 0; }
+.pp-create__who { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+/* Only the questions scroll. The action row stays put at any window height. */
+.pp-create__ask { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: inherit; }
+.pp-create__go { flex: none; margin-top: 8px; }
 .pp-create__cities { display: flex; flex-direction: column; min-height: 0; }
 .pp-create__cities .pp-cities { flex: 1; min-height: 0; overflow-y: auto; padding: 4px; align-content: start; }
 

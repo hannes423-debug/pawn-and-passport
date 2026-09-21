@@ -687,3 +687,26 @@ img, canvas { image-rendering: pixelated; }
   .pp-coach:not(.pp-coach--inline) { top: auto; left: 10px; right: 10px; width: auto; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 150px); }
 }
 .pp-coach.pp-coach--inline { position: static; width: auto; flex: none; box-shadow: 0 3px 0 rgba(20, 10, 5, 0.35); font-size: 15px; padding: 8px 10px; }
+
+/* ---------------------------------------------------------- difficulty -- */
+/* The Easy / Normal / Hard picker (js/ui/difficultyPicker.js), used by the
+   new-game screen and Settings. */
+.pp-difficulty-pick { display: flex; flex-direction: column; gap: 6px; }
+.pp-difficulty {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 8px;
+  text-align: left; padding: 7px 10px; cursor: pointer;
+  border: 2px solid var(--pp-ink-soft, #6b5844); border-radius: 6px;
+  background: rgba(255, 246, 224, 0.55); color: inherit; font: inherit;
+}
+.pp-difficulty:hover { background: rgba(255, 246, 224, 0.85); }
+.pp-difficulty.is-picked { border-color: var(--pp-gold, #e8b04a); background: rgba(255, 236, 186, 0.95); }
+.pp-difficulty__name { font-size: 1.05em; }
+.pp-difficulty__tagline { font-style: italic; opacity: 0.8; align-self: center; }
+.pp-difficulty__blurb { grid-column: 1 / -1; opacity: 0.85; }
+/* Compact: only the chosen mode explains itself (new-game screen). */
+.pp-difficulty-pick.is-compact .pp-difficulty { padding: 5px 10px; }
+.pp-difficulty-pick.is-compact .pp-difficulty:not(.is-picked) .pp-difficulty__blurb { display: none; }
+@media (max-width: 560px) {
+  .pp-difficulty { grid-template-columns: 1fr; }
+  .pp-difficulty__tagline { align-self: start; }
+}

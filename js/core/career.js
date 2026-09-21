@@ -11,7 +11,7 @@
  *   Postcards      optional, 6, unlock the Beyond the Tour page
  */
 
-import { LEVELS, XP, ELO, FOCUS, HINTS, MASTERY, REPERTOIRE, TOURNAMENT, GAME, UNDO, MEMBERS, COINS } from '../data/config.js';
+import { LEVELS, XP, ELO, DIFFICULTY, difficultyMode, FOCUS, HINTS, MASTERY, REPERTOIRE, TOURNAMENT, GAME, UNDO, MEMBERS, COINS } from '../data/config.js';
 import { membersForClub, VISITORS } from '../data/members.js';
 import * as Event from './tournament.js';
 import { hintBand } from './focusHints.js';
@@ -24,7 +24,7 @@ import { PUZZLES } from '../data/puzzles.js';
 
 /* ------------------------------------------------------------- creation -- */
 
-export function newCareer({ name, avatar, startClubId, now = Date.now() }) {
+export function newCareer({ name, avatar, startClubId, difficulty = DIFFICULTY.default, now = Date.now() }) {
   const club = clubById(startClubId);
   if (!club) throw new Error(`unknown starting club ${startClubId}`);
   const trimmed = String(name || '').trim().slice(0, 16) || 'Rookie';
@@ -37,6 +37,7 @@ export function newCareer({ name, avatar, startClubId, now = Date.now() }) {
     savedAt: now,
     name: trimmed,
     avatar: avatar === 'girl' ? 'girl' : 'boy',
+    difficulty: difficultyMode(difficulty).id,
     startClubId: club.clubId,
     location: { clubId: club.clubId, sceneId: club.scenes.exterior },
     visited: { [club.clubId]: true },
@@ -200,6 +201,9 @@ export function migrateCareer(career) {
     const home = place || clubById(career.startClubId) || CLUBS[0];
     career.location = { clubId: home.clubId || home.id, sceneId: home.scenes.exterior };
   }
+  // v3 -> v4: difficulty. A career made before there was a choice was played
+  // on the one ladder there was, which is Normal.
+  career.difficulty = difficultyMode(career.difficulty).id;
   if (typeof career.xp === 'number') career.level = levelForXp(career.xp);
   const slots = repertoireSlots(career.level || 1);
   career.equipped = career.equipped.filter((id, i, all) => all.indexOf(id) === i && (career.openings[id] ?? 0) > 0).slice(0, slots);
@@ -216,11 +220,25 @@ export const postcardCount = (career) => Object.keys(career.postcards).length;
 export const hasAllTrophies = (career) => CLUBS.every((c) => career.trophies[c.clubId]);
 export const hasAllPostcards = (career) => POSTCARDS.every((p) => career.postcards[p.id]);
 
-export function regularElo(tierIndex, random = Math.random) {
-  const [lo, hi] = ELO.regularBands[Math.min(tierIndex, ELO.regularBands.length - 1)];
+/* The Elo ladder belongs to the chosen difficulty (js/data/config.js). Every
+   one of these takes the mode id, and every caller passes career.difficulty,
+   so a career that changes difficulty meets the new ladder from its next
+   event on - and nothing already recorded moves. */
+export const modeOf = (career) => difficultyMode(typeof career === 'string' ? career : career?.difficulty);
+
+export function regularElo(tierIndex, random = Math.random, mode = DIFFICULTY.default) {
+  const bands = modeOf(mode).regularBands;
+  const [lo, hi] = bands[Math.min(tierIndex, bands.length - 1)];
   return Math.round((lo + (hi - lo) * random()) / 5) * 5;
 }
-export const starElo = (tierIndex) => ELO.starByTier[Math.min(tierIndex, ELO.starByTier.length - 1)];
+export function starElo(tierIndex, mode = DIFFICULTY.default) {
+  const stars = modeOf(mode).starByTier;
+  return stars[Math.min(tierIndex, stars.length - 1)];
+}
+export const finaleElo = (round, mode = DIFFICULTY.default) => {
+  const rounds = modeOf(mode).finaleRounds;
+  return rounds[Math.min(round, rounds.length - 1)];
+};
 
 export function travelTo(career, clubId, sceneId) {
   career.location = { clubId, sceneId };
@@ -263,8 +281,9 @@ export function settleChallenge(career, score, stake) {
 /* ----------------------------------------------------------- tournament -- */
 
 /** A member's Elo at a campaign tier: their club strength laid over the tier's band. */
-export function memberElo(rel, tierIndex) {
-  const [lo, hi] = ELO.regularBands[Math.min(tierIndex, ELO.regularBands.length - 1)];
+export function memberElo(rel, tierIndex, mode = DIFFICULTY.default) {
+  const bands = modeOf(mode).regularBands;
+  const [lo, hi] = bands[Math.min(tierIndex, bands.length - 1)];
   const from = lo - MEMBERS.belowBand;
   const to = hi + MEMBERS.aboveBand;
   return Math.round((from + (to - from) * rel) / 5) * 5;
@@ -277,7 +296,7 @@ export function tournamentField(career, clubId, tierIndex, random = Math.random)
   const club = clubById(clubId);
   const size = TOURNAMENT.field[tournamentFormat(clubId)];
   const members = membersForClub(clubId).map((mb) => ({
-    id: mb.id, name: mb.name, elo: memberElo(mb.rel, tierIndex), style: mb.style,
+    id: mb.id, name: mb.name, elo: memberElo(mb.rel, tierIndex, career.difficulty), style: mb.style,
     openingId: mb.openingId || club.openingId, look: mb.look, member: true
   }));
   const guests = VISITORS[clubId] || { names: [], sprites: ['young-blue'] };
@@ -288,7 +307,7 @@ export function tournamentField(career, clubId, tierIndex, random = Math.random)
     const name = names.length ? names.splice(Math.floor(random() * names.length), 1)[0] : `Guest ${i + 1}`;
     const [a, b] = MEMBERS.visitorRel;
     visitors.push({
-      id: `${clubId}-v${i}`, name, elo: memberElo(a + (b - a) * random(), tierIndex),
+      id: `${clubId}-v${i}`, name, elo: memberElo(a + (b - a) * random(), tierIndex, career.difficulty),
       style: styles[Math.floor(random() * styles.length)], openingId: club.openingId,
       look: { sprite: guests.sprites[i % guests.sprites.length] }, visitor: true
     });
@@ -313,7 +332,7 @@ export function enterTournament(career, clubId, random = Math.random, now = Date
   const run = Event.createEvent({
     clubId, format: tournamentFormat(clubId), tier: t, now, random,
     players: tournamentField(career, clubId, t, random),
-    star: { id: star.id, name: star.name, elo: starElo(t), style: star.style, openingId: star.openingId, look: star.look }
+    star: { id: star.id, name: star.name, elo: starElo(t, career.difficulty), style: star.style, openingId: star.openingId, look: star.look }
   });
   run.attempt = (existing?.attempt || 0) + 1;
   career.tournaments[clubId] = run;
@@ -428,7 +447,7 @@ export function currentFinaleRound(career) {
   return {
     index: f.round, total: FINALE.rounds.length, label: FINALE.rounds[f.round].label,
     kind: 'finale', opponentId: star.id, name: star.name, style: star.style,
-    openingId: star.openingId, elo: ELO.finaleRounds[f.round], colour: f.colours[f.round]
+    openingId: star.openingId, elo: finaleElo(f.round, career.difficulty), colour: f.colours[f.round]
   };
 }
 
@@ -639,7 +658,7 @@ export { missionById };
 
 export default {
   newCareer, levelForXp, xpProgress, grantXp, maxFocus, hintPlies, masteryState, learnFromPlay,
-  tier, trophyCount, postcardCount, hasAllTrophies, hasAllPostcards, regularElo, starElo, travelTo, meetStar,
+  tier, trophyCount, postcardCount, hasAllTrophies, hasAllPostcards, regularElo, starElo, finaleElo, modeOf, travelTo, meetStar,
   enterTournament, currentRound, recordTournamentGame, awardTrophy, canReenter, tournamentField, memberElo,
   stakeFor, canAfford, earnCoins, settleChallenge, nextStep, validateCareer, commitMatchResult,
   enterFinale, currentFinaleRound, recordFinaleGame, applyGameResult, missionProgress, recordPuzzleSolved,

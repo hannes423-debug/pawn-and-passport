@@ -26,6 +26,8 @@ export function strengthForElo(elo) {
     elo: Math.round(target),
     strength: +lerp(lo.strength, hi.strength, t).toFixed(3),
     blunderChance: +lerp(lo.blunderChance, hi.blunderChance, t).toFixed(3),
+    blunderSeverityCp: Math.round(lerp(lo.blunderSeverityCp, hi.blunderSeverityCp, t)),
+    wildness: +lerp(lo.wildness, hi.wildness, t).toFixed(3),
     candidatePool: Math.round(lerp(lo.candidatePool, hi.candidatePool, t)),
     maxEvalLossCp: Math.round(lerp(lo.maxEvalLossCp, hi.maxEvalLossCp, t)),
     level: t < 0.5 ? lo.level : hi.level
@@ -47,6 +49,8 @@ export function profileForOpponent({ id = null, name, elo, style = 'balanced', o
   profile.limitStrength = true;
   profile.strength = s.strength;
   profile.blunderChance = s.blunderChance;
+  profile.blunderSeverityCp = s.blunderSeverityCp;
+  profile.wildness = s.wildness;
   profile.candidatePool = s.candidatePool;
   profile.maxEvalLossCp = s.maxEvalLossCp;
   return profile;

@@ -31,6 +31,8 @@ export const BOT_DIFFICULTY = Object.freeze({
  * @property {number} blunderChance      0..1, chance of ignoring the pool entirely
  * @property {number} candidatePool      MultiPV width to choose from
  * @property {number} maxEvalLossCp      candidates worse than this are discarded
+ * @property {number} blunderSeverityCp   the most an unforced error may hand over
+ * @property {number} wildness            0..1, how aimless an unforced error is
  */
 export const DIFFICULTY_SPECS = Object.freeze({
   [BOT_DIFFICULTY.RANDOM_BEGINNER]: {
@@ -137,6 +139,8 @@ export class BotProfile {
     this.blunderChance = difficultySpec.blunderChance;
     this.candidatePool = difficultySpec.candidatePool;
     this.maxEvalLossCp = difficultySpec.maxEvalLossCp;
+    this.blunderSeverityCp = difficultySpec.blunderSeverityCp ?? 100000;
+    this.wildness = difficultySpec.wildness ?? 0;
 
     /** The personality dials the spec asks for, all 0..1. */
     this.tacticalBias = pick(traits.tacticalBias, styleSpec.tacticalBias);

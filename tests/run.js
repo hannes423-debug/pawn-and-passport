@@ -26,7 +26,7 @@ import { POSTCARDS, BEYOND_THE_TOUR } from '../js/data/postcards.js';
 import { MISSIONS } from '../js/data/missions.js';
 import { PUZZLES } from '../js/data/puzzles.js';
 import { SCENES, findPath } from '../js/data/scenes.js';
-import { LEVELS, ELO, HINTS } from '../js/data/config.js';
+import { LEVELS, ELO, HINTS, DIFFICULTY, difficultyMode, BOT_STRENGTH } from '../js/data/config.js';
 import * as Career from '../js/core/career.js';
 import { ClubBook, fullBook } from '../js/core/openingBook.js';
 import { hintQuote } from '../js/core/hints.js';
@@ -205,20 +205,110 @@ test('new career: starting club opening at 40%, others at 0', () => {
   eq(c.elo, ELO.start); eq(c.level, 1); eq(c.avatar, 'girl');
 });
 
-test('star Elo climbs with tier and the finale reaches 1500', () => {
-  eq(Career.starElo(0), 800); eq(Career.starElo(5), 1375);
-  eq(ELO.finaleRounds.at(-1), 1500);
-  assert(ELO.finaleRounds.every((e) => e >= 1400 && e <= 1500));
+test('three difficulties, each a ladder that climbs and never crosses the next', () => {
+  eq(DIFFICULTY.modes.map((m) => m.id).join(), 'easy,normal,hard');
+  eq(DIFFICULTY.default, 'normal');
+  for (const mode of DIFFICULTY.modes) {
+    eq(mode.starByTier.length, 6, `${mode.id}: one Star Player per club`);
+    eq(mode.regularBands.length, 6, `${mode.id}: one band per tier`);
+    eq(mode.finaleRounds.length, 3, `${mode.id}: three finale rounds`);
+    assert(mode.label && mode.tagline && mode.blurb, `${mode.id} is explained to the player`);
+    for (let t = 1; t < 6; t += 1) {
+      assert(mode.starByTier[t] > mode.starByTier[t - 1], `${mode.id}: star ${t + 1} is stronger than ${t}`);
+      assert(mode.regularBands[t][0] > mode.regularBands[t - 1][0], `${mode.id}: club ${t + 1} is stronger than ${t}`);
+    }
+    for (const [lo, hi] of mode.regularBands) assert(hi > lo, `${mode.id}: a band is a band`);
+    for (let r = 1; r < 3; r += 1) assert(mode.finaleRounds[r] > mode.finaleRounds[r - 1], `${mode.id}: the finale climbs`);
+    assert(mode.finaleRounds[0] >= mode.starByTier[5], `${mode.id}: the finale starts above the last club`);
+  }
+  // Easy is under Normal is under Hard, everywhere, with no overlap.
+  const [easy, normal, hard] = DIFFICULTY.modes.map((m) => difficultyMode(m.id));
+  for (let t = 0; t < 6; t += 1) {
+    assert(easy.starByTier[t] < normal.starByTier[t], `tier ${t}: easy under normal`);
+    assert(normal.starByTier[t] < hard.starByTier[t], `tier ${t}: normal under hard`);
+  }
+  for (let r = 0; r < 3; r += 1) {
+    assert(easy.finaleRounds[r] < normal.finaleRounds[r] && normal.finaleRounds[r] < hard.finaleRounds[r], `finale ${r}: the three modes stay in order`);
+  }
+  // Every rung the game can ask for is one the strength table can answer.
+  const lowest = BOT_STRENGTH[0].elo;
+  for (const mode of DIFFICULTY.modes) {
+    assert(mode.regularBands[0][0] >= lowest, `${mode.id}: the easiest opponent is on the table (${mode.regularBands[0][0]} >= ${lowest})`);
+    assert(mode.finaleRounds.at(-1) <= ELO.cap, `${mode.id}: the hardest is under the cap`);
+  }
+});
+
+test('difficulty is part of the save, defaults to Normal, and survives a reload', () => {
+  const fresh = Career.newCareer({ name: 'Diff', avatar: 'boy', startClubId: 'nyc' });
+  eq(fresh.difficulty, 'normal', 'a new career starts on Normal');
+  const hard = Career.newCareer({ name: 'Diff', avatar: 'boy', startClubId: 'nyc', difficulty: 'hard' });
+  eq(hard.difficulty, 'hard');
+  // A career from before there was a choice was played on the one ladder there was.
+  const old = Career.newCareer({ name: 'Old', avatar: 'boy', startClubId: 'nyc' });
+  delete old.difficulty;
+  eq(Career.migrateCareer(old).difficulty, 'normal', 'an old save migrates to Normal');
+  const nonsense = Career.newCareer({ name: 'Bad', avatar: 'boy', startClubId: 'nyc' });
+  nonsense.difficulty = 'impossible';
+  eq(Career.migrateCareer(nonsense).difficulty, 'normal', 'an unknown mode falls back rather than throwing');
+  // Round-trip through the real save layer.
+  const store = new Map();
+  Save.useStorage({ getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) });
+  Save.saveCareer(hard);
+  eq(Career.migrateCareer(Save.loadCareer()).difficulty, 'hard', 'difficulty comes back off disk');
+});
+
+test('the difficulty a career is on is the ladder it meets', () => {
+  for (const mode of DIFFICULTY.modes) {
+    const m = difficultyMode(mode.id);
+    for (let t = 0; t < 6; t += 1) {
+      eq(Career.starElo(t, mode.id), m.starByTier[t], `${mode.id} star ${t}`);
+      const [lo, hi] = m.regularBands[t];
+      const elo = Career.regularElo(t, () => 0.5, mode.id);
+      assert(elo >= lo && elo <= hi, `${mode.id} regular ${t}: ${elo} inside ${lo}..${hi}`);
+      const member = Career.memberElo(0.5, t, mode.id);
+      assert(member > 0, `${mode.id} member ${t}`);
+    }
+    for (let r = 0; r < 3; r += 1) eq(Career.finaleElo(r, mode.id), m.finaleRounds[r], `${mode.id} finale ${r}`);
+  }
+});
+
+test('changing difficulty mid-career touches nothing already won', () => {
+  const c = Career.newCareer({ name: 'Switch', avatar: 'girl', startClubId: 'nyc' });
+  const random = seeded(4242);
+  const run = Career.enterTournament(c, 'nyc', random);
+  const drawnElos = run.players.map((p) => p.elo);
+  const drawnStar = run.star.elo;
+  c.elo = 912;
+  c.trophies.lon = { wonAt: 1, starElo: 900, tier: 0 };
+  const trophiesBefore = JSON.stringify(c.trophies);
+
+  c.difficulty = 'hard';
+  Career.migrateCareer(c);
+  eq(JSON.stringify(c.trophies), trophiesBefore, 'trophies untouched');
+  eq(c.elo, 912, 'rating untouched');
+  eq(JSON.stringify(c.tournaments.nyc.players.map((p) => p.elo)), JSON.stringify(drawnElos), 'the event under way keeps its field');
+  eq(c.tournaments.nyc.star.elo, drawnStar, 'and its Star Player');
+  // The NEXT event is the one that gets harder.
+  const later = Career.starElo(Career.tier(c), c.difficulty);
+  assert(later > Career.starElo(Career.tier(c), 'normal'), 'the next star is drawn from the new ladder');
 });
 
 test('bot strength is monotone in Elo and capped', () => {
   let prev = null;
-  for (const elo of [400, 600, 800, 1000, 1200, 1400, 1500, 2400]) {
+  for (const elo of [250, 400, 600, 800, 1000, 1200, 1400, 1600, 2400]) {
     const s = strengthForElo(elo);
-    if (prev) { assert(s.strength >= prev.strength); assert(s.blunderChance <= prev.blunderChance); }
+    if (prev) {
+      assert(s.strength >= prev.strength, `strength at ${elo}`);
+      assert(s.blunderChance <= prev.blunderChance, `blunder chance at ${elo}`);
+      // How BAD a mistake may be also has to fall, or a strong opponent would
+      // err rarely but still hang a queen when it did.
+      assert(s.blunderSeverityCp <= prev.blunderSeverityCp, `mistake severity at ${elo}`);
+      assert(s.maxEvalLossCp <= prev.maxEvalLossCp, `eval-loss filter at ${elo}`);
+    }
     prev = s;
   }
-  eq(strengthForElo(2400).elo, 1500);
+  eq(strengthForElo(2400).elo, ELO.cap, 'above the cap clamps to it');
+  eq(strengthForElo(1).elo, BOT_STRENGTH[0].elo, 'below the table clamps to its first row');
   const p = profileForOpponent({ name: 'X', elo: 900, style: 'aggressive' });
   assert(p.blunderChance > 0.05 && p.style === 'aggressive');
 });
@@ -368,7 +458,7 @@ test('a full campaign: six trophies, finale, six postcards, secret', () => {
   const finale = Career.enterFinale(c, random);
   eq(finale.opponents.length, 3);
   eq(finale.opponents[2], 'emre', 'the final is the home-club rival');
-  assert(Career.currentFinaleRound(c).elo >= 1400);
+  assert(Career.currentFinaleRound(c).elo >= difficultyMode('normal').finaleRounds[0], 'the finale opens on this mode\'s first round');
   assert(!Career.recordFinaleGame(c, 0.5).cleared, 'finale rounds must be won');
   Career.recordFinaleGame(c, 1);
   Career.recordFinaleGame(c, 1);

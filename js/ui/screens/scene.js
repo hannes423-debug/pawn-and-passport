@@ -27,7 +27,7 @@ import { ELO, MASTERY } from '../../data/config.js';
 import {
   travelTo, meetStar, enterTournament, currentRound, tier, regularElo, missionProgress,
   hasAllTrophies, enterFinale, currentFinaleRound, trophyCount, masteryState,
-  memberElo, stakeFor, canAfford
+  memberElo, finaleElo, stakeFor, canAfford
 } from '../../core/career.js';
 import { MEMBERS, CHESS_TIPS } from '../../data/members.js';
 import { MEMBER_SPOTS } from '../../data/memberSpots.js';
@@ -769,7 +769,7 @@ export async function sceneScreen(app, params) {
   async function memberTalk(memberId) {
     const member = (MEMBERS[clubId] || []).find((x) => x.id === memberId);
     if (!member) return;
-    const elo = memberElo(member.rel, tier(career));
+    const elo = memberElo(member.rel, tier(career), career.difficulty);
     const stake = stakeFor(elo);
     const record = career.memberRecords?.[member.id];
     const spoken = [...member.lines];
@@ -867,7 +867,7 @@ export async function sceneScreen(app, params) {
   async function friendlyGame() {
     const pool = club.regularOpponentPool;
     const regular = pool[Math.floor(Math.random() * pool.length)];
-    const elo = regularElo(tier(career));
+    const elo = regularElo(tier(career), Math.random, career.difficulty);
     const choice = await app.dialogue({
       name: regular.name, role: 'club regular', look: regular.look,
       lines: [`Fancy a friendly? It's unrated: no trophy and no rating on the line, but you'll still learn something.`, `I'm about ${elo}. I play the ${openingById(club.openingId).name} whenever I can.`],
@@ -915,10 +915,10 @@ export async function sceneScreen(app, params) {
     const star = starById(round.opponentId);
     const choice = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
       h('h2.pp-h2', { text: FINALE.eventName }),
-      h('p.pp-small', { text: `Three knockout rounds against returning Star Players at full strength (${ELO.finaleRounds.join(' / ')} Elo). Every round must be won; a lost round can be replayed. Win the final to qualify for the Big Leagues.` }),
+      h('p.pp-small', { text: `Three knockout rounds against returning Star Players at full strength (${FINALE.rounds.map((_, i) => finaleElo(i, career.difficulty)).join(' / ')} Elo). Every round must be won; a lost round can be replayed. Win the final to qualify for the Big Leagues.` }),
       h('ol.pp-col', { style: { paddingLeft: '20px' } }, f.opponents.map((id, i) => {
         const s = starById(id);
-        return h('li', null, h('b', { text: FINALE.rounds[i].label }), `: ${s.name} (${openingById(s.openingId).name}) · ${ELO.finaleRounds[i]}`,
+        return h('li', null, h('b', { text: FINALE.rounds[i].label }), `: ${s.name} (${openingById(s.openingId).name}) · ${finaleElo(i, career.difficulty)}`,
           i < f.round ? ' · ✔' : i === f.round ? ' · ◀ next' : '');
       })),
       h('div.pp-row', null,
