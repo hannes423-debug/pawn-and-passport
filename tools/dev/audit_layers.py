@@ -26,6 +26,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 from build_layers import LAYERS  # noqa: E402
 
+# The footprints the game actually uses, read out of the generated data: a rect
+# in LAYERS is only a minimum, and most props derive theirs from their own art.
+def _generated_feet():
+    src = open(os.path.join(ROOT, 'js', 'data', 'sceneLayers.js'), encoding='utf-8').read()
+    body = src[src.index('{'):src.rindex('}') + 1]
+    data = json.loads(body)
+    return {scene: {p['id']: p['foot'] for p in v.get('props', [])} for scene, v in data.items()}
+
+
+GENERATED = _generated_feet()
+
 MASK = sys.argv[1] if len(sys.argv) > 1 else '/tmp/mask'
 OUT = os.path.join(ROOT, 'tools', 'shots', 'collision')
 SCALE = 0.62          # the audit does not need full resolution
@@ -60,7 +71,10 @@ def main():
         for b in spec.get('blocks', []):
             d.rectangle([P(b[0], b[1]), P(b[2], b[3])], outline=(60, 140, 255, 255), width=2)
         for entry in spec['props']:
-            foot = entry[3]
+            # The generated footprint, not the table's: a declared rect is only
+            # a minimum now, and most props derive theirs from their own art
+            # (tools/build_layers.py). OVER means there is deliberately none.
+            foot = GENERATED.get(scene, {}).get(entry[0])
             if foot:
                 d.rectangle([P(foot[0], foot[1]), P(foot[2], foot[3])], outline=(255, 220, 0, 255), width=1)
         for name, (x, y) in info['nodes'].items():

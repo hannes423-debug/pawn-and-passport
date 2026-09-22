@@ -14,4 +14,8 @@ for f in $(git ls-files 'js/*.js'); do node --check "$f"; done
 python3 tools/build_layers.py --check >/dev/null
 # Nothing walled off, and nothing standing where it cannot be reached.
 node tools/dev/clearance.mjs >/dev/null
+# ...and nothing the player can walk straight through. A prop with no footprint
+# at all measures near 100% walkable at its base; 50 is well clear of the
+# ordinary three-quarter-view overlap the remaining ones have.
+node tools/dev/prop_clearance.mjs --fail-over=50 >/dev/null
 echo "PREDEPLOY OK"

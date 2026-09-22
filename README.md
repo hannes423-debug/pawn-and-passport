@@ -232,6 +232,7 @@ and rebuild: each prop then takes that file's pixels inside its rect.
 python3 tools/build_assets.py          # only after new scene/UI art arrives
 python3 tools/build_characters.py      # only after new character sheets arrive
 python3 tools/build_pixel_icons.py     # only after a new UI icon sheet arrives
+python3 tools/build_layers.py --data   # collision data, after editing its LAYERS table
 ./tools/build-itch.sh                  # -> dist/pawn-and-passport-<version>.zip (about 73 MB)
 ```
 

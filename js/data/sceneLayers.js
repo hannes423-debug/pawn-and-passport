@@ -15,7 +15,12 @@ export const SCENE_LAYERS = {
     "w": 14.986,
     "h": 34.991,
     "base": 58,
-    "foot": null
+    "foot": [
+     2.42,
+     59.21,
+     13.4,
+     60.77
+    ]
    },
    {
     "id": "bench-nw",
@@ -26,10 +31,10 @@ export const SCENE_LAYERS = {
     "h": 17.035,
     "base": 39,
     "foot": [
-     19,
-     35,
-     35,
-     40
+     19.0,
+     35.0,
+     35.0,
+     40.0
     ]
    },
    {
@@ -41,10 +46,10 @@ export const SCENE_LAYERS = {
     "h": 17.035,
     "base": 39,
     "foot": [
-     65,
-     35,
-     81,
-     40
+     65.0,
+     35.0,
+     81.0,
+     40.0
     ]
    },
    {
@@ -56,8 +61,8 @@ export const SCENE_LAYERS = {
     "h": 13.076,
     "base": 51,
     "foot": [
-     27,
-     46,
+     27.0,
+     46.0,
      38.5,
      51.5
     ]
@@ -72,7 +77,7 @@ export const SCENE_LAYERS = {
     "base": 51,
     "foot": [
      61.5,
-     46,
+     46.0,
      73.5,
      51.5
     ]
@@ -86,10 +91,10 @@ export const SCENE_LAYERS = {
     "h": 23.573,
     "base": 66,
     "foot": [
-     40,
-     52,
-     60,
-     67
+     40.0,
+     52.0,
+     60.0,
+     67.0
     ]
    },
    {
@@ -101,10 +106,10 @@ export const SCENE_LAYERS = {
     "h": 35.083,
     "base": 69,
     "foot": [
-     15,
-     66,
-     19,
-     70
+     15.0,
+     66.0,
+     19.0,
+     70.0
     ]
    },
    {
@@ -116,10 +121,10 @@ export const SCENE_LAYERS = {
     "h": 36.096,
     "base": 70,
     "foot": [
-     81,
+     81.0,
      66.5,
-     85,
-     71
+     85.0,
+     71.0
     ]
    },
    {
@@ -131,10 +136,10 @@ export const SCENE_LAYERS = {
     "h": 27.072,
     "base": 66,
     "foot": [
-     88,
-     58,
-     100,
-     66
+     88.0,
+     58.0,
+     100.0,
+     66.0
     ]
    },
    {
@@ -146,8 +151,8 @@ export const SCENE_LAYERS = {
     "h": 14.088,
     "base": 72,
     "foot": [
-     26,
-     66,
+     26.0,
+     66.0,
      38.5,
      72.5
     ]
@@ -162,8 +167,8 @@ export const SCENE_LAYERS = {
     "base": 72,
     "foot": [
      61.5,
-     66,
-     74,
+     66.0,
+     74.0,
      72.5
     ]
    },
@@ -176,10 +181,10 @@ export const SCENE_LAYERS = {
     "h": 30.018,
     "base": 81,
     "foot": [
-     4,
-     76,
+     4.0,
+     76.0,
      13.5,
-     82
+     82.0
     ]
    },
    {
@@ -191,10 +196,10 @@ export const SCENE_LAYERS = {
     "h": 17.035,
     "base": 80,
     "foot": [
-     13,
-     74,
-     21,
-     81
+     13.0,
+     74.0,
+     21.0,
+     81.0
     ]
    },
    {
@@ -206,10 +211,10 @@ export const SCENE_LAYERS = {
     "h": 17.035,
     "base": 80,
     "foot": [
-     79,
-     74,
-     87,
-     81
+     79.0,
+     74.0,
+     87.0,
+     81.0
     ]
    },
    {
@@ -221,10 +226,10 @@ export const SCENE_LAYERS = {
     "h": 18.048,
     "base": 81,
     "foot": [
-     86,
-     77,
+     86.0,
+     77.0,
      95.5,
-     82
+     82.0
     ]
    },
    {
@@ -236,10 +241,10 @@ export const SCENE_LAYERS = {
     "h": 12.063,
     "base": 86,
     "foot": [
-     25,
-     82,
+     25.0,
+     82.0,
      38.5,
-     87
+     87.0
     ]
    },
    {
@@ -251,10 +256,10 @@ export const SCENE_LAYERS = {
     "h": 12.063,
     "base": 86,
     "foot": [
-     61,
-     82,
-     75,
-     87
+     61.0,
+     82.0,
+     75.0,
+     87.0
     ]
    },
    {
@@ -266,10 +271,10 @@ export const SCENE_LAYERS = {
     "h": 15.101,
     "base": 87,
     "foot": [
-     38,
-     82,
-     45,
-     88
+     38.0,
+     82.0,
+     45.0,
+     88.0
     ]
    },
    {
@@ -281,10 +286,10 @@ export const SCENE_LAYERS = {
     "h": 15.101,
     "base": 87,
     "foot": [
-     55,
-     82,
-     62,
-     88
+     55.0,
+     82.0,
+     62.0,
+     88.0
     ]
    }
   ],
@@ -350,10 +355,10 @@ export const SCENE_LAYERS = {
     "h": 21.087,
     "base": 41,
     "foot": [
-     18,
-     37,
-     24,
-     41
+     18.0,
+     37.0,
+     24.0,
+     41.0
     ]
    },
    {
@@ -365,9 +370,9 @@ export const SCENE_LAYERS = {
     "h": 20.074,
     "base": 40,
     "foot": [
-     38,
-     37,
-     44,
+     38.0,
+     37.0,
+     44.0,
      40.5
     ]
    },
@@ -380,9 +385,9 @@ export const SCENE_LAYERS = {
     "h": 23.02,
     "base": 41,
     "foot": [
-     61,
-     38,
-     65,
+     61.0,
+     38.0,
+     65.0,
      41.5
     ]
    },
@@ -395,10 +400,10 @@ export const SCENE_LAYERS = {
     "h": 20.074,
     "base": 42,
     "foot": [
-     67,
-     39,
-     73,
-     43
+     67.0,
+     39.0,
+     73.0,
+     43.0
     ]
    },
    {
@@ -410,10 +415,10 @@ export const SCENE_LAYERS = {
     "h": 30.018,
     "base": 54,
     "foot": [
-     0,
-     40,
-     20,
-     55
+     0.0,
+     40.0,
+     20.0,
+     55.0
     ]
    },
    {
@@ -425,10 +430,10 @@ export const SCENE_LAYERS = {
     "h": 19.061,
     "base": 54,
     "foot": [
-     37,
-     45,
-     59,
-     55
+     37.0,
+     45.0,
+     59.0,
+     55.0
     ]
    },
    {
@@ -440,10 +445,10 @@ export const SCENE_LAYERS = {
     "h": 20.074,
     "base": 70,
     "foot": [
-     12,
-     62,
-     35,
-     71
+     12.0,
+     62.0,
+     35.0,
+     71.0
     ]
    },
    {
@@ -455,10 +460,10 @@ export const SCENE_LAYERS = {
     "h": 18.048,
     "base": 70,
     "foot": [
-     62,
-     63,
-     87,
-     71
+     62.0,
+     63.0,
+     87.0,
+     71.0
     ]
    },
    {
@@ -471,9 +476,9 @@ export const SCENE_LAYERS = {
     "base": 91,
     "foot": [
      28.5,
-     86,
+     86.0,
      32.5,
-     92
+     92.0
     ]
    },
    {
@@ -486,9 +491,9 @@ export const SCENE_LAYERS = {
     "base": 91,
     "foot": [
      67.5,
-     86,
+     86.0,
      71.5,
-     92
+     92.0
     ]
    },
    {
@@ -500,10 +505,10 @@ export const SCENE_LAYERS = {
     "h": 23.02,
     "base": 92,
     "foot": [
-     20,
-     85,
-     29,
-     93
+     20.0,
+     85.0,
+     29.0,
+     93.0
     ]
    },
    {
@@ -515,10 +520,10 @@ export const SCENE_LAYERS = {
     "h": 23.02,
     "base": 92,
     "foot": [
-     71,
-     85,
-     80,
-     93
+     71.0,
+     85.0,
+     80.0,
+     93.0
     ]
    }
   ],
@@ -617,9 +622,9 @@ export const SCENE_LAYERS = {
     "base": 36,
     "foot": [
      34.5,
-     33,
+     33.0,
      37.5,
-     37
+     37.0
     ]
    },
    {
@@ -631,10 +636,10 @@ export const SCENE_LAYERS = {
     "h": 11.971,
     "base": 38,
     "foot": [
-     37,
-     34,
-     43,
-     39
+     37.0,
+     34.0,
+     43.0,
+     39.0
     ]
    },
    {
@@ -646,10 +651,10 @@ export const SCENE_LAYERS = {
     "h": 10.129,
     "base": 37,
     "foot": [
-     45,
-     33,
-     56,
-     38
+     45.0,
+     33.0,
+     56.0,
+     38.0
     ]
    },
    {
@@ -662,9 +667,9 @@ export const SCENE_LAYERS = {
     "base": 38,
     "foot": [
      60.5,
-     34,
+     34.0,
      66.5,
-     39
+     39.0
     ]
    },
    {
@@ -677,9 +682,9 @@ export const SCENE_LAYERS = {
     "base": 39,
     "foot": [
      69.5,
-     35,
+     35.0,
      80.5,
-     40
+     40.0
     ]
    },
    {
@@ -691,10 +696,10 @@ export const SCENE_LAYERS = {
     "h": 30.018,
     "base": 45,
     "foot": [
-     84,
-     40,
-     92,
-     46
+     84.0,
+     40.0,
+     92.0,
+     46.0
     ]
    },
    {
@@ -706,10 +711,10 @@ export const SCENE_LAYERS = {
     "h": 45.028,
     "base": 50,
     "foot": [
-     90,
-     46,
-     96,
-     51
+     90.0,
+     46.0,
+     96.0,
+     51.0
     ]
    },
    {
@@ -721,10 +726,10 @@ export const SCENE_LAYERS = {
     "h": 17.035,
     "base": 49,
     "foot": [
-     4,
-     45,
-     11,
-     50
+     4.0,
+     45.0,
+     11.0,
+     50.0
     ]
    },
    {
@@ -736,10 +741,10 @@ export const SCENE_LAYERS = {
     "h": 12.063,
     "base": 51,
     "foot": [
-     26,
-     46,
-     39,
-     52
+     26.0,
+     46.0,
+     39.0,
+     52.0
     ]
    },
    {
@@ -751,10 +756,10 @@ export const SCENE_LAYERS = {
     "h": 12.063,
     "base": 51,
     "foot": [
-     61,
-     46,
-     74,
-     52
+     61.0,
+     46.0,
+     74.0,
+     52.0
     ]
    },
    {
@@ -766,10 +771,10 @@ export const SCENE_LAYERS = {
     "h": 11.971,
     "base": 60,
     "foot": [
-     44,
-     55,
-     56,
-     61
+     44.0,
+     55.0,
+     56.0,
+     61.0
     ]
    },
    {
@@ -781,9 +786,9 @@ export const SCENE_LAYERS = {
     "h": 11.971,
     "base": 61,
     "foot": [
-     6,
-     56,
-     18,
+     6.0,
+     56.0,
+     18.0,
      61.5
     ]
    },
@@ -796,9 +801,9 @@ export const SCENE_LAYERS = {
     "h": 11.971,
     "base": 61,
     "foot": [
-     82,
-     56,
-     94,
+     82.0,
+     56.0,
+     94.0,
      61.5
     ]
    },
@@ -810,7 +815,12 @@ export const SCENE_LAYERS = {
     "w": 4.558,
     "h": 20.994,
     "base": 76,
-    "foot": null
+    "foot": [
+     28.59,
+     71.18,
+     29.77,
+     72.74
+    ]
    },
    {
     "id": "lamp-se",
@@ -895,7 +905,7 @@ export const SCENE_LAYERS = {
     "h": 25.046,
     "base": 26,
     "foot": [
-     24,
+     24.0,
      23.5,
      26.5,
      26.5
@@ -911,8 +921,8 @@ export const SCENE_LAYERS = {
     "base": 29,
     "foot": [
      22.5,
-     25,
-     29,
+     25.0,
+     29.0,
      29.5
     ]
    },
@@ -926,9 +936,9 @@ export const SCENE_LAYERS = {
     "base": 28,
     "foot": [
      30.5,
-     24,
+     24.0,
      41.5,
-     29
+     29.0
     ]
    },
    {
@@ -940,8 +950,8 @@ export const SCENE_LAYERS = {
     "h": 8.564,
     "base": 29,
     "foot": [
-     43,
-     25,
+     43.0,
+     25.0,
      49.5,
      29.5
     ]
@@ -956,9 +966,9 @@ export const SCENE_LAYERS = {
     "base": 28,
     "foot": [
      61.5,
-     24,
+     24.0,
      72.5,
-     29
+     29.0
     ]
    },
    {
@@ -969,7 +979,12 @@ export const SCENE_LAYERS = {
     "w": 5.041,
     "h": 26.059,
     "base": 26,
-    "foot": null
+    "foot": [
+     80.66,
+     24.86,
+     85.29,
+     26.43
+    ]
    },
    {
     "id": "table-n",
@@ -980,10 +995,10 @@ export const SCENE_LAYERS = {
     "h": 13.536,
     "base": 41,
     "foot": [
-     31,
-     35,
-     43,
-     42
+     31.0,
+     35.0,
+     43.0,
+     42.0
     ]
    },
    {
@@ -995,10 +1010,10 @@ export const SCENE_LAYERS = {
     "h": 13.996,
     "base": 49,
     "foot": [
-     57,
-     43,
-     69,
-     50
+     57.0,
+     43.0,
+     69.0,
+     50.0
     ]
    },
    {
@@ -1011,7 +1026,7 @@ export const SCENE_LAYERS = {
     "base": 53,
     "foot": [
      79.5,
-     50,
+     50.0,
      83.5,
      53.5
     ]
@@ -1025,10 +1040,10 @@ export const SCENE_LAYERS = {
     "h": 14.088,
     "base": 60,
     "foot": [
-     38,
-     54,
-     51,
-     61
+     38.0,
+     54.0,
+     51.0,
+     61.0
     ]
    },
    {
@@ -1041,9 +1056,9 @@ export const SCENE_LAYERS = {
     "base": 79,
     "foot": [
      27.5,
-     75,
+     75.0,
      30.5,
-     80
+     80.0
     ]
    },
    {
@@ -1056,9 +1071,9 @@ export const SCENE_LAYERS = {
     "base": 79,
     "foot": [
      66.5,
-     75,
+     75.0,
      69.5,
-     80
+     80.0
     ]
    },
    {
@@ -1070,10 +1085,10 @@ export const SCENE_LAYERS = {
     "h": 18.048,
     "base": 78,
     "foot": [
-     33,
-     70,
-     63,
-     79
+     33.0,
+     70.0,
+     63.0,
+     79.0
     ]
    },
    {
@@ -1085,10 +1100,10 @@ export const SCENE_LAYERS = {
     "h": 37.017,
     "base": 85,
     "foot": [
-     5,
-     74,
-     17,
-     86
+     5.0,
+     74.0,
+     17.0,
+     86.0
     ]
    },
    {
@@ -1100,10 +1115,10 @@ export const SCENE_LAYERS = {
     "h": 36.096,
     "base": 85,
     "foot": [
-     82,
-     74,
-     95,
-     86
+     82.0,
+     74.0,
+     95.0,
+     86.0
     ]
    },
    {
@@ -1116,9 +1131,9 @@ export const SCENE_LAYERS = {
     "base": 86,
     "foot": [
      26.5,
-     79,
+     79.0,
      41.5,
-     86
+     86.0
     ]
    },
    {
@@ -1131,9 +1146,9 @@ export const SCENE_LAYERS = {
     "base": 86,
     "foot": [
      57.5,
-     79,
+     79.0,
      71.5,
-     86
+     86.0
     ]
    }
   ],
@@ -1200,7 +1215,12 @@ export const SCENE_LAYERS = {
     "w": 22.03,
     "h": 44.015,
     "base": 66,
-    "foot": null
+    "foot": [
+     0.41,
+     70.26,
+     13.6,
+     71.82
+    ]
    },
    {
     "id": "lamp-banners",
@@ -1211,10 +1231,10 @@ export const SCENE_LAYERS = {
     "h": 34.07,
     "base": 40,
     "foot": [
-     17,
-     37,
-     21,
-     41
+     17.0,
+     37.0,
+     21.0,
+     41.0
     ]
    },
    {
@@ -1226,10 +1246,10 @@ export const SCENE_LAYERS = {
     "h": 12.523,
     "base": 42,
     "foot": [
-     25,
-     37,
-     36,
-     43
+     25.0,
+     37.0,
+     36.0,
+     43.0
     ]
    },
    {
@@ -1241,9 +1261,9 @@ export const SCENE_LAYERS = {
     "h": 12.063,
     "base": 40,
     "foot": [
-     34,
-     35,
-     40,
+     34.0,
+     35.0,
+     40.0,
      40.5
     ]
    },
@@ -1256,10 +1276,10 @@ export const SCENE_LAYERS = {
     "h": 19.061,
     "base": 46,
     "foot": [
-     85,
-     40,
-     93,
-     47
+     85.0,
+     40.0,
+     93.0,
+     47.0
     ]
    },
    {
@@ -1271,10 +1291,10 @@ export const SCENE_LAYERS = {
     "h": 11.05,
     "base": 51,
     "foot": [
-     91,
-     46,
-     100,
-     52
+     91.0,
+     46.0,
+     100.0,
+     52.0
     ]
    },
    {
@@ -1296,10 +1316,10 @@ export const SCENE_LAYERS = {
     "h": 13.536,
     "base": 56,
     "foot": [
-     24,
-     50,
-     36,
-     56
+     24.0,
+     50.0,
+     36.0,
+     56.0
     ]
    },
    {
@@ -1311,10 +1331,10 @@ export const SCENE_LAYERS = {
     "h": 12.523,
     "base": 57.5,
     "foot": [
-     41,
-     52,
-     50,
-     58
+     41.0,
+     52.0,
+     50.0,
+     58.0
     ]
    },
    {
@@ -1326,10 +1346,10 @@ export const SCENE_LAYERS = {
     "h": 12.523,
     "base": 57,
     "foot": [
-     67,
-     51,
-     75,
-     57
+     67.0,
+     51.0,
+     75.0,
+     57.0
     ]
    },
    {
@@ -1341,8 +1361,8 @@ export const SCENE_LAYERS = {
     "h": 13.996,
     "base": 66,
     "foot": [
-     74,
-     59,
+     74.0,
+     59.0,
      87.5,
      66.5
     ]
@@ -1356,10 +1376,10 @@ export const SCENE_LAYERS = {
     "h": 16.575,
     "base": 69,
     "foot": [
-     91,
-     64,
-     99,
-     70
+     91.0,
+     64.0,
+     99.0,
+     70.0
     ]
    },
    {
@@ -1372,7 +1392,7 @@ export const SCENE_LAYERS = {
     "base": 71,
     "foot": [
      33.5,
-     64,
+     64.0,
      46.5,
      71.5
     ]
@@ -1453,7 +1473,12 @@ export const SCENE_LAYERS = {
     "w": 3.039,
     "h": 30.018,
     "base": 39,
-    "foot": null
+    "foot": [
+     1.66,
+     39.13,
+     4.28,
+     40.7
+    ]
    },
    {
     "id": "lamp-ne",
@@ -1476,7 +1501,7 @@ export const SCENE_LAYERS = {
     "foot": [
      28.5,
      23.5,
-     34,
+     34.0,
      26.5
     ]
    },
@@ -1489,9 +1514,9 @@ export const SCENE_LAYERS = {
     "h": 7.551,
     "base": 26,
     "foot": [
-     67,
+     67.0,
      23.5,
-     73,
+     73.0,
      26.5
     ]
    },
@@ -1505,7 +1530,7 @@ export const SCENE_LAYERS = {
     "base": 35,
     "foot": [
      7.5,
-     31,
+     31.0,
      13.5,
      35.5
     ]
@@ -1520,7 +1545,7 @@ export const SCENE_LAYERS = {
     "base": 35,
     "foot": [
      20.5,
-     31,
+     31.0,
      27.5,
      35.5
     ]
@@ -1535,7 +1560,7 @@ export const SCENE_LAYERS = {
     "base": 35,
     "foot": [
      72.5,
-     31,
+     31.0,
      79.5,
      35.5
     ]
@@ -1550,7 +1575,7 @@ export const SCENE_LAYERS = {
     "base": 35,
     "foot": [
      85.5,
-     31,
+     31.0,
      92.5,
      35.5
     ]
@@ -1563,7 +1588,12 @@ export const SCENE_LAYERS = {
     "w": 7.044,
     "h": 11.51,
     "base": 43,
-    "foot": null
+    "foot": [
+     19.68,
+     39.13,
+     24.86,
+     40.7
+    ]
    },
    {
     "id": "planter-rail-mw",
@@ -1573,7 +1603,12 @@ export const SCENE_LAYERS = {
     "w": 6.492,
     "h": 13.536,
     "base": 43,
-    "foot": null
+    "foot": [
+     32.32,
+     42.63,
+     34.39,
+     44.2
+    ]
    },
    {
     "id": "planter-rail-me",
@@ -1583,7 +1618,12 @@ export const SCENE_LAYERS = {
     "w": 6.561,
     "h": 13.536,
     "base": 43,
-    "foot": null
+    "foot": [
+     65.54,
+     42.63,
+     67.68,
+     44.2
+    ]
    },
    {
     "id": "planter-rail-e",
@@ -1593,7 +1633,12 @@ export const SCENE_LAYERS = {
     "w": 7.044,
     "h": 11.51,
     "base": 43,
-    "foot": null
+    "foot": [
+     75.0,
+     39.13,
+     80.18,
+     40.7
+    ]
    },
    {
     "id": "pillar-sw",
@@ -1603,7 +1648,12 @@ export const SCENE_LAYERS = {
     "w": 6.077,
     "h": 15.562,
     "base": 70,
-    "foot": null
+    "foot": [
+     14.3,
+     66.67,
+     17.89,
+     68.23
+    ]
    },
    {
     "id": "pillar-se",
@@ -1613,7 +1663,12 @@ export const SCENE_LAYERS = {
     "w": 6.008,
     "h": 15.562,
     "base": 70,
-    "foot": null
+    "foot": [
+     80.3,
+     66.67,
+     83.89,
+     68.23
+    ]
    },
    {
     "id": "lamp-sw",
@@ -1624,10 +1679,10 @@ export const SCENE_LAYERS = {
     "h": 17.587,
     "base": 67,
     "foot": [
-     21,
-     64,
-     24,
-     68
+     21.0,
+     64.0,
+     24.0,
+     68.0
     ]
    },
    {
@@ -1640,9 +1695,9 @@ export const SCENE_LAYERS = {
     "base": 67,
     "foot": [
      76.5,
-     64,
+     64.0,
      79.5,
-     68
+     68.0
     ]
    },
    {
@@ -1653,7 +1708,12 @@ export const SCENE_LAYERS = {
     "w": 39.019,
     "h": 32.044,
     "base": 80,
-    "foot": null
+    "foot": [
+     39.36,
+     82.87,
+     60.7,
+     84.44
+    ]
    },
    {
     "id": "lamp-front-w",
@@ -1664,10 +1724,10 @@ export const SCENE_LAYERS = {
     "h": 12.523,
     "base": 88,
     "foot": [
-     23,
-     85,
-     26,
-     89
+     23.0,
+     85.0,
+     26.0,
+     89.0
     ]
    },
    {
@@ -1679,10 +1739,10 @@ export const SCENE_LAYERS = {
     "h": 12.523,
     "base": 88,
     "foot": [
-     75,
-     85,
-     78,
-     89
+     75.0,
+     85.0,
+     78.0,
+     89.0
     ]
    },
    {
@@ -1694,9 +1754,9 @@ export const SCENE_LAYERS = {
     "h": 10.497,
     "base": 92,
     "foot": [
-     31,
-     88,
-     36,
+     31.0,
+     88.0,
+     36.0,
      92.5
     ]
    },
@@ -1709,9 +1769,9 @@ export const SCENE_LAYERS = {
     "h": 10.497,
     "base": 92,
     "foot": [
-     64,
-     88,
-     69,
+     64.0,
+     88.0,
+     69.0,
      92.5
     ]
    }
@@ -1870,10 +1930,10 @@ export const SCENE_LAYERS = {
     "h": 10.12,
     "base": 29,
     "foot": [
-     12,
-     25,
+     12.0,
+     25.0,
      25.5,
-     29
+     29.0
     ]
    },
    {
@@ -1885,8 +1945,8 @@ export const SCENE_LAYERS = {
     "h": 14.075,
     "base": 29.5,
     "foot": [
-     5,
-     23,
+     5.0,
+     23.0,
      9.5,
      29.5
     ]
@@ -1915,9 +1975,9 @@ export const SCENE_LAYERS = {
     "h": 17.479,
     "base": 35.5,
     "foot": [
-     28,
-     33,
-     31,
+     28.0,
+     33.0,
+     31.0,
      35.5
     ]
    },
@@ -1931,9 +1991,9 @@ export const SCENE_LAYERS = {
     "base": 38,
     "foot": [
      5.5,
-     35,
-     9,
-     38
+     35.0,
+     9.0,
+     38.0
     ]
    },
    {
@@ -1955,7 +2015,7 @@ export const SCENE_LAYERS = {
     "h": 8.096,
     "base": 63.5,
     "foot": [
-     9,
+     9.0,
      58.5,
      15.5,
      63.5
@@ -1970,10 +2030,10 @@ export const SCENE_LAYERS = {
     "h": 8.004,
     "base": 72,
     "foot": [
-     9,
-     67,
+     9.0,
+     67.0,
      15.5,
-     72
+     72.0
     ]
    },
    {
@@ -1985,9 +2045,9 @@ export const SCENE_LAYERS = {
     "h": 8.096,
     "base": 63.5,
     "foot": [
-     21,
+     21.0,
      58.5,
-     28,
+     28.0,
      63.5
     ]
    },
@@ -2000,10 +2060,10 @@ export const SCENE_LAYERS = {
     "h": 8.004,
     "base": 72,
     "foot": [
-     21,
-     67,
-     28,
-     72
+     21.0,
+     67.0,
+     28.0,
+     72.0
     ]
    },
    {
@@ -2034,7 +2094,12 @@ export const SCENE_LAYERS = {
     "w": 2.974,
     "h": 7.544,
     "base": 32,
-    "foot": null
+    "foot": [
+     41.77,
+     27.32,
+     43.57,
+     28.89
+    ]
    },
    {
     "id": "lamp-stair-e",
@@ -2044,7 +2109,12 @@ export const SCENE_LAYERS = {
     "w": 3.043,
     "h": 7.544,
     "base": 32,
-    "foot": null
+    "foot": [
+     56.22,
+     27.69,
+     57.88,
+     29.25
+    ]
    },
    {
     "id": "plant-hall-nw",
@@ -2085,10 +2155,10 @@ export const SCENE_LAYERS = {
     "h": 10.12,
     "base": 52,
     "foot": [
-     38,
+     38.0,
      43.5,
      41.3,
-     52
+     52.0
     ]
    },
    {
@@ -2103,7 +2173,7 @@ export const SCENE_LAYERS = {
      58.5,
      43.5,
      61.8,
-     52
+     52.0
     ]
    },
    {
@@ -2118,7 +2188,7 @@ export const SCENE_LAYERS = {
      38.2,
      55.5,
      40.8,
-     58
+     58.0
     ]
    },
    {
@@ -2163,7 +2233,7 @@ export const SCENE_LAYERS = {
      56.8,
      62.5,
      59.7,
-     66
+     66.0
     ]
    },
    {
@@ -2176,9 +2246,9 @@ export const SCENE_LAYERS = {
     "base": 73,
     "foot": [
      38.2,
-     71,
+     71.0,
      40.3,
-     73
+     73.0
     ]
    },
    {
@@ -2191,9 +2261,9 @@ export const SCENE_LAYERS = {
     "base": 73,
     "foot": [
      59.5,
-     71,
+     71.0,
      61.3,
-     73
+     73.0
     ]
    },
    {
@@ -2205,8 +2275,8 @@ export const SCENE_LAYERS = {
     "h": 11.5,
     "base": 83.5,
     "foot": [
-     41,
-     80,
+     41.0,
+     80.0,
      43.8,
      83.5
     ]
@@ -2234,7 +2304,12 @@ export const SCENE_LAYERS = {
     "w": 5.533,
     "h": 16.559,
     "base": 89.5,
-    "foot": null
+    "foot": [
+     36.65,
+     86.29,
+     40.8,
+     87.86
+    ]
    },
    {
     "id": "banner-se",
@@ -2244,7 +2319,12 @@ export const SCENE_LAYERS = {
     "w": 6.086,
     "h": 16.559,
     "base": 89.5,
-    "foot": null
+    "foot": [
+     58.92,
+     86.02,
+     63.07,
+     87.58
+    ]
    },
    {
     "id": "plant-tour-nw",
@@ -2255,8 +2335,8 @@ export const SCENE_LAYERS = {
     "h": 10.12,
     "base": 33.5,
     "foot": [
-     67,
-     31,
+     67.0,
+     31.0,
      70.3,
      33.5
     ]
@@ -2273,7 +2353,7 @@ export const SCENE_LAYERS = {
      67.8,
      69.5,
      70.5,
-     72
+     72.0
     ]
    },
    {
@@ -2570,10 +2650,10 @@ export const SCENE_LAYERS = {
     "h": 13.063,
     "base": 29,
     "foot": [
-     13,
-     25,
-     24,
-     29
+     13.0,
+     25.0,
+     24.0,
+     29.0
     ]
    },
    {
@@ -2587,7 +2667,7 @@ export const SCENE_LAYERS = {
     "foot": [
      11.5,
      32.5,
-     25,
+     25.0,
      36.5
     ]
    },
@@ -2603,7 +2683,7 @@ export const SCENE_LAYERS = {
      29.3,
      27.5,
      31.8,
-     30
+     30.0
     ]
    },
    {
@@ -2616,9 +2696,9 @@ export const SCENE_LAYERS = {
     "base": 38,
     "foot": [
      4.5,
-     35,
+     35.0,
      7.8,
-     38
+     38.0
     ]
    },
    {
@@ -2630,10 +2710,10 @@ export const SCENE_LAYERS = {
     "h": 8.832,
     "base": 63,
     "foot": [
-     10,
-     57,
+     10.0,
+     57.0,
      16.3,
-     63
+     63.0
     ]
    },
    {
@@ -2646,9 +2726,9 @@ export const SCENE_LAYERS = {
     "base": 63,
     "foot": [
      19.5,
-     57,
+     57.0,
      26.5,
-     63
+     63.0
     ]
    },
    {
@@ -2660,8 +2740,8 @@ export const SCENE_LAYERS = {
     "h": 9.292,
     "base": 72.5,
     "foot": [
-     10,
-     66,
+     10.0,
+     66.0,
      16.3,
      72.5
     ]
@@ -2676,7 +2756,7 @@ export const SCENE_LAYERS = {
     "base": 72.5,
     "foot": [
      19.5,
-     66,
+     66.0,
      26.5,
      72.5
     ]
@@ -2691,9 +2771,9 @@ export const SCENE_LAYERS = {
     "base": 72,
     "foot": [
      29.3,
-     69,
+     69.0,
      32.8,
-     72
+     72.0
     ]
    },
    {
@@ -2704,7 +2784,12 @@ export const SCENE_LAYERS = {
     "w": 5.045,
     "h": 10.488,
     "base": 55,
-    "foot": null
+    "foot": [
+     28.61,
+     53.63,
+     32.83,
+     55.2
+    ]
    },
    {
     "id": "banner-nw",
@@ -2734,7 +2819,12 @@ export const SCENE_LAYERS = {
     "w": 3.041,
     "h": 7.084,
     "base": 30,
-    "foot": null
+    "foot": [
+     42.09,
+     26.59,
+     44.44,
+     28.15
+    ]
    },
    {
     "id": "lamp-stair-e",
@@ -2744,7 +2834,12 @@ export const SCENE_LAYERS = {
     "w": 3.041,
     "h": 7.084,
     "base": 30,
-    "foot": null
+    "foot": [
+     55.36,
+     26.68,
+     57.77,
+     28.24
+    ]
    },
    {
     "id": "plant-hall-nw",
@@ -2758,7 +2853,7 @@ export const SCENE_LAYERS = {
      42.5,
      36.5,
      45.7,
-     39
+     39.0
     ]
    },
    {
@@ -2773,7 +2868,7 @@ export const SCENE_LAYERS = {
      54.2,
      36.5,
      57.5,
-     39
+     39.0
     ]
    },
    {
@@ -2785,10 +2880,10 @@ export const SCENE_LAYERS = {
     "h": 7.084,
     "base": 45,
     "foot": [
-     47,
-     41,
-     53,
-     45
+     47.0,
+     41.0,
+     53.0,
+     45.0
     ]
    },
    {
@@ -2801,9 +2896,9 @@ export const SCENE_LAYERS = {
     "base": 52,
     "foot": [
      38.3,
-     46,
+     46.0,
      40.8,
-     52
+     52.0
     ]
    },
    {
@@ -2816,9 +2911,9 @@ export const SCENE_LAYERS = {
     "base": 52,
     "foot": [
      59.2,
-     46,
+     46.0,
      61.5,
-     52
+     52.0
     ]
    },
    {
@@ -2831,9 +2926,9 @@ export const SCENE_LAYERS = {
     "base": 59,
     "foot": [
      38.2,
-     56,
-     42,
-     59
+     56.0,
+     42.0,
+     59.0
     ]
    },
    {
@@ -2846,9 +2941,9 @@ export const SCENE_LAYERS = {
     "base": 60,
     "foot": [
      58.2,
-     57,
+     57.0,
      61.2,
-     60
+     60.0
     ]
    },
    {
@@ -2860,10 +2955,10 @@ export const SCENE_LAYERS = {
     "h": 9.016,
     "base": 71,
     "foot": [
-     36,
-     68,
+     36.0,
+     68.0,
      39.7,
-     71
+     71.0
     ]
    },
    {
@@ -2876,9 +2971,9 @@ export const SCENE_LAYERS = {
     "base": 73,
     "foot": [
      60.8,
-     69,
-     64,
-     73
+     69.0,
+     64.0,
+     73.0
     ]
    },
    {
@@ -2891,9 +2986,9 @@ export const SCENE_LAYERS = {
     "base": 73,
     "foot": [
      40.8,
-     71,
+     71.0,
      43.2,
-     73
+     73.0
     ]
    },
    {
@@ -2906,9 +3001,9 @@ export const SCENE_LAYERS = {
     "base": 73,
     "foot": [
      56.8,
-     71,
+     71.0,
      59.2,
-     73
+     73.0
     ]
    },
    {
@@ -2919,7 +3014,12 @@ export const SCENE_LAYERS = {
     "w": 4.077,
     "h": 9.568,
     "base": 84.5,
-    "foot": null
+    "foot": [
+     42.64,
+     83.16,
+     45.96,
+     84.73
+    ]
    },
    {
     "id": "gate-e",
@@ -2929,7 +3029,12 @@ export const SCENE_LAYERS = {
     "w": 3.732,
     "h": 9.568,
     "base": 84.5,
-    "foot": null
+    "foot": [
+     53.97,
+     83.16,
+     57.29,
+     84.73
+    ]
    },
    {
     "id": "cypress-w",
@@ -2939,7 +3044,12 @@ export const SCENE_LAYERS = {
     "w": 4.008,
     "h": 14.535,
     "base": 90,
-    "foot": null
+    "foot": [
+     39.94,
+     87.12,
+     42.36,
+     88.68
+    ]
    },
    {
     "id": "cypress-e",
@@ -2949,7 +3059,12 @@ export const SCENE_LAYERS = {
     "w": 3.525,
     "h": 14.535,
     "base": 90,
-    "foot": null
+    "foot": [
+     57.5,
+     87.12,
+     59.78,
+     88.68
+    ]
    },
    {
     "id": "plant-tour-w1",
@@ -2961,9 +3076,9 @@ export const SCENE_LAYERS = {
     "base": 49,
     "foot": [
      67.8,
-     46,
+     46.0,
      70.3,
-     49
+     49.0
     ]
    },
    {
@@ -2976,7 +3091,7 @@ export const SCENE_LAYERS = {
     "base": 58.5,
     "foot": [
      67.8,
-     56,
+     56.0,
      70.3,
      58.5
     ]
@@ -2991,9 +3106,9 @@ export const SCENE_LAYERS = {
     "base": 70,
     "foot": [
      67.8,
-     67,
+     67.0,
      70.3,
-     70
+     70.0
     ]
    },
    {
@@ -3290,9 +3405,9 @@ export const SCENE_LAYERS = {
     "h": 11.05,
     "base": 27.5,
     "foot": [
-     14,
-     20,
-     25,
+     14.0,
+     20.0,
+     25.0,
      27.5
     ]
    },
@@ -3305,9 +3420,9 @@ export const SCENE_LAYERS = {
     "h": 11.51,
     "base": 39.5,
     "foot": [
-     14,
+     14.0,
      31.5,
-     25,
+     25.0,
      39.5
     ]
    },
@@ -3321,7 +3436,7 @@ export const SCENE_LAYERS = {
     "base": 27.5,
     "foot": [
      30.5,
-     20,
+     20.0,
      41.5,
      27.5
     ]
@@ -3351,7 +3466,7 @@ export const SCENE_LAYERS = {
     "base": 27.5,
     "foot": [
      58.5,
-     20,
+     20.0,
      69.5,
      27.5
     ]
@@ -3380,9 +3495,9 @@ export const SCENE_LAYERS = {
     "h": 11.05,
     "base": 27.5,
     "foot": [
-     75,
-     20,
-     86,
+     75.0,
+     20.0,
+     86.0,
      27.5
     ]
    },
@@ -3395,9 +3510,9 @@ export const SCENE_LAYERS = {
     "h": 11.51,
     "base": 39.5,
     "foot": [
-     75,
+     75.0,
      31.5,
-     86,
+     86.0,
      39.5
     ]
    },
@@ -3421,9 +3536,9 @@ export const SCENE_LAYERS = {
     "base": 23,
     "foot": [
      9.2,
-     20,
+     20.0,
      12.3,
-     23
+     23.0
     ]
    },
    {
@@ -3436,9 +3551,9 @@ export const SCENE_LAYERS = {
     "base": 23,
     "foot": [
      87.7,
-     20,
+     20.0,
      90.8,
-     23
+     23.0
     ]
    },
    {
@@ -3480,10 +3595,10 @@ export const SCENE_LAYERS = {
     "h": 8.471,
     "base": 58,
     "foot": [
-     40,
+     40.0,
      54.5,
-     44,
-     58
+     44.0,
+     58.0
     ]
    },
    {
@@ -3498,7 +3613,7 @@ export const SCENE_LAYERS = {
      56.5,
      54.5,
      60.5,
-     58
+     58.0
     ]
    },
    {
@@ -3513,7 +3628,7 @@ export const SCENE_LAYERS = {
      41.8,
      75.5,
      44.2,
-     78
+     78.0
     ]
    },
    {
@@ -3528,7 +3643,7 @@ export const SCENE_LAYERS = {
      55.8,
      75.5,
      58.2,
-     78
+     78.0
     ]
    },
    {
@@ -3539,7 +3654,12 @@ export const SCENE_LAYERS = {
     "w": 5.041,
     "h": 10.129,
     "base": 78,
-    "foot": null
+    "foot": [
+     27.21,
+     76.34,
+     30.66,
+     77.9
+    ]
    },
    {
     "id": "plant-lobby-w2",
@@ -3550,10 +3670,10 @@ export const SCENE_LAYERS = {
     "h": 10.129,
     "base": 78,
     "foot": [
-     33,
+     33.0,
      74.5,
      36.8,
-     78
+     78.0
     ]
    },
    {
@@ -3568,7 +3688,7 @@ export const SCENE_LAYERS = {
      63.3,
      74.5,
      67.2,
-     78
+     78.0
     ]
    },
    {
@@ -3579,7 +3699,12 @@ export const SCENE_LAYERS = {
     "w": 4.558,
     "h": 10.129,
     "base": 78,
-    "foot": null
+    "foot": [
+     69.68,
+     76.43,
+     72.58,
+     77.99
+    ]
    },
    {
     "id": "entry-sign",
@@ -3600,10 +3725,10 @@ export const SCENE_LAYERS = {
     "h": 7.551,
     "base": 90,
     "foot": [
-     42,
-     87,
+     42.0,
+     87.0,
      44.8,
-     90
+     90.0
     ]
    },
    {
@@ -3616,9 +3741,9 @@ export const SCENE_LAYERS = {
     "base": 90,
     "foot": [
      55.7,
-     87,
+     87.0,
      58.3,
-     90
+     90.0
     ]
    },
    {
@@ -3630,10 +3755,10 @@ export const SCENE_LAYERS = {
     "h": 13.076,
     "base": 63,
     "foot": [
-     12,
+     12.0,
      59.5,
-     24,
-     63
+     24.0,
+     63.0
     ]
    },
    {
@@ -3646,9 +3771,9 @@ export const SCENE_LAYERS = {
     "base": 70,
     "foot": [
      13.5,
-     66,
+     66.0,
      23.5,
-     70
+     70.0
     ]
    },
    {
@@ -3661,9 +3786,9 @@ export const SCENE_LAYERS = {
     "base": 59,
     "foot": [
      5.3,
-     57,
+     57.0,
      8.3,
-     59
+     59.0
     ]
    },
    {
@@ -3676,9 +3801,9 @@ export const SCENE_LAYERS = {
     "base": 77,
     "foot": [
      5.8,
-     74,
+     74.0,
      9.2,
-     77
+     77.0
     ]
    },
    {
@@ -3693,7 +3818,7 @@ export const SCENE_LAYERS = {
      10.8,
      75.5,
      13.8,
-     78
+     78.0
     ]
    },
    {
@@ -3705,10 +3830,10 @@ export const SCENE_LAYERS = {
     "h": 8.011,
     "base": 65,
     "foot": [
-     74,
-     60,
+     74.0,
+     60.0,
      81.5,
-     65
+     65.0
     ]
    },
    {
@@ -3721,9 +3846,9 @@ export const SCENE_LAYERS = {
     "base": 65,
     "foot": [
      84.5,
-     60,
-     92,
-     65
+     60.0,
+     92.0,
+     65.0
     ]
    },
    {
@@ -3735,8 +3860,8 @@ export const SCENE_LAYERS = {
     "h": 9.024,
     "base": 76.5,
     "foot": [
-     74,
-     71,
+     74.0,
+     71.0,
      81.5,
      76.5
     ]
@@ -3751,8 +3876,8 @@ export const SCENE_LAYERS = {
     "base": 76.5,
     "foot": [
      84.5,
-     71,
-     92,
+     71.0,
+     92.0,
      76.5
     ]
    },
@@ -3768,7 +3893,7 @@ export const SCENE_LAYERS = {
      91.8,
      57.5,
      94.8,
-     60
+     60.0
     ]
    },
    {
@@ -3781,7 +3906,7 @@ export const SCENE_LAYERS = {
     "base": 71.5,
     "foot": [
      91.3,
-     68,
+     68.0,
      95.2,
      71.5
     ]
@@ -3798,7 +3923,7 @@ export const SCENE_LAYERS = {
      91.8,
      75.5,
      94.8,
-     78
+     78.0
     ]
    }
   ],
@@ -3960,7 +4085,12 @@ export const SCENE_LAYERS = {
     "w": 3.801,
     "h": 11.04,
     "base": 46,
-    "foot": null
+    "foot": [
+     29.44,
+     44.71,
+     32.83,
+     46.27
+    ]
    },
    {
     "id": "topiary-2",
@@ -3970,7 +4100,12 @@ export const SCENE_LAYERS = {
     "w": 4.423,
     "h": 11.04,
     "base": 46,
-    "foot": null
+    "foot": [
+     38.7,
+     43.51,
+     42.5,
+     45.08
+    ]
    },
    {
     "id": "topiary-3",
@@ -3980,7 +4115,12 @@ export const SCENE_LAYERS = {
     "w": 4.077,
     "h": 11.04,
     "base": 46,
-    "foot": null
+    "foot": [
+     57.15,
+     44.53,
+     60.82,
+     46.09
+    ]
    },
    {
     "id": "topiary-4",
@@ -3990,7 +4130,12 @@ export const SCENE_LAYERS = {
     "w": 3.732,
     "h": 11.04,
     "base": 46,
-    "foot": null
+    "foot": [
+     67.38,
+     44.71,
+     70.77,
+     46.27
+    ]
    },
    {
     "id": "lamp-door-w",
@@ -4001,9 +4146,9 @@ export const SCENE_LAYERS = {
     "h": 17.111,
     "base": 47,
     "foot": [
-     27,
+     27.0,
      45.5,
-     29,
+     29.0,
      47.5
     ]
    },
@@ -4016,9 +4161,9 @@ export const SCENE_LAYERS = {
     "h": 17.111,
     "base": 47,
     "foot": [
-     71,
+     71.0,
      45.5,
-     73,
+     73.0,
      47.5
     ]
    },
@@ -4034,7 +4179,7 @@ export const SCENE_LAYERS = {
      41.6,
      46.8,
      43.4,
-     48
+     48.0
     ]
    },
    {
@@ -4049,7 +4194,7 @@ export const SCENE_LAYERS = {
      56.8,
      46.8,
      58.6,
-     48
+     48.0
     ]
    },
    {
@@ -4080,7 +4225,12 @@ export const SCENE_LAYERS = {
     "w": 19.005,
     "h": 24.011,
     "base": 66,
-    "foot": null
+    "foot": [
+     41.95,
+     72.03,
+     54.11,
+     73.6
+    ]
    },
    {
     "id": "lamp-path-w1",
@@ -4093,8 +4243,8 @@ export const SCENE_LAYERS = {
     "foot": [
      23.2,
      60.5,
-     25,
-     62
+     25.0,
+     62.0
     ]
    },
    {
@@ -4109,7 +4259,7 @@ export const SCENE_LAYERS = {
      27.5,
      60.5,
      29.2,
-     62
+     62.0
     ]
    },
    {
@@ -4124,7 +4274,7 @@ export const SCENE_LAYERS = {
      70.8,
      60.5,
      72.6,
-     62
+     62.0
     ]
    },
    {
@@ -4136,10 +4286,10 @@ export const SCENE_LAYERS = {
     "h": 9.568,
     "base": 63,
     "foot": [
-     75,
+     75.0,
      60.5,
      76.8,
-     62
+     62.0
     ]
    },
    {
@@ -4150,7 +4300,12 @@ export const SCENE_LAYERS = {
     "w": 5.529,
     "h": 18.031,
     "base": 83,
-    "foot": null
+    "foot": [
+     37.32,
+     82.15,
+     41.95,
+     83.72
+    ]
    },
    {
     "id": "gate-e",
@@ -4160,7 +4315,12 @@ export const SCENE_LAYERS = {
     "w": 5.529,
     "h": 18.031,
     "base": 83,
-    "foot": null
+    "foot": [
+     58.33,
+     82.15,
+     62.68,
+     83.72
+    ]
    },
    {
     "id": "pillar-w",
@@ -4172,7 +4332,7 @@ export const SCENE_LAYERS = {
     "base": 87.5,
     "foot": [
      31.5,
-     84,
+     84.0,
      37.5,
      87.5
     ]
@@ -4187,7 +4347,7 @@ export const SCENE_LAYERS = {
     "base": 87.5,
     "foot": [
      62.5,
-     84,
+     84.0,
      68.5,
      87.5
     ]
@@ -4202,9 +4362,9 @@ export const SCENE_LAYERS = {
     "base": 86,
     "foot": [
      29.2,
-     84,
-     32,
-     86
+     84.0,
+     32.0,
+     86.0
     ]
    },
    {
@@ -4216,10 +4376,10 @@ export const SCENE_LAYERS = {
     "h": 9.568,
     "base": 86,
     "foot": [
-     38,
-     84,
-     41,
-     86
+     38.0,
+     84.0,
+     41.0,
+     86.0
     ]
    },
    {
@@ -4232,9 +4392,9 @@ export const SCENE_LAYERS = {
     "base": 86,
     "foot": [
      58.8,
-     84,
+     84.0,
      61.5,
-     86
+     86.0
     ]
    },
    {
@@ -4247,9 +4407,9 @@ export const SCENE_LAYERS = {
     "base": 86,
     "foot": [
      68.8,
-     84,
+     84.0,
      71.5,
-     86
+     86.0
     ]
    },
    {
@@ -4261,10 +4421,10 @@ export const SCENE_LAYERS = {
     "h": 44.066,
     "base": 95,
     "foot": [
-     1,
-     93,
-     4,
-     95
+     1.0,
+     93.0,
+     4.0,
+     95.0
     ]
    },
    {
@@ -4277,9 +4437,9 @@ export const SCENE_LAYERS = {
     "base": 95,
     "foot": [
      94.5,
-     93,
-     98,
-     95
+     93.0,
+     98.0,
+     95.0
     ]
    },
    {
@@ -4290,7 +4450,12 @@ export const SCENE_LAYERS = {
     "w": 13.062,
     "h": 25.115,
     "base": 94,
-    "foot": null
+    "foot": [
+     82.45,
+     85.74,
+     90.81,
+     87.3
+    ]
    },
    {
     "id": "taxi",
@@ -4300,7 +4465,12 @@ export const SCENE_LAYERS = {
     "w": 19.489,
     "h": 16.007,
     "base": 99,
-    "foot": null
+    "foot": [
+     0.14,
+     98.16,
+     18.66,
+     99.72
+    ]
    },
    {
     "id": "hydrant",
@@ -4312,9 +4482,9 @@ export const SCENE_LAYERS = {
     "base": 94,
     "foot": [
      25.8,
-     92,
+     92.0,
      28.5,
-     94
+     94.0
     ]
    }
   ],
@@ -4451,7 +4621,12 @@ export const SCENE_LAYERS = {
     "w": 4.006,
     "h": 6.538,
     "base": 41,
-    "foot": null
+    "foot": [
+     36.6,
+     39.69,
+     40.33,
+     41.25
+    ]
    },
    {
     "id": "pot-porch-e",
@@ -4461,7 +4636,12 @@ export const SCENE_LAYERS = {
     "w": 4.006,
     "h": 6.538,
     "base": 41,
-    "foot": null
+    "foot": [
+     59.6,
+     39.69,
+     63.26,
+     41.25
+    ]
    },
    {
     "id": "elephant-w",
@@ -4473,9 +4653,9 @@ export const SCENE_LAYERS = {
     "base": 49,
     "foot": [
      39.5,
-     45,
-     43,
-     49
+     45.0,
+     43.0,
+     49.0
     ]
    },
    {
@@ -4488,9 +4668,9 @@ export const SCENE_LAYERS = {
     "base": 49,
     "foot": [
      57.5,
-     45,
-     61,
-     49
+     45.0,
+     61.0,
+     49.0
     ]
    },
    {
@@ -4501,7 +4681,12 @@ export const SCENE_LAYERS = {
     "w": 12.5,
     "h": 12.523,
     "base": 45,
-    "foot": null
+    "foot": [
+     19.68,
+     43.65,
+     30.8,
+     45.21
+    ]
    },
    {
     "id": "bed-ne",
@@ -4521,7 +4706,12 @@ export const SCENE_LAYERS = {
     "w": 9.047,
     "h": 12.523,
     "base": 54,
-    "foot": null
+    "foot": [
+     29.07,
+     52.67,
+     37.57,
+     54.24
+    ]
    },
    {
     "id": "planter-e",
@@ -4531,7 +4721,12 @@ export const SCENE_LAYERS = {
     "w": 9.047,
     "h": 12.523,
     "base": 54,
-    "foot": null
+    "foot": [
+     62.29,
+     52.67,
+     70.86,
+     54.24
+    ]
    },
    {
     "id": "bench-w",
@@ -4542,9 +4737,9 @@ export const SCENE_LAYERS = {
     "h": 7.551,
     "base": 59.5,
     "foot": [
-     33,
-     56,
-     39,
+     33.0,
+     56.0,
+     39.0,
      59.5
     ]
    },
@@ -4557,9 +4752,9 @@ export const SCENE_LAYERS = {
     "h": 7.551,
     "base": 59.5,
     "foot": [
-     61,
-     56,
-     67,
+     61.0,
+     56.0,
+     67.0,
      59.5
     ]
    },
@@ -4572,9 +4767,9 @@ export const SCENE_LAYERS = {
     "h": 9.024,
     "base": 58.5,
     "foot": [
-     41,
+     41.0,
      56.5,
-     43,
+     43.0,
      58.5
     ]
    },
@@ -4587,9 +4782,9 @@ export const SCENE_LAYERS = {
     "h": 9.024,
     "base": 58.5,
     "foot": [
-     57,
+     57.0,
      56.5,
-     59,
+     59.0,
      58.5
     ]
    },
@@ -4641,7 +4836,12 @@ export const SCENE_LAYERS = {
     "w": 6.008,
     "h": 26.059,
     "base": 88,
-    "foot": null
+    "foot": [
+     36.81,
+     86.65,
+     41.99,
+     88.21
+    ]
    },
    {
     "id": "pillar-e",
@@ -4651,7 +4851,12 @@ export const SCENE_LAYERS = {
     "w": 5.525,
     "h": 26.059,
     "base": 88,
-    "foot": null
+    "foot": [
+     58.49,
+     86.65,
+     62.98,
+     88.21
+    ]
    },
    {
     "id": "gate-arch",
@@ -4671,7 +4876,12 @@ export const SCENE_LAYERS = {
     "w": 4.558,
     "h": 11.971,
     "base": 79,
-    "foot": null
+    "foot": [
+     43.92,
+     77.62,
+     44.82,
+     79.19
+    ]
    },
    {
     "id": "gate-door-e",
@@ -4681,7 +4891,12 @@ export const SCENE_LAYERS = {
     "w": 4.558,
     "h": 11.971,
     "base": 79,
-    "foot": null
+    "foot": [
+     55.18,
+     77.62,
+     56.15,
+     79.19
+    ]
    },
    {
     "id": "pot-gate-w",
@@ -4691,7 +4906,12 @@ export const SCENE_LAYERS = {
     "w": 3.522,
     "h": 7.09,
     "base": 85.5,
-    "foot": null
+    "foot": [
+     41.51,
+     84.16,
+     43.58,
+     85.73
+    ]
    },
    {
     "id": "pot-gate-e",
@@ -4701,7 +4921,12 @@ export const SCENE_LAYERS = {
     "w": 3.522,
     "h": 7.09,
     "base": 85.5,
-    "foot": null
+    "foot": [
+     56.22,
+     84.16,
+     58.56,
+     85.73
+    ]
    },
    {
     "id": "pot-out-w",
@@ -4712,9 +4937,9 @@ export const SCENE_LAYERS = {
     "h": 8.011,
     "base": 85.5,
     "foot": [
-     34,
-     84,
-     37,
+     34.0,
+     84.0,
+     37.0,
      85.8
     ]
    },
@@ -4727,9 +4952,9 @@ export const SCENE_LAYERS = {
     "h": 8.011,
     "base": 85.5,
     "foot": [
-     63,
-     84,
-     66,
+     63.0,
+     84.0,
+     66.0,
      85.8
     ]
    },
@@ -4742,10 +4967,10 @@ export const SCENE_LAYERS = {
     "h": 18.048,
     "base": 88,
     "foot": [
-     5,
-     86,
-     7,
-     88
+     5.0,
+     86.0,
+     7.0,
+     88.0
     ]
    },
    {
@@ -4758,9 +4983,9 @@ export const SCENE_LAYERS = {
     "base": 88,
     "foot": [
      92.5,
-     86,
+     86.0,
      94.5,
-     88
+     88.0
     ]
    }
   ],
@@ -4895,9 +5120,9 @@ export const SCENE_LAYERS = {
     "base": 37,
     "foot": [
      17.5,
-     29,
+     29.0,
      26.5,
-     37
+     37.0
     ]
    },
    {
@@ -4909,9 +5134,9 @@ export const SCENE_LAYERS = {
     "h": 10.129,
     "base": 31.5,
     "foot": [
-     29,
-     30,
-     30,
+     29.0,
+     30.0,
+     30.0,
      31.5
     ]
    },
@@ -4924,9 +5149,9 @@ export const SCENE_LAYERS = {
     "h": 10.129,
     "base": 31.5,
     "foot": [
-     70,
-     30,
-     71,
+     70.0,
+     30.0,
+     71.0,
      31.5
     ]
    },
@@ -4939,8 +5164,8 @@ export const SCENE_LAYERS = {
     "h": 9.116,
     "base": 45.5,
     "foot": [
-     27,
-     44,
+     27.0,
+     44.0,
      28.5,
      45.5
     ]
@@ -4956,8 +5181,8 @@ export const SCENE_LAYERS = {
     "foot": [
      71.5,
      44.5,
-     73,
-     46
+     73.0,
+     46.0
     ]
    },
    {
@@ -4971,8 +5196,8 @@ export const SCENE_LAYERS = {
     "foot": [
      21.5,
      60.5,
-     23,
-     62
+     23.0,
+     62.0
     ]
    },
    {
@@ -4984,8 +5209,8 @@ export const SCENE_LAYERS = {
     "h": 11.05,
     "base": 62.5,
     "foot": [
-     77,
-     61,
+     77.0,
+     61.0,
      78.5,
      62.5
     ]
@@ -5008,7 +5233,12 @@ export const SCENE_LAYERS = {
     "w": 12.017,
     "h": 8.011,
     "base": 48,
-    "foot": null
+    "foot": [
+     30.32,
+     47.15,
+     41.37,
+     48.71
+    ]
    },
    {
     "id": "bed-bench-n2",
@@ -5018,7 +5248,12 @@ export const SCENE_LAYERS = {
     "w": 12.086,
     "h": 8.011,
     "base": 48,
-    "foot": null
+    "foot": [
+     58.77,
+     47.15,
+     69.2,
+     48.71
+    ]
    },
    {
     "id": "bed-sw",
@@ -5028,7 +5263,12 @@ export const SCENE_LAYERS = {
     "w": 10.014,
     "h": 16.022,
     "base": 65,
-    "foot": null
+    "foot": [
+     25.35,
+     64.27,
+     34.88,
+     65.84
+    ]
    },
    {
     "id": "bed-w",
@@ -5038,7 +5278,12 @@ export const SCENE_LAYERS = {
     "w": 4.489,
     "h": 16.022,
     "base": 65,
-    "foot": null
+    "foot": [
+     38.88,
+     61.79,
+     40.47,
+     63.35
+    ]
    },
    {
     "id": "bed-e",
@@ -5048,7 +5293,12 @@ export const SCENE_LAYERS = {
     "w": 4.558,
     "h": 16.022,
     "base": 65,
-    "foot": null
+    "foot": [
+     58.84,
+     59.67,
+     61.81,
+     61.23
+    ]
    },
    {
     "id": "bed-se",
@@ -5058,7 +5308,12 @@ export const SCENE_LAYERS = {
     "w": 10.014,
     "h": 16.022,
     "base": 65,
-    "foot": null
+    "foot": [
+     65.81,
+     64.18,
+     74.59,
+     65.75
+    ]
    },
    {
     "id": "tables-ne",
@@ -5070,9 +5325,9 @@ export const SCENE_LAYERS = {
     "base": 38,
     "foot": [
      77.5,
-     33,
+     33.0,
      84.5,
-     38
+     38.0
     ]
    },
    {
@@ -5085,9 +5340,9 @@ export const SCENE_LAYERS = {
     "base": 48,
     "foot": [
      80.5,
-     44,
+     44.0,
      88.5,
-     48
+     48.0
     ]
    },
    {
@@ -5100,9 +5355,9 @@ export const SCENE_LAYERS = {
     "base": 62,
     "foot": [
      82.5,
-     57,
+     57.0,
      89.5,
-     62
+     62.0
     ]
    },
    {
@@ -5115,9 +5370,9 @@ export const SCENE_LAYERS = {
     "base": 63,
     "foot": [
      9.5,
-     60,
+     60.0,
      19.5,
-     63
+     63.0
     ]
    },
    {
@@ -5128,7 +5383,12 @@ export const SCENE_LAYERS = {
     "w": 20.994,
     "h": 10.037,
     "base": 75,
-    "foot": null
+    "foot": [
+     19.54,
+     74.22,
+     39.85,
+     75.78
+    ]
    },
    {
     "id": "trees-se",
@@ -5138,7 +5398,12 @@ export const SCENE_LAYERS = {
     "w": 21.064,
     "h": 10.037,
     "base": 75,
-    "foot": null
+    "foot": [
+     60.08,
+     74.22,
+     80.8,
+     75.78
+    ]
    },
    {
     "id": "pillar-w",
@@ -5148,7 +5413,12 @@ export const SCENE_LAYERS = {
     "w": 5.525,
     "h": 17.035,
     "base": 86,
-    "foot": null
+    "foot": [
+     36.05,
+     85.17,
+     40.47,
+     86.74
+    ]
    },
    {
     "id": "pillar-e",
@@ -5158,7 +5428,12 @@ export const SCENE_LAYERS = {
     "w": 5.525,
     "h": 17.035,
     "base": 86,
-    "foot": null
+    "foot": [
+     59.6,
+     85.17,
+     64.02,
+     86.74
+    ]
    },
    {
     "id": "gate-w",
@@ -5169,10 +5444,10 @@ export const SCENE_LAYERS = {
     "h": 12.063,
     "base": 85,
     "foot": [
-     41,
-     79,
-     44,
-     85
+     41.0,
+     79.0,
+     44.0,
+     85.0
     ]
    },
    {
@@ -5184,10 +5459,10 @@ export const SCENE_LAYERS = {
     "h": 12.063,
     "base": 85,
     "foot": [
-     56,
-     79,
-     59,
-     85
+     56.0,
+     79.0,
+     59.0,
+     85.0
     ]
    }
   ],
@@ -5314,7 +5589,12 @@ export const SCENE_LAYERS = {
     "w": 15.066,
     "h": 21.987,
     "base": 35,
-    "foot": null
+    "foot": [
+     11.2,
+     28.79,
+     24.12,
+     30.36
+    ]
    },
    {
     "id": "cypress-w",
@@ -5356,7 +5636,7 @@ export const SCENE_LAYERS = {
     "base": 41.5,
     "foot": [
      39.3,
-     40,
+     40.0,
      41.2,
      41.5
     ]
@@ -5371,7 +5651,7 @@ export const SCENE_LAYERS = {
     "base": 41.5,
     "foot": [
      58.8,
-     40,
+     40.0,
      60.7,
      41.5
     ]
@@ -5386,9 +5666,9 @@ export const SCENE_LAYERS = {
     "base": 45,
     "foot": [
      30.5,
-     42,
-     37,
-     45
+     42.0,
+     37.0,
+     45.0
     ]
    },
    {
@@ -5400,10 +5680,10 @@ export const SCENE_LAYERS = {
     "h": 5.06,
     "base": 45,
     "foot": [
-     63,
-     42,
+     63.0,
+     42.0,
      69.5,
-     45
+     45.0
     ]
    },
    {
@@ -5416,7 +5696,7 @@ export const SCENE_LAYERS = {
     "base": 51.5,
     "foot": [
      35.3,
-     49,
+     49.0,
      37.8,
      51.5
     ]
@@ -5431,7 +5711,7 @@ export const SCENE_LAYERS = {
     "base": 51.5,
     "foot": [
      62.2,
-     49,
+     49.0,
      64.7,
      51.5
     ]
@@ -5447,7 +5727,7 @@ export const SCENE_LAYERS = {
     "foot": [
      24.5,
      56.5,
-     26,
+     26.0,
      58.5
     ]
    },
@@ -5462,7 +5742,7 @@ export const SCENE_LAYERS = {
     "foot": [
      73.5,
      56.5,
-     75,
+     75.0,
      58.5
     ]
    },
@@ -5476,7 +5756,7 @@ export const SCENE_LAYERS = {
     "base": 52.5,
     "foot": [
      13.5,
-     50,
+     50.0,
      20.5,
      52.5
     ]
@@ -5490,10 +5770,10 @@ export const SCENE_LAYERS = {
     "h": 14.075,
     "base": 44,
     "foot": [
-     81,
-     36,
+     81.0,
+     36.0,
      92.5,
-     44
+     44.0
     ]
    },
    {
@@ -5505,10 +5785,10 @@ export const SCENE_LAYERS = {
     "h": 15.087,
     "base": 61,
     "foot": [
-     80,
-     52,
-     87,
-     57
+     80.0,
+     52.0,
+     87.0,
+     57.0
     ]
    },
    {
@@ -5520,10 +5800,10 @@ export const SCENE_LAYERS = {
     "h": 31.095,
     "base": 70,
     "foot": [
-     35,
-     64,
-     39,
-     70
+     35.0,
+     64.0,
+     39.0,
+     70.0
     ]
    },
    {
@@ -5535,10 +5815,10 @@ export const SCENE_LAYERS = {
     "h": 31.095,
     "base": 70,
     "foot": [
-     61,
-     64,
-     65,
-     70
+     61.0,
+     64.0,
+     65.0,
+     70.0
     ]
    },
    {
@@ -5549,7 +5829,12 @@ export const SCENE_LAYERS = {
     "w": 7.049,
     "h": 48.022,
     "base": 91,
-    "foot": null
+    "foot": [
+     34.14,
+     86.57,
+     39.12,
+     88.13
+    ]
    },
    {
     "id": "pillar-e",
@@ -5559,7 +5844,12 @@ export const SCENE_LAYERS = {
     "w": 7.049,
     "h": 48.022,
     "base": 91,
-    "foot": null
+    "foot": [
+     61.3,
+     84.18,
+     65.51,
+     85.74
+    ]
    },
    {
     "id": "gate-w",
@@ -5570,10 +5860,10 @@ export const SCENE_LAYERS = {
     "h": 18.031,
     "base": 85,
     "foot": [
-     41,
-     80,
-     44,
-     85
+     41.0,
+     80.0,
+     44.0,
+     85.0
     ]
    },
    {
@@ -5585,10 +5875,10 @@ export const SCENE_LAYERS = {
     "h": 18.031,
     "base": 85,
     "foot": [
-     56,
-     80,
-     59,
-     85
+     56.0,
+     80.0,
+     59.0,
+     85.0
     ]
    },
    {
@@ -5601,7 +5891,7 @@ export const SCENE_LAYERS = {
     "base": 89.5,
     "foot": [
      40.5,
-     87,
+     87.0,
      43.5,
      89.5
     ]
@@ -5616,7 +5906,7 @@ export const SCENE_LAYERS = {
     "base": 89.5,
     "foot": [
      56.5,
-     87,
+     87.0,
      59.5,
      89.5
     ]
@@ -5629,7 +5919,12 @@ export const SCENE_LAYERS = {
     "w": 3.525,
     "h": 30.083,
     "base": 93,
-    "foot": null
+    "foot": [
+     5.6,
+     92.18,
+     8.78,
+     93.74
+    ]
    },
    {
     "id": "streetlamp-e",
@@ -5639,7 +5934,12 @@ export const SCENE_LAYERS = {
     "w": 4.077,
     "h": 30.083,
     "base": 93,
-    "foot": null
+    "foot": [
+     89.15,
+     92.18,
+     92.81,
+     93.74
+    ]
    }
   ],
   "floor": [
@@ -5762,7 +6062,7 @@ export const SCENE_LAYERS = {
      35.5,
      43.5,
      44.5,
-     45
+     45.0
     ]
    },
    {
@@ -5777,7 +6077,7 @@ export const SCENE_LAYERS = {
      55.5,
      43.5,
      64.5,
-     45
+     45.0
     ]
    },
    {
@@ -5789,10 +6089,10 @@ export const SCENE_LAYERS = {
     "h": 11.05,
     "base": 46,
     "foot": [
-     32,
+     32.0,
      44.5,
      33.5,
-     46
+     46.0
     ]
    },
    {
@@ -5806,8 +6106,8 @@ export const SCENE_LAYERS = {
     "foot": [
      66.5,
      44.5,
-     68,
-     46
+     68.0,
+     46.0
     ]
    },
    {
@@ -5818,7 +6118,12 @@ export const SCENE_LAYERS = {
     "w": 12.983,
     "h": 11.05,
     "base": 54,
-    "foot": null
+    "foot": [
+     19.34,
+     53.13,
+     31.01,
+     54.7
+    ]
    },
    {
     "id": "bench-nw",
@@ -5828,7 +6133,12 @@ export const SCENE_LAYERS = {
     "w": 8.011,
     "h": 6.998,
     "base": 54,
-    "foot": null
+    "foot": [
+     32.11,
+     51.57,
+     39.5,
+     53.13
+    ]
    },
    {
     "id": "bench-ne",
@@ -5848,7 +6158,12 @@ export const SCENE_LAYERS = {
     "w": 13.052,
     "h": 11.05,
     "base": 54,
-    "foot": null
+    "foot": [
+     69.13,
+     53.13,
+     78.66,
+     54.7
+    ]
    },
    {
     "id": "topiary-pot-w",
@@ -5859,8 +6174,8 @@ export const SCENE_LAYERS = {
     "h": 11.05,
     "base": 58.5,
     "foot": [
-     41,
-     56,
+     41.0,
+     56.0,
      43.5,
      58.5
     ]
@@ -5875,8 +6190,8 @@ export const SCENE_LAYERS = {
     "base": 58.5,
     "foot": [
      56.5,
-     56,
-     59,
+     56.0,
+     59.0,
      58.5
     ]
    },
@@ -5890,9 +6205,9 @@ export const SCENE_LAYERS = {
     "base": 65,
     "foot": [
      24.5,
-     59,
+     59.0,
      32.5,
-     65
+     65.0
     ]
    },
    {
@@ -5904,10 +6219,10 @@ export const SCENE_LAYERS = {
     "h": 10.037,
     "base": 65,
     "foot": [
-     65,
-     59,
+     65.0,
+     59.0,
      75.5,
-     65
+     65.0
     ]
    },
    {
@@ -5920,7 +6235,7 @@ export const SCENE_LAYERS = {
     "base": 66.5,
     "foot": [
      36.3,
-     64,
+     64.0,
      39.7,
      66.5
     ]
@@ -5935,7 +6250,7 @@ export const SCENE_LAYERS = {
     "base": 66.5,
     "foot": [
      60.3,
-     64,
+     64.0,
      63.7,
      66.5
     ]
@@ -5949,10 +6264,10 @@ export const SCENE_LAYERS = {
     "h": 10.037,
     "base": 68,
     "foot": [
-     20,
-     66.5,
-     21.5,
-     68
+     20.0,
+     62.43,
+     21.69,
+     68.0
     ]
    },
    {
@@ -5964,10 +6279,10 @@ export const SCENE_LAYERS = {
     "h": 10.037,
     "base": 68,
     "foot": [
-     78,
-     66.5,
+     77.76,
+     65.1,
      79.5,
-     68
+     68.0
     ]
    },
    {
@@ -5978,7 +6293,12 @@ export const SCENE_LAYERS = {
     "w": 12.017,
     "h": 20.074,
     "base": 48,
-    "foot": null
+    "foot": [
+     14.09,
+     48.25,
+     25.83,
+     49.82
+    ]
    },
    {
     "id": "olive-e",
@@ -5988,7 +6308,12 @@ export const SCENE_LAYERS = {
     "w": 12.017,
     "h": 20.074,
     "base": 48,
-    "foot": null
+    "foot": [
+     74.1,
+     48.25,
+     85.84,
+     49.82
+    ]
    },
    {
     "id": "pillar-w",
@@ -5998,7 +6323,12 @@ export const SCENE_LAYERS = {
     "w": 5.041,
     "h": 23.02,
     "base": 86,
-    "foot": null
+    "foot": [
+     37.22,
+     80.94,
+     40.4,
+     82.5
+    ]
    },
    {
     "id": "pillar-e",
@@ -6008,7 +6338,12 @@ export const SCENE_LAYERS = {
     "w": 4.972,
     "h": 23.02,
     "base": 86,
-    "foot": null
+    "foot": [
+     59.12,
+     81.03,
+     62.22,
+     82.6
+    ]
    },
    {
     "id": "gate-arch",
@@ -6030,9 +6365,9 @@ export const SCENE_LAYERS = {
     "base": 85,
     "foot": [
      41.5,
-     78,
+     78.0,
      43.5,
-     85
+     85.0
     ]
    },
    {
@@ -6045,9 +6380,9 @@ export const SCENE_LAYERS = {
     "base": 85,
     "foot": [
      56.5,
-     78,
+     78.0,
      58.5,
-     85
+     85.0
     ]
    }
   ],
@@ -6161,10 +6496,10 @@ export const SCENE_LAYERS = {
     "h": 10.129,
     "base": 45,
     "foot": [
-     37,
-     43,
+     37.0,
+     43.0,
      42.5,
-     45
+     45.0
     ]
    },
    {
@@ -6177,9 +6512,9 @@ export const SCENE_LAYERS = {
     "base": 45,
     "foot": [
      57.5,
-     43,
-     63,
-     45
+     43.0,
+     63.0,
+     45.0
     ]
    },
    {
@@ -6192,9 +6527,9 @@ export const SCENE_LAYERS = {
     "base": 51,
     "foot": [
      40.5,
-     48,
-     44,
-     51
+     48.0,
+     44.0,
+     51.0
     ]
    },
    {
@@ -6206,10 +6541,10 @@ export const SCENE_LAYERS = {
     "h": 10.037,
     "base": 51,
     "foot": [
-     56,
-     48,
+     56.0,
+     48.0,
      59.5,
-     51
+     51.0
     ]
    },
    {
@@ -6220,7 +6555,12 @@ export const SCENE_LAYERS = {
     "w": 11.05,
     "h": 6.077,
     "base": 49,
-    "foot": null
+    "foot": [
+     27.62,
+     48.25,
+     37.36,
+     49.82
+    ]
    },
    {
     "id": "flowerbed-e",
@@ -6230,7 +6570,12 @@ export const SCENE_LAYERS = {
     "w": 11.05,
     "h": 6.077,
     "base": 49,
-    "foot": null
+    "foot": [
+     62.85,
+     47.88,
+     72.17,
+     49.45
+    ]
    },
    {
     "id": "lantern-nw",
@@ -6241,9 +6586,9 @@ export const SCENE_LAYERS = {
     "h": 16.022,
     "base": 53.5,
     "foot": [
-     23,
-     52,
-     25,
+     23.0,
+     52.0,
+     25.0,
      53.5
     ]
    },
@@ -6256,9 +6601,9 @@ export const SCENE_LAYERS = {
     "h": 16.022,
     "base": 53.5,
     "foot": [
-     75,
-     52,
-     77,
+     75.0,
+     52.0,
+     77.0,
      53.5
     ]
    },
@@ -6270,7 +6615,12 @@ export const SCENE_LAYERS = {
     "w": 5.041,
     "h": 17.035,
     "base": 65,
-    "foot": null
+    "foot": [
+     29.56,
+     61.05,
+     30.8,
+     62.62
+    ]
    },
    {
     "id": "lantern-e",
@@ -6280,7 +6630,12 @@ export const SCENE_LAYERS = {
     "w": 5.041,
     "h": 17.035,
     "base": 65,
-    "foot": null
+    "foot": [
+     69.27,
+     61.05,
+     70.37,
+     62.62
+    ]
    },
    {
     "id": "hedge-w",
@@ -6311,10 +6666,10 @@ export const SCENE_LAYERS = {
     "h": 16.022,
     "base": 69,
     "foot": [
-     35,
-     66,
+     35.0,
+     66.0,
      38.5,
-     69
+     69.0
     ]
    },
    {
@@ -6327,9 +6682,9 @@ export const SCENE_LAYERS = {
     "base": 69,
     "foot": [
      61.5,
-     66,
-     65,
-     69
+     66.0,
+     65.0,
+     69.0
     ]
    },
    {
@@ -6340,7 +6695,12 @@ export const SCENE_LAYERS = {
     "w": 7.044,
     "h": 33.057,
     "base": 92,
-    "foot": null
+    "foot": [
+     32.11,
+     88.4,
+     36.19,
+     89.5
+    ]
    },
    {
     "id": "pillar-e",
@@ -6350,7 +6710,12 @@ export const SCENE_LAYERS = {
     "w": 7.044,
     "h": 33.057,
     "base": 92,
-    "foot": null
+    "foot": [
+     62.22,
+     86.46,
+     67.96,
+     88.03
+    ]
    },
    {
     "id": "gate-w",
@@ -6361,10 +6726,10 @@ export const SCENE_LAYERS = {
     "h": 19.061,
     "base": 87,
     "foot": [
-     39,
-     82,
+     39.0,
+     82.0,
      43.5,
-     87
+     87.0
     ]
    },
    {
@@ -6377,9 +6742,9 @@ export const SCENE_LAYERS = {
     "base": 87,
     "foot": [
      56.5,
-     82,
-     61,
-     87
+     82.0,
+     61.0,
+     87.0
     ]
    },
    {
@@ -6392,9 +6757,9 @@ export const SCENE_LAYERS = {
     "base": 90,
     "foot": [
      38.5,
-     88,
+     88.0,
      41.5,
-     90
+     90.0
     ]
    },
    {
@@ -6407,9 +6772,9 @@ export const SCENE_LAYERS = {
     "base": 90,
     "foot": [
      58.5,
-     88,
+     88.0,
      61.5,
-     90
+     90.0
     ]
    }
   ],
@@ -6495,8 +6860,8 @@ export const SCENE_LAYERS = {
     "base": 33.5,
     "foot": [
      17.5,
-     22,
-     27,
+     22.0,
+     27.0,
      33.5
     ]
    },
@@ -6509,9 +6874,9 @@ export const SCENE_LAYERS = {
     "h": 15.009,
     "base": 33.5,
     "foot": [
-     32,
-     22,
-     42,
+     32.0,
+     22.0,
+     42.0,
      33.5
     ]
    },
@@ -6524,9 +6889,9 @@ export const SCENE_LAYERS = {
     "h": 15.009,
     "base": 33.5,
     "foot": [
-     58,
-     22,
-     68,
+     58.0,
+     22.0,
+     68.0,
      33.5
     ]
    },
@@ -6539,9 +6904,9 @@ export const SCENE_LAYERS = {
     "h": 15.009,
     "base": 33.5,
     "foot": [
-     72,
-     22,
-     81,
+     72.0,
+     22.0,
+     81.0,
      33.5
     ]
    },
@@ -6555,8 +6920,8 @@ export const SCENE_LAYERS = {
     "base": 36.5,
     "foot": [
      43.5,
-     34,
-     46,
+     34.0,
+     46.0,
      36.5
     ]
    },
@@ -6569,8 +6934,8 @@ export const SCENE_LAYERS = {
     "h": 10.037,
     "base": 36.5,
     "foot": [
-     54,
-     34,
+     54.0,
+     34.0,
      56.5,
      36.5
     ]
@@ -6584,8 +6949,8 @@ export const SCENE_LAYERS = {
     "h": 11.05,
     "base": 35.5,
     "foot": [
-     84,
-     28,
+     84.0,
+     28.0,
      87.5,
      35.5
     ]
@@ -6599,10 +6964,10 @@ export const SCENE_LAYERS = {
     "h": 5.525,
     "base": 57,
     "foot": [
-     36,
+     36.0,
      54.5,
-     42,
-     57
+     42.0,
+     57.0
     ]
    },
    {
@@ -6614,10 +6979,10 @@ export const SCENE_LAYERS = {
     "h": 5.525,
     "base": 57,
     "foot": [
-     58,
+     58.0,
      54.5,
-     64,
-     57
+     64.0,
+     57.0
     ]
    },
    {
@@ -6630,7 +6995,7 @@ export const SCENE_LAYERS = {
     "base": 57.5,
     "foot": [
      42.8,
-     55,
+     55.0,
      45.2,
      57.5
     ]
@@ -6645,7 +7010,7 @@ export const SCENE_LAYERS = {
     "base": 57.5,
     "foot": [
      54.8,
-     55,
+     55.0,
      57.7,
      57.5
     ]
@@ -6659,8 +7024,8 @@ export const SCENE_LAYERS = {
     "h": 7.09,
     "base": 80.5,
     "foot": [
-     36,
-     78,
+     36.0,
+     78.0,
      38.8,
      80.5
     ]
@@ -6675,8 +7040,8 @@ export const SCENE_LAYERS = {
     "base": 80.5,
     "foot": [
      61.2,
-     78,
-     64,
+     78.0,
+     64.0,
      80.5
     ]
    },
@@ -6690,9 +7055,9 @@ export const SCENE_LAYERS = {
     "base": 80,
     "foot": [
      42.7,
-     78,
+     78.0,
      44.8,
-     80
+     80.0
     ]
    },
    {
@@ -6705,9 +7070,9 @@ export const SCENE_LAYERS = {
     "base": 80,
     "foot": [
      54.7,
-     78,
+     78.0,
      56.8,
-     80
+     80.0
     ]
    },
    {
@@ -6719,8 +7084,8 @@ export const SCENE_LAYERS = {
     "h": 10.129,
     "base": 88.5,
     "foot": [
-     42,
-     85,
+     42.0,
+     85.0,
      44.8,
      88.5
     ]
@@ -6735,8 +7100,8 @@ export const SCENE_LAYERS = {
     "base": 88.5,
     "foot": [
      55.2,
-     85,
-     58,
+     85.0,
+     58.0,
      88.5
     ]
    },
@@ -6769,8 +7134,8 @@ export const SCENE_LAYERS = {
     "h": 10.958,
     "base": 60.5,
     "foot": [
-     15,
-     55,
+     15.0,
+     55.0,
      24.5,
      60.5
     ]
@@ -6784,8 +7149,8 @@ export const SCENE_LAYERS = {
     "h": 6.077,
     "base": 65.5,
     "foot": [
-     16,
-     62,
+     16.0,
+     62.0,
      24.5,
      65.5
     ]
@@ -6799,9 +7164,9 @@ export const SCENE_LAYERS = {
     "h": 13.076,
     "base": 78.5,
     "foot": [
-     13,
-     70,
-     24,
+     13.0,
+     70.0,
+     24.0,
      78.5
     ]
    },
@@ -6815,8 +7180,8 @@ export const SCENE_LAYERS = {
     "base": 52.5,
     "foot": [
      29.5,
-     50,
-     32,
+     50.0,
+     32.0,
      52.5
     ]
    },
@@ -6829,8 +7194,8 @@ export const SCENE_LAYERS = {
     "h": 9.024,
     "base": 77.5,
     "foot": [
-     29,
-     74,
+     29.0,
+     74.0,
      31.5,
      77.5
     ]
@@ -6845,7 +7210,7 @@ export const SCENE_LAYERS = {
     "base": 55.5,
     "foot": [
      7.5,
-     53,
+     53.0,
      9.8,
      55.5
     ]
@@ -6860,7 +7225,7 @@ export const SCENE_LAYERS = {
     "base": 76.5,
     "foot": [
      7.3,
-     70,
+     70.0,
      9.8,
      76.5
     ]
@@ -6875,7 +7240,7 @@ export const SCENE_LAYERS = {
     "base": 58.5,
     "foot": [
      69.5,
-     53,
+     53.0,
      87.5,
      58.5
     ]
@@ -6890,7 +7255,7 @@ export const SCENE_LAYERS = {
     "base": 73.5,
     "foot": [
      72.5,
-     63,
+     63.0,
      84.5,
      73.5
     ]
@@ -6904,8 +7269,8 @@ export const SCENE_LAYERS = {
     "h": 20.994,
     "base": 77.5,
     "foot": [
-     87,
-     60,
+     87.0,
+     60.0,
      92.8,
      77.5
     ]
@@ -6920,8 +7285,8 @@ export const SCENE_LAYERS = {
     "base": 77.5,
     "foot": [
      67.5,
-     74,
-     70,
+     74.0,
+     70.0,
      77.5
     ]
    }
@@ -7084,7 +7449,7 @@ export const SCENE_LAYERS = {
     "base": 31.5,
     "foot": [
      12.5,
-     25,
+     25.0,
      24.5,
      31.5
     ]
@@ -7099,9 +7464,9 @@ export const SCENE_LAYERS = {
     "base": 38,
     "foot": [
      12.5,
-     34,
+     34.0,
      23.5,
-     38
+     38.0
     ]
    },
    {
@@ -7114,7 +7479,7 @@ export const SCENE_LAYERS = {
     "base": 35.5,
     "foot": [
      5.3,
-     32,
+     32.0,
      8.3,
      35.5
     ]
@@ -7129,7 +7494,7 @@ export const SCENE_LAYERS = {
     "base": 30.5,
     "foot": [
      29.3,
-     26,
+     26.0,
      31.8,
      30.5
     ]
@@ -7144,7 +7509,7 @@ export const SCENE_LAYERS = {
     "base": 71.5,
     "foot": [
      5.3,
-     68,
+     68.0,
      7.8,
      71.5
     ]
@@ -7158,7 +7523,7 @@ export const SCENE_LAYERS = {
     "h": 7.084,
     "base": 39.5,
     "foot": [
-     40,
+     40.0,
      36.5,
      43.7,
      39.5
@@ -7175,7 +7540,7 @@ export const SCENE_LAYERS = {
     "foot": [
      56.3,
      36.5,
-     60,
+     60.0,
      39.5
     ]
    },
@@ -7189,7 +7554,7 @@ export const SCENE_LAYERS = {
     "base": 57.5,
     "foot": [
      36.3,
-     48,
+     48.0,
      39.7,
      57.5
     ]
@@ -7204,7 +7569,7 @@ export const SCENE_LAYERS = {
     "base": 57.5,
     "foot": [
      60.3,
-     48,
+     48.0,
      63.7,
      57.5
     ]
@@ -7218,8 +7583,8 @@ export const SCENE_LAYERS = {
     "h": 6.072,
     "base": 48.5,
     "foot": [
-     35,
-     46,
+     35.0,
+     46.0,
      38.7,
      48.5
     ]
@@ -7234,8 +7599,8 @@ export const SCENE_LAYERS = {
     "base": 48.5,
     "foot": [
      61.3,
-     46,
-     65,
+     46.0,
+     65.0,
      48.5
     ]
    },
@@ -7248,7 +7613,7 @@ export const SCENE_LAYERS = {
     "h": 6.992,
     "base": 67.5,
     "foot": [
-     41,
+     41.0,
      64.5,
      43.7,
      67.5
@@ -7265,7 +7630,7 @@ export const SCENE_LAYERS = {
     "foot": [
      56.3,
      64.5,
-     59,
+     59.0,
      67.5
     ]
    },
@@ -7278,8 +7643,8 @@ export const SCENE_LAYERS = {
     "h": 8.096,
     "base": 70.5,
     "foot": [
-     35,
-     68,
+     35.0,
+     68.0,
      38.7,
      70.5
     ]
@@ -7294,8 +7659,8 @@ export const SCENE_LAYERS = {
     "base": 70.5,
     "foot": [
      61.3,
-     68,
-     65,
+     68.0,
+     65.0,
      70.5
     ]
    },
@@ -7337,7 +7702,12 @@ export const SCENE_LAYERS = {
     "w": 4.561,
     "h": 16.007,
     "base": 88.5,
-    "foot": null
+    "foot": [
+     38.15,
+     83.72,
+     40.64,
+     85.28
+    ]
    },
    {
     "id": "pillar-e",
@@ -7347,7 +7717,12 @@ export const SCENE_LAYERS = {
     "w": 4.561,
     "h": 16.007,
     "base": 88.5,
-    "foot": null
+    "foot": [
+     59.16,
+     83.72,
+     61.71,
+     85.28
+    ]
    },
    {
     "id": "plant-entry-w",
@@ -7358,9 +7733,9 @@ export const SCENE_LAYERS = {
     "h": 11.04,
     "base": 84.5,
     "foot": [
-     41,
-     81,
-     44,
+     41.0,
+     81.0,
+     44.0,
      84.5
     ]
    },
@@ -7373,9 +7748,9 @@ export const SCENE_LAYERS = {
     "h": 11.04,
     "base": 84.5,
     "foot": [
-     56,
-     81,
-     59,
+     56.0,
+     81.0,
+     59.0,
      84.5
     ]
    },
@@ -7389,7 +7764,7 @@ export const SCENE_LAYERS = {
     "base": 33.5,
     "foot": [
      73.5,
-     30,
+     30.0,
      88.5,
      33.5
     ]
@@ -7403,8 +7778,8 @@ export const SCENE_LAYERS = {
     "h": 8.004,
     "base": 59.5,
     "foot": [
-     69,
-     56,
+     69.0,
+     56.0,
      70.5,
      59.5
     ]
@@ -7763,9 +8138,9 @@ export const SCENE_LAYERS = {
     "h": 14.088,
     "base": 28.5,
     "foot": [
-     11,
-     23,
-     23,
+     11.0,
+     23.0,
+     23.0,
      28.5
     ]
    },
@@ -7778,8 +8153,8 @@ export const SCENE_LAYERS = {
     "h": 10.037,
     "base": 36.5,
     "foot": [
-     10,
-     30,
+     10.0,
+     30.0,
      23.5,
      36.5
     ]
@@ -7793,7 +8168,7 @@ export const SCENE_LAYERS = {
     "h": 9.024,
     "base": 26.5,
     "foot": [
-     4,
+     4.0,
      24.5,
      5.8,
      26.5
@@ -7809,7 +8184,7 @@ export const SCENE_LAYERS = {
     "base": 24.5,
     "foot": [
      27.3,
-     21,
+     21.0,
      29.8,
      24.5
     ]
@@ -7823,8 +8198,8 @@ export const SCENE_LAYERS = {
     "h": 13.076,
     "base": 64.5,
     "foot": [
-     4,
-     62,
+     4.0,
+     62.0,
      6.8,
      64.5
     ]
@@ -7839,9 +8214,9 @@ export const SCENE_LAYERS = {
     "base": 64.5,
     "foot": [
      27.8,
-     62,
+     62.0,
      29.5,
-     64
+     64.0
     ]
    },
    {
@@ -7854,7 +8229,7 @@ export const SCENE_LAYERS = {
     "base": 27.5,
     "foot": [
      37.5,
-     25,
+     25.0,
      40.7,
      27.5
     ]
@@ -7869,7 +8244,7 @@ export const SCENE_LAYERS = {
     "base": 27.5,
     "foot": [
      59.3,
-     25,
+     25.0,
      62.5,
      27.5
     ]
@@ -7883,7 +8258,7 @@ export const SCENE_LAYERS = {
     "h": 11.05,
     "base": 26.5,
     "foot": [
-     40,
+     40.0,
      23.5,
      43.2,
      26.5
@@ -7900,7 +8275,7 @@ export const SCENE_LAYERS = {
     "foot": [
      56.8,
      23.5,
-     60,
+     60.0,
      26.5
     ]
    },
@@ -7954,7 +8329,7 @@ export const SCENE_LAYERS = {
     "base": 47.5,
     "foot": [
      34.5,
-     45,
+     45.0,
      37.2,
      47.5
     ]
@@ -7969,7 +8344,7 @@ export const SCENE_LAYERS = {
     "base": 47.5,
     "foot": [
      62.8,
-     45,
+     45.0,
      65.5,
      47.5
     ]
@@ -7984,7 +8359,7 @@ export const SCENE_LAYERS = {
     "base": 62.5,
     "foot": [
      34.5,
-     60,
+     60.0,
      37.2,
      62.5
     ]
@@ -7999,7 +8374,7 @@ export const SCENE_LAYERS = {
     "base": 62.5,
     "foot": [
      62.8,
-     60,
+     60.0,
      65.5,
      62.5
     ]
@@ -8013,9 +8388,9 @@ export const SCENE_LAYERS = {
     "h": 11.05,
     "base": 72.5,
     "foot": [
-     44,
-     66,
-     56,
+     44.0,
+     66.0,
+     56.0,
      72.5
     ]
    },
@@ -8028,8 +8403,8 @@ export const SCENE_LAYERS = {
     "h": 9.024,
     "base": 72.5,
     "foot": [
-     41,
-     68,
+     41.0,
+     68.0,
      43.8,
      72.5
     ]
@@ -8044,8 +8419,8 @@ export const SCENE_LAYERS = {
     "base": 72.5,
     "foot": [
      56.2,
-     68,
-     59,
+     68.0,
+     59.0,
      72.5
     ]
    },
@@ -8058,9 +8433,9 @@ export const SCENE_LAYERS = {
     "h": 12.063,
     "base": 81.5,
     "foot": [
-     34,
-     76,
-     40,
+     34.0,
+     76.0,
+     40.0,
      81.5
     ]
    },
@@ -8073,9 +8448,9 @@ export const SCENE_LAYERS = {
     "h": 12.063,
     "base": 81.5,
     "foot": [
-     60,
-     76,
-     66,
+     60.0,
+     76.0,
+     66.0,
      81.5
     ]
    },
@@ -8088,7 +8463,7 @@ export const SCENE_LAYERS = {
     "h": 8.011,
     "base": 85.5,
     "foot": [
-     42,
+     42.0,
      83.5,
      43.8,
      85.5
@@ -8105,7 +8480,7 @@ export const SCENE_LAYERS = {
     "foot": [
      56.2,
      83.5,
-     58,
+     58.0,
      85.5
     ]
    },
@@ -8118,7 +8493,7 @@ export const SCENE_LAYERS = {
     "h": 10.037,
     "base": 89.5,
     "foot": [
-     39,
+     39.0,
      86.5,
      42.7,
      89.5
@@ -8135,7 +8510,7 @@ export const SCENE_LAYERS = {
     "foot": [
      57.3,
      86.5,
-     61,
+     61.0,
      89.5
     ]
    },
@@ -8147,7 +8522,12 @@ export const SCENE_LAYERS = {
     "w": 14.986,
     "h": 12.063,
     "base": 32.5,
-    "foot": null
+    "foot": [
+     76.04,
+     28.55,
+     89.3,
+     30.11
+    ]
    },
    {
     "id": "plant-tour-sw",
@@ -8158,10 +8538,10 @@ export const SCENE_LAYERS = {
     "h": 7.09,
     "base": 81.5,
     "foot": [
-     70,
-     79,
+     70.0,
+     79.0,
      72.8,
-     81
+     81.0
     ]
    },
    {
@@ -8174,8 +8554,8 @@ export const SCENE_LAYERS = {
     "base": 47.5,
     "foot": [
      93.7,
-     45,
-     95,
+     45.0,
+     95.0,
      47.5
     ]
    },
@@ -8189,9 +8569,9 @@ export const SCENE_LAYERS = {
     "base": 81.5,
     "foot": [
      93.7,
-     79,
-     95,
-     81
+     79.0,
+     95.0,
+     81.0
     ]
    },
    {
@@ -8353,9 +8733,9 @@ export const SCENE_LAYERS = {
     "h": 10.037,
     "base": 75.7,
     "foot": [
-     79,
+     79.0,
      68.5,
-     86,
+     86.0,
      75.7
     ]
    }
@@ -8534,7 +8914,7 @@ export const SCENE_LAYERS = {
     "base": 37.5,
     "foot": [
      14.5,
-     31,
+     31.0,
      27.5,
      37.5
     ]
@@ -8548,9 +8928,9 @@ export const SCENE_LAYERS = {
     "h": 15.074,
     "base": 36.5,
     "foot": [
-     7,
-     31,
-     13,
+     7.0,
+     31.0,
+     13.0,
      36.5
     ]
    },
@@ -8563,8 +8943,8 @@ export const SCENE_LAYERS = {
     "h": 15.074,
     "base": 35.5,
     "foot": [
-     30,
-     33,
+     30.0,
+     33.0,
      33.5,
      35.5
     ]
@@ -8578,9 +8958,9 @@ export const SCENE_LAYERS = {
     "h": 7.996,
     "base": 46.5,
     "foot": [
-     11,
+     11.0,
      41.5,
-     17,
+     17.0,
      46.5
     ]
    },
@@ -8593,7 +8973,7 @@ export const SCENE_LAYERS = {
     "h": 7.996,
     "base": 46.5,
     "foot": [
-     25,
+     25.0,
      41.5,
      29.8,
      46.5
@@ -8608,9 +8988,9 @@ export const SCENE_LAYERS = {
     "h": 6.985,
     "base": 45.5,
     "foot": [
-     17,
-     41,
-     24,
+     17.0,
+     41.0,
+     24.0,
      45.5
     ]
    },
@@ -8624,8 +9004,8 @@ export const SCENE_LAYERS = {
     "base": 60.5,
     "foot": [
      13.5,
-     53,
-     23,
+     53.0,
+     23.0,
      60.5
     ]
    },
@@ -8638,7 +9018,7 @@ export const SCENE_LAYERS = {
     "h": 10.018,
     "base": 46.5,
     "foot": [
-     6,
+     6.0,
      43.5,
      9.2,
      46.5
@@ -8669,8 +9049,8 @@ export const SCENE_LAYERS = {
     "base": 56.5,
     "foot": [
      28.5,
-     54,
-     31,
+     54.0,
+     31.0,
      56.5
     ]
    },
@@ -8683,7 +9063,7 @@ export const SCENE_LAYERS = {
     "h": 11.029,
     "base": 33.5,
     "foot": [
-     37,
+     37.0,
      30.5,
      39.7,
      33.5
@@ -8698,8 +9078,8 @@ export const SCENE_LAYERS = {
     "h": 8.088,
     "base": 33.5,
     "foot": [
-     43,
-     31,
+     42.95,
+     28.12,
      45.3,
      33.5
     ]
@@ -8714,8 +9094,8 @@ export const SCENE_LAYERS = {
     "base": 33.5,
     "foot": [
      54.7,
-     31,
-     57,
+     31.0,
+     57.0,
      33.5
     ]
    },
@@ -8729,8 +9109,8 @@ export const SCENE_LAYERS = {
     "base": 33.5,
     "foot": [
      60.3,
-     30.5,
-     63,
+     28.86,
+     63.0,
      33.5
     ]
    },
@@ -8742,7 +9122,12 @@ export const SCENE_LAYERS = {
     "w": 3.527,
     "h": 9.007,
     "base": 41.5,
-    "foot": null
+    "foot": [
+     37.34,
+     39.52,
+     38.45,
+     41.08
+    ]
    },
    {
     "id": "plant-center-e",
@@ -8752,7 +9137,12 @@ export const SCENE_LAYERS = {
     "w": 3.527,
     "h": 9.007,
     "base": 41.5,
-    "foot": null
+    "foot": [
+     61.13,
+     39.52,
+     62.52,
+     41.08
+    ]
    },
    {
     "id": "balusters-w",
@@ -8762,7 +9152,12 @@ export const SCENE_LAYERS = {
     "w": 3.527,
     "h": 20.037,
     "base": 55.5,
-    "foot": null
+    "foot": [
+     41.63,
+     50.0,
+     43.85,
+     51.56
+    ]
    },
    {
     "id": "balusters-e",
@@ -8772,7 +9167,12 @@ export const SCENE_LAYERS = {
     "w": 3.527,
     "h": 20.037,
     "base": 55.5,
-    "foot": null
+    "foot": [
+     55.33,
+     50.18,
+     58.23,
+     51.75
+    ]
    },
    {
     "id": "plant-center-w2",
@@ -8784,7 +9184,7 @@ export const SCENE_LAYERS = {
     "base": 54.5,
     "foot": [
      36.5,
-     52,
+     52.0,
      39.7,
      54.5
     ]
@@ -8799,7 +9199,7 @@ export const SCENE_LAYERS = {
     "base": 54.5,
     "foot": [
      60.3,
-     52,
+     52.0,
      63.5,
      54.5
     ]
@@ -8813,8 +9213,8 @@ export const SCENE_LAYERS = {
     "h": 11.029,
     "base": 74.5,
     "foot": [
-     39,
-     67,
+     39.0,
+     67.0,
      42.2,
      74.5
     ]
@@ -8829,8 +9229,8 @@ export const SCENE_LAYERS = {
     "base": 74.5,
     "foot": [
      57.8,
-     67,
-     61,
+     67.0,
+     61.0,
      74.5
     ]
    },
@@ -8844,7 +9244,7 @@ export const SCENE_LAYERS = {
     "base": 72.5,
     "foot": [
      36.3,
-     69,
+     69.0,
      38.8,
      72.5
     ]
@@ -8859,7 +9259,7 @@ export const SCENE_LAYERS = {
     "base": 72.5,
     "foot": [
      61.2,
-     69,
+     69.0,
      63.8,
      72.5
     ]
@@ -8872,7 +9272,12 @@ export const SCENE_LAYERS = {
     "w": 4.011,
     "h": 6.985,
     "base": 80,
-    "foot": null
+    "foot": [
+     36.72,
+     79.23,
+     39.07,
+     80.79
+    ]
    },
    {
     "id": "plant-landing-e",
@@ -8882,7 +9287,12 @@ export const SCENE_LAYERS = {
     "w": 4.011,
     "h": 6.985,
     "base": 80,
-    "foot": null
+    "foot": [
+     60.24,
+     79.14,
+     62.93,
+     80.7
+    ]
    },
    {
     "id": "display",
@@ -8894,7 +9304,7 @@ export const SCENE_LAYERS = {
     "base": 56.5,
     "foot": [
      72.5,
-     47,
+     47.0,
      88.5,
      56.5
     ]
@@ -8907,7 +9317,12 @@ export const SCENE_LAYERS = {
     "w": 4.08,
     "h": 9.007,
     "base": 39.5,
-    "foot": null
+    "foot": [
+     64.73,
+     36.86,
+     68.33,
+     38.42
+    ]
    },
    {
     "id": "plant-trophy-n1",
@@ -8918,7 +9333,7 @@ export const SCENE_LAYERS = {
     "h": 6.066,
     "base": 39.5,
     "foot": [
-     71,
+     71.0,
      37.5,
      73.7,
      39.5
@@ -8948,8 +9363,8 @@ export const SCENE_LAYERS = {
     "h": 7.996,
     "base": 54.5,
     "foot": [
-     67,
-     52,
+     66.8,
+     48.81,
      68.8,
      54.5
     ]
@@ -8964,7 +9379,7 @@ export const SCENE_LAYERS = {
     "base": 62.5,
     "foot": [
      71.5,
-     60,
+     60.0,
      73.7,
      62.5
     ]
@@ -8979,7 +9394,7 @@ export const SCENE_LAYERS = {
     "base": 62.5,
     "foot": [
      88.8,
-     60,
+     60.0,
      91.7,
      62.5
     ]
@@ -9103,10 +9518,10 @@ export const SCENE_LAYERS = {
     "h": 10.57,
     "base": 37,
     "foot": [
-     13,
-     31,
+     13.0,
+     31.0,
      26.5,
-     37
+     37.0
     ]
    },
    {
@@ -9119,7 +9534,7 @@ export const SCENE_LAYERS = {
     "base": 38.5,
     "foot": [
      5.5,
-     36,
+     36.0,
      7.8,
      38.5
     ]
@@ -9134,8 +9549,8 @@ export const SCENE_LAYERS = {
     "base": 40.5,
     "foot": [
      8.5,
-     35,
-     14,
+     35.0,
+     14.0,
      40.5
     ]
    },
@@ -9149,8 +9564,8 @@ export const SCENE_LAYERS = {
     "base": 49.5,
     "foot": [
      9.5,
-     43,
-     15,
+     43.0,
+     15.0,
      49.5
     ]
    },
@@ -9163,8 +9578,8 @@ export const SCENE_LAYERS = {
     "h": 10.11,
     "base": 44.5,
     "foot": [
-     14,
-     38,
+     14.0,
+     38.0,
      23.5,
      44.5
     ]
@@ -9178,8 +9593,8 @@ export const SCENE_LAYERS = {
     "h": 10.11,
     "base": 44.5,
     "foot": [
-     24,
-     38,
+     24.0,
+     38.0,
      29.5,
      44.5
     ]
@@ -9194,7 +9609,7 @@ export const SCENE_LAYERS = {
     "base": 34.5,
     "foot": [
      25.5,
-     31,
+     31.0,
      30.5,
      34.5
     ]
@@ -9208,8 +9623,8 @@ export const SCENE_LAYERS = {
     "h": 9.007,
     "base": 37.5,
     "foot": [
-     30,
-     35,
+     30.0,
+     35.0,
      32.8,
      37.5
     ]
@@ -9223,9 +9638,9 @@ export const SCENE_LAYERS = {
     "h": 13.051,
     "base": 63.5,
     "foot": [
-     14,
-     55,
-     23,
+     14.0,
+     55.0,
+     23.0,
      63.5
     ]
    },
@@ -9239,7 +9654,7 @@ export const SCENE_LAYERS = {
     "base": 54.5,
     "foot": [
      4.5,
-     52,
+     52.0,
      6.8,
      54.5
     ]
@@ -9254,7 +9669,7 @@ export const SCENE_LAYERS = {
     "base": 61.5,
     "foot": [
      26.5,
-     59,
+     59.0,
      29.2,
      61.5
     ]
@@ -9268,8 +9683,8 @@ export const SCENE_LAYERS = {
     "h": 9.007,
     "base": 58.5,
     "foot": [
-     30,
-     55,
+     30.0,
+     55.0,
      32.8,
      58.5
     ]
@@ -9283,8 +9698,8 @@ export const SCENE_LAYERS = {
     "h": 7.996,
     "base": 63.5,
     "foot": [
-     6,
-     60,
+     6.0,
+     60.0,
      9.7,
      63.5
     ]
@@ -9297,7 +9712,12 @@ export const SCENE_LAYERS = {
     "w": 2.559,
     "h": 5.974,
     "base": 37.5,
-    "foot": null
+    "foot": [
+     38.87,
+     35.39,
+     40.46,
+     36.95
+    ]
    },
    {
     "id": "lamp-upper-e",
@@ -9307,7 +9727,12 @@ export const SCENE_LAYERS = {
     "w": 2.49,
     "h": 5.974,
     "base": 37.5,
-    "foot": null
+    "foot": [
+     59.41,
+     35.57,
+     60.86,
+     37.13
+    ]
    },
    {
     "id": "plant-upper-w",
@@ -9337,7 +9762,12 @@ export const SCENE_LAYERS = {
     "w": 24.066,
     "h": 6.618,
     "base": 44.5,
-    "foot": null
+    "foot": [
+     38.17,
+     43.2,
+     61.76,
+     44.76
+    ]
    },
    {
     "id": "lamp-well-w",
@@ -9347,7 +9777,12 @@ export const SCENE_LAYERS = {
     "w": 2.559,
     "h": 7.077,
     "base": 68.5,
-    "foot": null
+    "foot": [
+     40.11,
+     64.89,
+     41.36,
+     66.45
+    ]
    },
    {
     "id": "lamp-well-e",
@@ -9357,7 +9792,12 @@ export const SCENE_LAYERS = {
     "w": 2.559,
     "h": 7.077,
     "base": 68.5,
-    "foot": null
+    "foot": [
+     58.58,
+     64.89,
+     59.75,
+     66.45
+    ]
    },
    {
     "id": "plant-aisle-w",
@@ -9367,7 +9807,12 @@ export const SCENE_LAYERS = {
     "w": 4.011,
     "h": 9.007,
     "base": 65.5,
-    "foot": null
+    "foot": [
+     36.45,
+     64.15,
+     38.8,
+     65.72
+    ]
    },
    {
     "id": "plant-aisle-e",
@@ -9387,7 +9832,12 @@ export const SCENE_LAYERS = {
     "w": 18.05,
     "h": 7.077,
     "base": 74.5,
-    "foot": null
+    "foot": [
+     42.25,
+     73.16,
+     58.09,
+     74.72
+    ]
    },
    {
     "id": "plant-lower-w",
@@ -9397,7 +9847,12 @@ export const SCENE_LAYERS = {
     "w": 4.08,
     "h": 8.088,
     "base": 78.5,
-    "foot": null
+    "foot": [
+     36.65,
+     77.3,
+     39.97,
+     78.86
+    ]
    },
    {
     "id": "plant-lower-e",
@@ -9407,7 +9862,12 @@ export const SCENE_LAYERS = {
     "w": 4.011,
     "h": 8.088,
     "base": 78.5,
-    "foot": null
+    "foot": [
+     59.82,
+     77.21,
+     63.28,
+     78.77
+    ]
    },
    {
     "id": "lamp-bottom-w",
@@ -9417,7 +9877,12 @@ export const SCENE_LAYERS = {
     "w": 2.49,
     "h": 6.985,
     "base": 88,
-    "foot": null
+    "foot": [
+     38.24,
+     84.56,
+     39.7,
+     86.12
+    ]
    },
    {
     "id": "lamp-bottom-e",
@@ -9427,7 +9892,12 @@ export const SCENE_LAYERS = {
     "w": 2.559,
     "h": 6.985,
     "base": 88,
-    "foot": null
+    "foot": [
+     60.17,
+     87.13,
+     62.1,
+     88.69
+    ]
    },
    {
     "id": "display",
@@ -9438,8 +9908,8 @@ export const SCENE_LAYERS = {
     "h": 18.107,
     "base": 53.5,
     "foot": [
-     76,
-     40,
+     76.0,
+     40.0,
      87.5,
      53.5
     ]
@@ -9454,8 +9924,8 @@ export const SCENE_LAYERS = {
     "base": 52.5,
     "foot": [
      92.7,
-     49,
-     94,
+     49.0,
+     94.0,
      52.5
     ]
    },
@@ -9468,8 +9938,8 @@ export const SCENE_LAYERS = {
     "h": 9.007,
     "base": 58.5,
     "foot": [
-     67,
-     55,
+     67.0,
+     55.0,
      70.2,
      58.5
     ]
@@ -9498,8 +9968,8 @@ export const SCENE_LAYERS = {
     "h": 9.007,
     "base": 63.5,
     "foot": [
-     73,
-     58,
+     73.0,
+     58.0,
      78.5,
      63.5
     ]
@@ -9513,8 +9983,8 @@ export const SCENE_LAYERS = {
     "h": 9.007,
     "base": 63.5,
     "foot": [
-     84,
-     58,
+     84.0,
+     58.0,
      89.5,
      63.5
     ]
@@ -9528,9 +9998,9 @@ export const SCENE_LAYERS = {
     "h": 10.018,
     "base": 62.5,
     "foot": [
-     91,
-     58,
-     94,
+     91.0,
+     58.0,
+     94.0,
      62.5
     ]
    }
@@ -9653,8 +10123,8 @@ export const SCENE_LAYERS = {
     "h": 10.093,
     "base": 36.5,
     "foot": [
-     10,
-     32,
+     10.0,
+     32.0,
      24.5,
      36.5
     ]
@@ -9668,9 +10138,9 @@ export const SCENE_LAYERS = {
     "h": 8.981,
     "base": 47.5,
     "foot": [
-     8,
-     42,
-     14,
+     8.0,
+     42.0,
+     14.0,
      47.5
     ]
    },
@@ -9684,8 +10154,8 @@ export const SCENE_LAYERS = {
     "base": 44.5,
     "foot": [
      12.5,
-     38,
-     21,
+     38.0,
+     21.0,
      44.5
     ]
    },
@@ -9698,8 +10168,8 @@ export const SCENE_LAYERS = {
     "h": 10.093,
     "base": 46.5,
     "foot": [
-     23,
-     40,
+     23.0,
+     40.0,
      28.2,
      46.5
     ]
@@ -9713,8 +10183,8 @@ export const SCENE_LAYERS = {
     "h": 12.037,
     "base": 61.5,
     "foot": [
-     13,
-     54,
+     13.0,
+     54.0,
      21.5,
      61.5
     ]
@@ -9728,8 +10198,8 @@ export const SCENE_LAYERS = {
     "h": 10.093,
     "base": 61.5,
     "foot": [
-     6,
-     58,
+     6.0,
+     58.0,
      8.2,
      61.5
     ]
@@ -9744,8 +10214,8 @@ export const SCENE_LAYERS = {
     "base": 61.5,
     "foot": [
      27.8,
-     58,
-     31,
+     58.0,
+     31.0,
      61.5
     ]
    },
@@ -9757,7 +10227,12 @@ export const SCENE_LAYERS = {
     "w": 4.006,
     "h": 13.056,
     "base": 40.5,
-    "foot": null
+    "foot": [
+     40.4,
+     39.17,
+     43.78,
+     40.74
+    ]
    },
    {
     "id": "railing-stair-e",
@@ -9767,7 +10242,12 @@ export const SCENE_LAYERS = {
     "w": 4.075,
     "h": 13.056,
     "base": 40.5,
-    "foot": null
+    "foot": [
+     56.15,
+     39.17,
+     59.74,
+     40.74
+    ]
    },
    {
     "id": "plant-center-w",
@@ -9779,7 +10259,7 @@ export const SCENE_LAYERS = {
     "base": 46.5,
     "foot": [
      36.5,
-     43,
+     43.0,
      39.7,
      46.5
     ]
@@ -9794,7 +10274,7 @@ export const SCENE_LAYERS = {
     "base": 46.5,
     "foot": [
      60.3,
-     43,
+     43.0,
      63.5,
      46.5
     ]
@@ -9808,8 +10288,8 @@ export const SCENE_LAYERS = {
     "h": 8.056,
     "base": 55.5,
     "foot": [
-     36,
-     53,
+     36.0,
+     53.0,
      38.2,
      55.5
     ]
@@ -9824,8 +10304,8 @@ export const SCENE_LAYERS = {
     "base": 55.5,
     "foot": [
      61.8,
-     53,
-     64,
+     53.0,
+     64.0,
      55.5
     ]
    },
@@ -9839,7 +10319,7 @@ export const SCENE_LAYERS = {
     "base": 61.5,
     "foot": [
      34.5,
-     58,
+     58.0,
      38.7,
      61.5
     ]
@@ -9854,8 +10334,8 @@ export const SCENE_LAYERS = {
     "base": 61.5,
     "foot": [
      61.3,
-     58,
-     65,
+     58.0,
+     65.0,
      61.5
     ]
    },
@@ -9868,10 +10348,10 @@ export const SCENE_LAYERS = {
     "h": 7.963,
     "base": 67.5,
     "foot": [
-     39,
+     39.0,
      65.5,
      41.3,
-     67
+     67.0
     ]
    },
    {
@@ -9885,8 +10365,8 @@ export const SCENE_LAYERS = {
     "foot": [
      58.7,
      65.5,
-     61,
-     67
+     61.0,
+     67.0
     ]
    },
    {
@@ -9924,7 +10404,7 @@ export const SCENE_LAYERS = {
     "base": 42.5,
     "foot": [
      73.3,
-     40,
+     40.0,
      76.7,
      42.5
     ]
@@ -9939,8 +10419,8 @@ export const SCENE_LAYERS = {
     "base": 47.5,
     "foot": [
      76.5,
-     40,
-     89,
+     40.0,
+     89.0,
      47.5
     ]
    },
@@ -9954,7 +10434,7 @@ export const SCENE_LAYERS = {
     "base": 42.5,
     "foot": [
      87.8,
-     40,
+     40.0,
      91.2,
      42.5
     ]
@@ -9968,8 +10448,8 @@ export const SCENE_LAYERS = {
     "h": 13.056,
     "base": 61.5,
     "foot": [
-     73,
-     53,
+     73.0,
+     53.0,
      80.5,
      61.5
     ]
@@ -9984,8 +10464,8 @@ export const SCENE_LAYERS = {
     "base": 61.5,
     "foot": [
      84.5,
-     53,
-     92,
+     53.0,
+     92.0,
      61.5
     ]
    },
@@ -10141,8 +10621,8 @@ export const SCENE_LAYERS = {
     "h": 10.028,
     "base": 37.5,
     "foot": [
-     14,
-     31,
+     14.0,
+     31.0,
      25.5,
      37.5
     ]
@@ -10156,9 +10636,9 @@ export const SCENE_LAYERS = {
     "h": 11.04,
     "base": 47.5,
     "foot": [
-     9,
-     41,
-     15,
+     9.0,
+     41.0,
+     15.0,
      47.5
     ]
    },
@@ -10172,8 +10652,8 @@ export const SCENE_LAYERS = {
     "base": 44.5,
     "foot": [
      15.5,
-     39,
-     24,
+     39.0,
+     24.0,
      44.5
     ]
    },
@@ -10186,8 +10666,8 @@ export const SCENE_LAYERS = {
     "h": 11.04,
     "base": 47.5,
     "foot": [
-     25,
-     41,
+     25.0,
+     41.0,
      28.2,
      46.5
     ]
@@ -10201,8 +10681,8 @@ export const SCENE_LAYERS = {
     "h": 12.971,
     "base": 50.5,
     "foot": [
-     5,
-     43,
+     5.0,
+     43.0,
      7.8,
      50.5
     ]
@@ -10217,7 +10697,7 @@ export const SCENE_LAYERS = {
     "base": 59.5,
     "foot": [
      13.5,
-     51,
+     51.0,
      24.5,
      59.5
     ]
@@ -10231,8 +10711,8 @@ export const SCENE_LAYERS = {
     "h": 11.04,
     "base": 59.5,
     "foot": [
-     6,
-     55,
+     6.0,
+     55.0,
      9.2,
      59.5
     ]
@@ -10246,8 +10726,8 @@ export const SCENE_LAYERS = {
     "h": 8.096,
     "base": 63.5,
     "foot": [
-     9,
-     60,
+     9.0,
+     60.0,
      12.2,
      63.5
     ]
@@ -10261,8 +10741,8 @@ export const SCENE_LAYERS = {
     "h": 10.12,
     "base": 63.5,
     "foot": [
-     29,
-     59,
+     29.0,
+     59.0,
      31.2,
      63.5
     ]
@@ -10275,7 +10755,12 @@ export const SCENE_LAYERS = {
     "w": 3.525,
     "h": 19.043,
     "base": 38.5,
-    "foot": null
+    "foot": [
+     42.36,
+     37.17,
+     44.3,
+     38.73
+    ]
    },
    {
     "id": "railing-stair-e",
@@ -10305,7 +10790,12 @@ export const SCENE_LAYERS = {
     "w": 3.525,
     "h": 22.079,
     "base": 45.5,
-    "foot": null
+    "foot": [
+     63.1,
+     42.59,
+     64.82,
+     44.16
+    ]
    },
    {
     "id": "plant-center-w",
@@ -10317,7 +10807,7 @@ export const SCENE_LAYERS = {
     "base": 51.5,
     "foot": [
      35.8,
-     49,
+     49.0,
      38.2,
      51.5
     ]
@@ -10332,7 +10822,7 @@ export const SCENE_LAYERS = {
     "base": 51.5,
     "foot": [
      61.8,
-     49,
+     49.0,
      64.2,
      51.5
     ]
@@ -10345,7 +10835,12 @@ export const SCENE_LAYERS = {
     "w": 2.972,
     "h": 8.004,
     "base": 57.5,
-    "foot": null
+    "foot": [
+     32.2,
+     56.21,
+     34.0,
+     57.77
+    ]
    },
    {
     "id": "lantern-mid-e",
@@ -10355,7 +10850,12 @@ export const SCENE_LAYERS = {
     "w": 3.041,
     "h": 8.004,
     "base": 57.5,
-    "foot": null
+    "foot": [
+     65.1,
+     55.01,
+     66.83,
+     56.58
+    ]
    },
    {
     "id": "post-w",
@@ -10367,9 +10867,9 @@ export const SCENE_LAYERS = {
     "base": 80.5,
     "foot": [
      36.5,
-     76,
+     76.0,
      38.5,
-     80
+     80.0
     ]
    },
    {
@@ -10382,9 +10882,9 @@ export const SCENE_LAYERS = {
     "base": 80.5,
     "foot": [
      61.5,
-     76,
+     76.0,
      63.5,
-     80
+     80.0
     ]
    },
    {
@@ -10397,7 +10897,7 @@ export const SCENE_LAYERS = {
     "base": 77.5,
     "foot": [
      37.3,
-     74,
+     74.0,
      40.2,
      77.5
     ]
@@ -10412,7 +10912,7 @@ export const SCENE_LAYERS = {
     "base": 77.5,
     "foot": [
      59.8,
-     74,
+     74.0,
      62.7,
      77.5
     ]
@@ -10447,9 +10947,9 @@ export const SCENE_LAYERS = {
     "base": 86.5,
     "foot": [
      30.5,
-     82,
+     82.0,
      33.7,
-     84
+     84.0
     ]
    },
    {
@@ -10462,9 +10962,9 @@ export const SCENE_LAYERS = {
     "base": 86.5,
     "foot": [
      66.3,
-     82,
+     82.0,
      69.5,
-     84
+     84.0
     ]
    },
    {
@@ -10475,7 +10975,12 @@ export const SCENE_LAYERS = {
     "w": 34.001,
     "h": 8.004,
     "base": 91.5,
-    "foot": null
+    "foot": [
+     33.17,
+     90.06,
+     66.0,
+     91.63
+    ]
    },
    {
     "id": "plant-trophy-nw",
@@ -10486,8 +10991,8 @@ export const SCENE_LAYERS = {
     "h": 8.096,
     "base": 40.5,
     "foot": [
-     68,
-     38,
+     68.0,
+     38.0,
      71.2,
      40.5
     ]
@@ -10502,7 +11007,7 @@ export const SCENE_LAYERS = {
     "base": 40.5,
     "foot": [
      86.3,
-     38,
+     38.0,
      89.7,
      40.5
     ]
@@ -10517,8 +11022,8 @@ export const SCENE_LAYERS = {
     "base": 41.5,
     "foot": [
      91.3,
-     39,
-     94,
+     39.0,
+     94.0,
      41.5
     ]
    },
@@ -10531,8 +11036,8 @@ export const SCENE_LAYERS = {
     "h": 20.055,
     "base": 56.5,
     "foot": [
-     72,
-     42,
+     72.0,
+     42.0,
      86.5,
      56.5
     ]
@@ -10546,9 +11051,9 @@ export const SCENE_LAYERS = {
     "h": 11.04,
     "base": 50.5,
     "foot": [
-     91,
-     44,
-     95,
+     91.0,
+     44.0,
+     95.0,
      50.5
     ]
    },
@@ -10561,8 +11066,8 @@ export const SCENE_LAYERS = {
     "h": 10.028,
     "base": 61.5,
     "foot": [
-     90,
-     57,
+     90.0,
+     57.0,
      93.7,
      61.5
     ]
@@ -10732,9 +11237,9 @@ export const SCENE_LAYERS = {
     "h": 14.062,
     "base": 51.5,
     "foot": [
-     34,
-     48,
-     38,
+     34.0,
+     48.0,
+     38.0,
      51.5
     ]
    },
@@ -10747,9 +11252,9 @@ export const SCENE_LAYERS = {
     "h": 14.062,
     "base": 51.5,
     "foot": [
-     62,
-     48,
-     66,
+     62.0,
+     48.0,
+     66.0,
      51.5
     ]
    },
@@ -10762,7 +11267,7 @@ export const SCENE_LAYERS = {
     "h": 8.088,
     "base": 36.5,
     "foot": [
-     27,
+     27.0,
      33.5,
      29.2,
      36.5
@@ -10779,7 +11284,7 @@ export const SCENE_LAYERS = {
     "foot": [
      70.8,
      33.5,
-     73,
+     73.0,
      36.5
     ]
    },
@@ -10792,10 +11297,10 @@ export const SCENE_LAYERS = {
     "h": 4.504,
     "base": 37,
     "foot": [
-     19,
+     19.0,
      35.5,
-     30,
-     37
+     30.0,
+     37.0
     ]
    },
    {
@@ -10807,10 +11312,10 @@ export const SCENE_LAYERS = {
     "h": 4.504,
     "base": 37,
     "foot": [
-     70,
+     70.0,
      35.5,
-     81,
-     37
+     81.0,
+     37.0
     ]
    },
    {
@@ -10823,7 +11328,7 @@ export const SCENE_LAYERS = {
     "base": 64.5,
     "foot": [
      39.5,
-     61,
+     61.0,
      43.2,
      64.5
     ]
@@ -10838,7 +11343,7 @@ export const SCENE_LAYERS = {
     "base": 64.5,
     "foot": [
      56.8,
-     61,
+     61.0,
      60.5,
      64.5
     ]
@@ -10852,9 +11357,9 @@ export const SCENE_LAYERS = {
     "h": 5.974,
     "base": 62.5,
     "foot": [
-     44,
-     60,
-     56,
+     44.0,
+     60.0,
+     56.0,
      62.5
     ]
    },
@@ -10868,9 +11373,9 @@ export const SCENE_LAYERS = {
     "base": 78.5,
     "foot": [
      38.5,
-     75,
+     75.0,
      42.2,
-     78
+     78.0
     ]
    },
    {
@@ -10883,9 +11388,9 @@ export const SCENE_LAYERS = {
     "base": 78.5,
     "foot": [
      57.8,
-     75,
+     75.0,
      61.5,
-     78
+     78.0
     ]
    },
    {
@@ -10898,7 +11403,7 @@ export const SCENE_LAYERS = {
     "base": 77.5,
     "foot": [
      43.7,
-     75,
+     73.44,
      45.3,
      77.5
     ]
@@ -10913,7 +11418,7 @@ export const SCENE_LAYERS = {
     "base": 77.5,
     "foot": [
      54.7,
-     75,
+     75.0,
      56.3,
      77.5
     ]
@@ -10928,7 +11433,7 @@ export const SCENE_LAYERS = {
     "base": 65.5,
     "foot": [
      7.3,
-     62,
+     62.0,
      9.7,
      65.5
     ]
@@ -10943,7 +11448,7 @@ export const SCENE_LAYERS = {
     "base": 75.5,
     "foot": [
      7.3,
-     72,
+     72.0,
      10.2,
      75.5
     ]
@@ -10958,7 +11463,7 @@ export const SCENE_LAYERS = {
     "base": 65.5,
     "foot": [
      90.3,
-     62,
+     62.0,
      92.7,
      65.5
     ]
@@ -10973,7 +11478,7 @@ export const SCENE_LAYERS = {
     "base": 75.5,
     "foot": [
      89.8,
-     72,
+     72.0,
      92.7,
      75.5
     ]
@@ -10986,7 +11491,12 @@ export const SCENE_LAYERS = {
     "w": 3.529,
     "h": 11.029,
     "base": 88.5,
-    "foot": null
+    "foot": [
+     41.87,
+     87.22,
+     44.84,
+     88.79
+    ]
    },
    {
     "id": "pillar-exit-e",
@@ -10996,7 +11506,12 @@ export const SCENE_LAYERS = {
     "w": 3.529,
     "h": 11.029,
     "base": 88.5,
-    "foot": null
+    "foot": [
+     55.09,
+     87.22,
+     57.58,
+     88.79
+    ]
    },
    {
     "id": "plant-exit-w",
@@ -11006,7 +11521,12 @@ export const SCENE_LAYERS = {
     "w": 4.014,
     "h": 9.099,
     "base": 93.5,
-    "foot": null
+    "foot": [
+     38.2,
+     92.19,
+     41.25,
+     93.75
+    ]
    },
    {
     "id": "plant-exit-e",
@@ -11016,7 +11536,12 @@ export const SCENE_LAYERS = {
     "w": 4.014,
     "h": 9.099,
     "base": 93.5,
-    "foot": null
+    "foot": [
+     58.69,
+     92.19,
+     61.66,
+     93.75
+    ]
    },
    {
     "id": "rope-lower-w",
@@ -11026,7 +11551,12 @@ export const SCENE_LAYERS = {
     "w": 8.512,
     "h": 4.963,
     "base": 79.5,
-    "foot": null
+    "foot": [
+     30.17,
+     78.12,
+     38.27,
+     79.69
+    ]
    },
    {
     "id": "rope-lower-e",
@@ -11036,7 +11566,12 @@ export const SCENE_LAYERS = {
     "w": 8.512,
     "h": 4.963,
     "base": 79.5,
-    "foot": null
+    "foot": [
+     61.66,
+     78.12,
+     69.76,
+     79.69
+    ]
    },
    {
     "id": "tl-01",
@@ -11472,7 +12007,12 @@ export const SCENE_LAYERS = {
     "w": 7.097,
     "h": 8.533,
     "base": 38,
-    "foot": null
+    "foot": [
+     60.05,
+     35.65,
+     61.32,
+     37.24
+    ]
    },
    {
     "id": "lamp-nw",
@@ -11483,9 +12023,9 @@ export const SCENE_LAYERS = {
     "h": 10.048,
     "base": 47,
     "foot": [
-     36,
-     45,
-     38,
+     36.0,
+     45.0,
+     38.0,
      47.5
     ]
    },
@@ -11498,9 +12038,9 @@ export const SCENE_LAYERS = {
     "h": 10.048,
     "base": 47,
     "foot": [
-     62,
-     45,
-     64,
+     62.0,
+     45.0,
+     64.0,
      47.5
     ]
    },
@@ -11513,9 +12053,9 @@ export const SCENE_LAYERS = {
     "h": 18.022,
     "base": 60,
     "foot": [
-     42,
-     50,
-     58,
+     42.0,
+     50.0,
+     58.0,
      60.5
     ]
    },
@@ -11528,9 +12068,9 @@ export const SCENE_LAYERS = {
     "h": 11.005,
     "base": 66,
     "foot": [
-     36,
-     63,
-     38,
+     36.0,
+     63.0,
+     38.0,
      66.5
     ]
    },
@@ -11543,9 +12083,9 @@ export const SCENE_LAYERS = {
     "h": 11.005,
     "base": 66,
     "foot": [
-     62,
-     63,
-     64,
+     62.0,
+     63.0,
+     64.0,
      66.5
     ]
    },
@@ -11559,7 +12099,7 @@ export const SCENE_LAYERS = {
     "base": 67,
     "foot": [
      40.5,
-     64,
+     64.0,
      44.5,
      67.5
     ]
@@ -11574,7 +12114,7 @@ export const SCENE_LAYERS = {
     "base": 67,
     "foot": [
      55.5,
-     64,
+     64.0,
      59.5,
      67.5
     ]
@@ -11588,9 +12128,9 @@ export const SCENE_LAYERS = {
     "h": 15.55,
     "base": 73,
     "foot": [
-     32,
-     69,
-     38,
+     32.0,
+     69.0,
+     38.0,
      73.5
     ]
    },
@@ -11603,9 +12143,9 @@ export const SCENE_LAYERS = {
     "h": 15.55,
     "base": 73,
     "foot": [
-     62,
-     69,
-     68,
+     62.0,
+     69.0,
+     68.0,
      73.5
     ]
    },
@@ -11619,7 +12159,7 @@ export const SCENE_LAYERS = {
     "base": 74,
     "foot": [
      40.5,
-     71,
+     71.0,
      44.5,
      74.5
     ]
@@ -11634,7 +12174,7 @@ export const SCENE_LAYERS = {
     "base": 74,
     "foot": [
      55.5,
-     71,
+     71.0,
      59.5,
      74.5
     ]
@@ -11658,9 +12198,9 @@ export const SCENE_LAYERS = {
     "h": 19.537,
     "base": 94,
     "foot": [
-     35,
-     90,
-     40,
+     35.0,
+     90.0,
+     40.0,
      94.5
     ]
    },
@@ -11673,9 +12213,9 @@ export const SCENE_LAYERS = {
     "h": 19.537,
     "base": 94,
     "foot": [
-     60,
-     90,
-     65,
+     60.0,
+     90.0,
+     65.0,
      94.5
     ]
    }

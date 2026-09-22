@@ -668,6 +668,48 @@ transition of a full campaign.
 **Scene art** never blocks: after 2.5 s the room is shown from
 `assets/manifest.json` sizes with a placeholder and a Retry button.
 
+## 28b. Prop footprints are read off the art (2026-09-22)
+
+A prop blocks the player through its `foot`, a percent rect in
+`tools/build_layers.py`'s LAYERS table. **147 props declared none at all** and
+so blocked nothing: pillars, a fountain, a street tree, the club gates and
+their cypresses, and most of the plants and lamps. You walked through them.
+
+The footprint is now DERIVED from the prop's own art. Every prop is cut to its
+own PNG, so the pixels where it meets the floor are known exactly: take the
+opaque ones within 1.5% of the scene's height above its lowest pixel - an
+ankle, not a share of the object, so a tall lamp is measured at its base and
+not up its post - and that rect is what blocks. 108 props gained one.
+
+Three rules, in the LAYERS table's fourth slot:
+
+| slot | meaning |
+|------|---------|
+| a rect | hand-tuned; it WINS, and nothing is derived |
+| `None` | derive it from the art |
+| `OVER` | no footprint on purpose: the player walks under or behind it |
+
+A declared rect wins rather than being unioned with the derived one because
+these were placed against a level whose doorways are tight - growing one by
+0.29% was enough to seal the Director's office in nyc-int.
+
+`OVER` is for archways, hanging signs and wall banners, plus four decorations
+that stand IN a passage the level cannot spare (nyc-int's statue is 0.97%
+wide and its doorway had less slack than that; vie-up's upper plants and east
+aisle plant close the only routes to the lounges, the trophy hall and one
+member). `tools/dev/clearance.mjs` is what found all four.
+
+**The floor barely moved**: the largest loss of walkable area in any scene was
+0.8% (vie-up), and 12 of 24 scenes did not change at all. The feet landed on
+furniture, not on walkways.
+
+**Verify**: `node tools/dev/prop_clearance.mjs` measures, for every prop, how
+much of its base band the player can stand in. A prop with no footprint reads
+near 100%. It runs in `predeploy.sh` at `--fail-over=50`; the 13 props left in
+the 10-46% band are a lamp's flared base or an armchair's arm sticking past
+the rect that blocks it, which is the ordinary overlap of a three-quarter view.
+`tools/dev/audit_layers.py` draws the same thing over the scene art.
+
 **Gates**: `tools/predeploy.sh` (content gate + unit tests + syntax) must pass
 before pushing main; `tools/validate-content.mjs` fails on any bad puzzle,
 line, drill or lesson. Browser: `tools/cdp_campaign.py all` plays the whole

@@ -56,6 +56,44 @@ from PIL import Image, ImageDraw
 from scipy import ndimage
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# A prop's footprint is READ OFF ITS OWN ART, not guessed. Every prop is cut to
+# its own PNG, so the pixels where it meets the floor are known exactly: take
+# the ones within FOOT_BAND_PCT of the scene's height above its lowest pixel -
+# an ankle, not a share of the object, so a tall thin lamp is measured at its
+# base and not up its post - and that rect is what blocks.
+#
+# A rect written in the LAYERS table below WINS. Those were placed by hand
+# against a level whose doorways are tight - growing one of them by 0.29% was
+# enough to seal the Director's office in nyc-int - so the derivation only
+# fills in the props that declared nothing at all. There were 147 of those,
+# and the player walked straight through every one that stood on a floor.
+#
+# OVER means "no footprint, on purpose": the player walks under or behind this
+# one. Archways, hanging signs, wall banners and the finale stage.
+FOOT_BAND_PCT = 1.5
+FOOT_ALPHA = 32
+# A derived footprint is a RECT, and a rect only describes a prop whose base is
+# solid. A base band full of holes - a bench spanning a flower bed, a pavilion,
+# a balustrade - has a bounding box that is a wall across the gaps, and using
+# one sealed three rooms in vie-up.
+#
+# This gate is a cheap first filter, not the real guard: measured across all
+# 649 props, fill does NOT cleanly separate a railing from a chair (railings
+# run 0.16 to 0.95). What actually protects the level is
+# tools/dev/clearance.mjs, which runs in tools/predeploy.sh and fails on any
+# doorway a body cannot fit through; OVER is the escape hatch for the few
+# props it catches.
+FOOT_FILL = 0.45
+OVER = 'over'
+# The props marked OVER for a reason other than "it hangs on a wall": a few
+# decorative objects stand IN a passage the level cannot spare. nyc-int's
+# statue is 0.97% wide and its doorway had less slack than that; vie-up's
+# upper plants and east aisle plant close the only routes to the lounges,
+# the trophy hall and one club member. tools/dev/clearance.mjs is what says
+# so, and it runs in tools/predeploy.sh - if one of these ever gets a
+# footprint again, the gate fails before anybody ships it.
+SPARSE = []
 OUT = os.path.join(ROOT, 'assets', 'layers')
 PREVIEW = '--preview' in sys.argv
 CHECK = '--check' in sys.argv
@@ -65,7 +103,9 @@ CITY_DIR = {'nyc': 'NYC', 'lon': 'London', 'vie': 'Vienna', 'ist': 'Istanbul', '
 
 # scene -> floor polygons (percent points; the walkable area before props are
 # carved out), extra blocks (percent rects that are not props: water, walls,
-# hedges), and props: (id, rect x0 y0 x1 y1, base y, foot rect or None).
+# hedges), and props: (id, rect x0 y0 x1 y1, base y, foot rect | None | OVER).
+# None derives the footprint from the prop's art; a rect is unioned with it;
+# OVER means the player walks under or behind this one. See FOOT_BAND_PCT.
 LAYERS = {
     'lon-venue': {
         'floor': [[[3, 37], [97, 37], [97, 88], [56, 88], [56, 93], [44, 93], [44, 88], [3, 88]]],
@@ -194,8 +234,8 @@ LAYERS = {
             ('planter-rail-mw', (32, 31, 38.5, 44.5), 43, None),
             ('planter-rail-me', (61.5, 31, 68, 44.5), 43, None),
             ('planter-rail-e', (73.5, 33, 80.5, 44.5), 43, None),
-            ('pillar-sw', (14, 55, 20, 70.5), 70, None),
-            ('pillar-se', (80, 55, 86, 70.5), 70, None),
+            ('pillar-sw', (14, 55, 20, 70.5), 70, (14.3, 66.67, 17.89, 68.23)),
+            ('pillar-se', (80, 55, 86, 70.5), 70, (80.3, 66.67, 83.89, 68.23)),
             ('lamp-sw', (20.5, 51, 24.5, 68.5), 67, (21, 64, 24, 68)),
             ('lamp-se', (76, 51, 80, 68.5), 67, (76.5, 64, 79.5, 68)),
             ('fountain', (30.5, 55, 69.5, 87), 80, None, {'rects': [(44.5, 55.5, 55.5, 67)], 'ellipses': [(50, 75.8, 19.2, 10.3)]}),
@@ -222,13 +262,13 @@ LAYERS = {
             ('armchairs', (11, 30, 25, 37), 36.5, (11.5, 32.5, 24.5, 36.5)),
             ('plants-dir-e', (27.5, 18.5, 31.5, 36), 35.5, (28, 33, 31, 35.5)),
             ('plant-dir-sw', (5, 29, 9, 38.5), 38, (5.5, 35, 9, 38)),
-            ('statue', (29, 33.5, 31.5, 38.5), 38, None),
+            ('statue', (29, 33.5, 31.5, 38.5), 38, OVER),
             ('prac-nw', (8.5, 56, 16, 64), 63.5, (9, 58.5, 15.5, 63.5)),
             ('prac-sw', (8.5, 64.5, 16, 72.5), 72, (9, 67, 15.5, 72)),
             ('prac-ne', (20.5, 56, 28.5, 64), 63.5, (21, 58.5, 28, 63.5)),
             ('prac-se', (20.5, 64.5, 28.5, 72.5), 72, (21, 67, 28, 72)),
-            ('banner-nw', (36, 16, 41.5, 39), 38.5, None),
-            ('banner-ne', (58.5, 16, 64, 39), 38.5, None),
+            ('banner-nw', (36, 16, 41.5, 39), 38.5, OVER),
+            ('banner-ne', (58.5, 16, 64, 39), 38.5, OVER),
             ('lamp-stair-w', (41.5, 25, 44.5, 32.5), 32, None),
             ('lamp-stair-e', (55.5, 25, 58.5, 32.5), 32, None),
             ('plant-hall-nw', (42, 31, 46, 38.5), 38, (42.5, 36.5, 45.5, 38.3)),
@@ -279,8 +319,8 @@ LAYERS = {
             ('prac-se', (19, 63.5, 27, 72.8), 72.5, (19.5, 66, 26.5, 72.5)),
             ('plant-prac-e', (29, 65, 33, 72.5), 72, (29.3, 69, 32.8, 72)),
             ('armchair-prac', (28, 45, 33, 55.5), 55, None),
-            ('banner-nw', (36, 6, 41.5, 33), 32, None),
-            ('banner-ne', (58.5, 6, 64, 33), 32, None),
+            ('banner-nw', (36, 6, 41.5, 33), 32, OVER),
+            ('banner-ne', (58.5, 6, 64, 33), 32, OVER),
             ('lamp-stair-w', (42, 23.5, 45, 30.5), 30, None),
             ('lamp-stair-e', (55, 23.5, 58, 30.5), 30, None),
             ('plant-hall-nw', (42, 33, 46, 39.5), 39, (42.5, 36.5, 45.7, 39)),
@@ -332,7 +372,7 @@ LAYERS = {
             ('tables-c2', (58, 28.5, 70, 40), 39.5, (58.5, 31.5, 69.5, 39.5)),
             ('tables-d1', (74.5, 17, 86.5, 28), 27.5, (75, 20, 86, 27.5)),
             ('tables-d2', (74.5, 28.5, 86.5, 40), 39.5, (75, 31.5, 86, 39.5)),
-            ('hall-sign', (44, 30.5, 56, 38), 40.5, None),
+            ('hall-sign', (44, 30.5, 56, 38), 40.5, OVER),
             ('plant-tour-nw', (9, 17, 12.5, 23.5), 23, (9.2, 20, 12.3, 23)),
             ('plant-tour-ne', (87.5, 17, 91, 23.5), 23, (87.7, 20, 90.8, 23)),
             ('lamp-tour-w', (9.5, 32, 12.5, 40), 39.5, (9.8, 36.5, 12.2, 39.5)),
@@ -345,7 +385,7 @@ LAYERS = {
             ('plant-lobby-w2', (32.5, 68.5, 37, 78.5), 78, (33, 74.5, 36.8, 78)),
             ('plant-lobby-e1', (63, 68.5, 67.5, 78.5), 78, (63.3, 74.5, 67.2, 78)),
             ('plant-lobby-e2', (69.5, 68.5, 74, 78.5), 78, None),
-            ('entry-sign', (44.5, 82, 56, 89.5), 99, None),
+            ('entry-sign', (44.5, 82, 56, 89.5), 99, OVER),
             ('plant-entry-w', (41.5, 83, 45, 90.5), 90, (42, 87, 44.8, 90)),
             ('plant-entry-e', (55.5, 83, 58.5, 90.5), 90, (55.7, 87, 58.3, 90)),
             ('desk', (11.5, 50.5, 24.5, 63.5), 63, (12, 59.5, 24, 63)),
@@ -378,7 +418,7 @@ LAYERS = {
             ('pot-door-e', (56.2, 42, 59.2, 48.5), 48, (56.8, 46.8, 58.6, 48)),
             ('bed-bench-w', (29, 48.5, 43, 57.5), 57, None),
             ('bed-bench-e', (57.3, 48.5, 71, 57.5), 57, None),
-            ('fountain', (40.5, 50, 59.5, 74), 66, None),
+            ('fountain', (40.5, 50, 59.5, 74), 66, (41.95, 72.03, 54.11, 73.6)),
             ('lamp-path-w1', (22.5, 54, 25.5, 63.5), 63, (23.2, 60.5, 25, 62)),
             ('lamp-path-w2', (26.8, 54, 29.8, 63.5), 63, (27.5, 60.5, 29.2, 62)),
             ('lamp-path-e1', (70.3, 54, 73.3, 63.5), 63, (70.8, 60.5, 72.6, 62)),
@@ -393,7 +433,7 @@ LAYERS = {
             ('pot-gate-e2', (68.5, 77, 72, 86.5), 86, (68.8, 84, 71.5, 86)),
             ('streetlamp-w', (0.5, 52, 4.5, 96), 95, (1, 93, 4, 95)),
             ('streetlamp-e', (94, 54, 98.5, 96), 95, (94.5, 93, 98, 95)),
-            ('tree', (82, 70, 95, 95), 94, None),
+            ('tree', (82, 70, 95, 95), 94, (82.45, 85.74, 90.81, 87.3)),
             ('taxi', (0, 84, 19.5, 100), 99, None),
             ('hydrant', (25, 87, 29, 94.5), 94, (25.8, 92, 28.5, 94)),
         ],
@@ -422,7 +462,7 @@ LAYERS = {
             ('palm-e', (75.5, 44, 88, 66), 64, None),
             ('pillar-w', (36.5, 62.5, 42.5, 88.5), 88, None),
             ('pillar-e', (58, 62.5, 63.5, 88.5), 88, None),
-            ('gate-arch', (43.5, 63.5, 56.5, 78), 99, None),
+            ('gate-arch', (43.5, 63.5, 56.5, 78), 99, OVER),
             ('gate-door-w', (40.5, 67.5, 45, 79.5), 79, None),
             ('gate-door-e', (55, 67.5, 59.5, 79.5), 79, None),
             ('pot-gate-w', (41, 79, 44.5, 86), 85.5, None),
@@ -521,13 +561,13 @@ LAYERS = {
             ('bench-se', (64.5, 56, 76, 66), 65, (65, 59, 75.5, 65)),
             ('topiary-sw', (36, 59, 40, 67), 66.5, (36.3, 64, 39.7, 66.5)),
             ('topiary-se', (60, 59, 64, 67), 66.5, (60.3, 64, 63.7, 66.5)),
-            ('lamp-sw', (19.5, 59, 22, 69), 68, (20, 66.5, 21.5, 68)),
-            ('lamp-se', (77.5, 59, 80, 69), 68, (78, 66.5, 79.5, 68)),
+            ('lamp-sw', (19.5, 59, 22, 69), 68, (20, 62.43, 21.69, 68)),
+            ('lamp-se', (77.5, 59, 80, 69), 68, (77.76, 65.1, 79.5, 68)),
             ('olive-w', (14, 30, 26, 50), 48, None),
             ('olive-e', (74, 30, 86, 50), 48, None),
             ('pillar-w', (36.5, 64, 41.5, 87), 86, None),
             ('pillar-e', (58.5, 64, 63.5, 87), 86, None),
-            ('gate-arch', (40.5, 65, 59.5, 76), 99, None),
+            ('gate-arch', (40.5, 65, 59.5, 76), 99, OVER),
             ('gate-door-w', (41, 72, 44, 86), 85, (41.5, 78, 43.5, 85)),
             ('gate-door-e', (56, 72, 59, 86), 85, (56.5, 78, 58.5, 85)),
         ],
@@ -675,7 +715,7 @@ LAYERS = {
             ('vase-e', (59, 20, 63, 28), 27.5, (59.3, 25, 62.5, 27.5)),
             ('plant-stair-w', (39.5, 16, 43.5, 27), 26.5, (40, 23.5, 43.2, 26.5)),
             ('plant-stair-e', (56.5, 16, 60.5, 27), 26.5, (56.8, 23.5, 60, 26.5)),
-            ('sign-club', (41.5, 30, 58.5, 37), 99, None),
+            ('sign-club', (41.5, 30, 58.5, 37), 99, OVER),
             ('lantern-w', (41, 37, 44, 46), 45.5, (41.5, 43.5, 43.5, 45.5)),
             ('lantern-e', (56, 37, 59, 46), 45.5, (56.5, 43.5, 58.5, 45.5)),
             ('plant-side-w', (34, 41, 37.5, 48), 47.5, (34.5, 45, 37.2, 47.5)),
@@ -729,11 +769,11 @@ LAYERS = {
             ('plant-lounge-w2', (5, 48, 9, 58), 57.5, (5.5, 54.5, 8.7, 57.5)),
             ('lamp-game', (28, 50, 31.5, 57), 56.5, (28.5, 54, 31, 56.5)),
             ('plant-center-nw', (36.5, 23, 40, 34), 33.5, (37, 30.5, 39.7, 33.5)),
-            ('plant-center-n1', (42.5, 26, 45.5, 34), 33.5, (43, 31, 45.3, 33.5)),
+            ('plant-center-n1', (42.5, 26, 45.5, 34), 33.5, (42.95, 28.12, 45.3, 33.5)),
             ('plant-center-n2', (54.5, 26, 57.5, 34), 33.5, (54.7, 31, 57, 33.5)),
-            ('plant-center-ne', (60, 23, 63.5, 34), 33.5, (60.3, 30.5, 63, 33.5)),
-            ('plant-center-w', (36.5, 33, 40, 42), 41.5, None),
-            ('plant-center-e', (60, 33, 63.5, 42), 41.5, None),
+            ('plant-center-ne', (60, 23, 63.5, 34), 33.5, (60.3, 28.86, 63, 33.5)),
+            ('plant-center-w', (36.5, 33, 40, 42), 41.5, (37.34, 39.52, 38.45, 41.08)),
+            ('plant-center-e', (60, 33, 63.5, 42), 41.5, (61.13, 39.52, 62.52, 41.08)),
             ('balusters-w', (41.5, 36, 45, 56), 55.5, None),
             ('balusters-e', (55, 36, 58.5, 56), 55.5, None),
             ('plant-center-w2', (36, 47, 40, 55), 54.5, (36.5, 52, 39.7, 54.5)),
@@ -748,7 +788,7 @@ LAYERS = {
             ('plant-trophy-nw', (64.5, 31, 68.5, 40), 39.5, None),
             ('plant-trophy-n1', (70.5, 34, 74, 40), 39.5, (71, 37.5, 73.7, 39.5)),
             ('plant-trophy-n2', (86, 34, 89.5, 40), 39.5, (86.3, 37.5, 89.2, 39.5)),
-            ('lamp-trophy', (66.5, 47, 69, 55), 54.5, (67, 52, 68.8, 54.5)),
+            ('lamp-trophy', (66.5, 47, 69, 55), 54.5, (66.8, 48.81, 68.8, 54.5)),
             ('plant-trophy-sw', (71, 56, 74, 63), 62.5, (71.5, 60, 73.7, 62.5)),
             ('plant-trophy-se', (88.5, 56, 92, 63), 62.5, (88.8, 60, 91.7, 62.5)),
         ],
@@ -776,15 +816,20 @@ LAYERS = {
             ('lamp-lounge-se', (26, 54, 29.5, 62), 61.5, (26.5, 59, 29.2, 61.5)),
             ('plant-lounge-se', (29.5, 50, 33, 59), 58.5, (30, 55, 32.8, 58.5)),
             ('plant-lounge-sw', (5.5, 56, 10, 64), 63.5, (6, 60, 9.7, 63.5)),
+            # OVER, both of them: these two flank the top of the stairs and the
+            # side passages either side are 4.5% wide against a 3% pot. A
+            # footprint there seals the landing off from both lounges and the
+            # trophy hall - tools/dev/clearance.mjs says so - so the player
+            # walks behind them, which is what the art was drawn for.
             ('lamp-upper-w', (38.5, 32, 41, 38), 37.5, None),
             ('lamp-upper-e', (59, 32, 61.5, 38), 37.5, None),
-            ('plant-upper-w', (34.5, 30, 38.5, 39), 38.5, None),
-            ('plant-upper-e', (61.5, 30, 65.5, 39), 38.5, None),
+            ('plant-upper-w', (34.5, 30, 38.5, 39), 38.5, OVER),
+            ('plant-upper-e', (61.5, 30, 65.5, 39), 38.5, OVER),
             ('railing-top', (38, 38.5, 62, 45), 44.5, None),
             ('lamp-well-w', (39, 62, 41.5, 69), 68.5, None),
             ('lamp-well-e', (58.5, 62, 61, 69), 68.5, None),
             ('plant-aisle-w', (35, 57, 39, 66), 65.5, None),
-            ('plant-aisle-e', (61, 57, 65, 66), 65.5, None),
+            ('plant-aisle-e', (61, 57, 65, 66), 65.5, OVER),
             ('railing-mid', (41, 68, 59, 75), 74.5, None),
             ('plant-lower-w', (36.5, 71, 40.5, 79), 78.5, None),
             ('plant-lower-e', (59.5, 71, 63.5, 79), 78.5, None),
@@ -891,7 +936,7 @@ LAYERS = {
         ],
         'blocks': [(36, 13, 64, 23), (29.5, 28, 43.5, 47), (56.5, 28, 70.5, 47)],
         'props': [
-            ('stage', (35, 11, 65, 25), 24.5, None),
+            ('stage', (35, 11, 65, 25), 24.5, OVER),
             ('stairs-w', (29, 24, 44, 48), 47.5, None),
             ('stairs-e', (56, 24, 71, 48), 47.5, None),
             ('statue-w', (33.5, 38, 38.5, 52), 51.5, (34, 48, 38, 51.5)),
@@ -905,7 +950,7 @@ LAYERS = {
             ('rope-center', (43.5, 57, 56.5, 63), 62.5, (44, 60, 56, 62.5)),
             ('plant-low-w2', (38, 70, 42.5, 79), 78.5, (38.5, 75, 42.2, 78)),
             ('plant-low-e2', (57.5, 70, 62, 79), 78.5, (57.8, 75, 61.5, 78)),
-            ('lamp-low-w', (43.5, 70, 45.5, 78), 77.5, (43.7, 75, 45.3, 77.5)),
+            ('lamp-low-w', (43.5, 70, 45.5, 78), 77.5, (43.7, 73.44, 45.3, 77.5)),
             ('lamp-low-e', (54.5, 70, 56.5, 78), 77.5, (54.7, 75, 56.3, 77.5)),
             ('plant-wing-w', (7, 58, 10, 66), 65.5, (7.3, 62, 9.7, 65.5)),
             ('plant-wing-w2', (7, 68, 10.5, 76), 75.5, (7.3, 72, 10.2, 75.5)),
@@ -956,7 +1001,7 @@ LAYERS = {
             ('pillar-e', (61.5, 59, 68.5, 74.5), 73, (62, 69, 68, 73.5)),
             ('pot-w2', (40, 69, 45, 75.5), 74, (40.5, 71, 44.5, 74.5)),
             ('pot-e2', (55, 69, 60, 75.5), 74, (55.5, 71, 59.5, 74.5)),
-            ('gate', (41, 77, 59, 94), 93, None),
+            ('gate', (41, 77, 59, 94), 93, OVER),
             ('gatepost-w', (34, 76, 41, 95.5), 94, (35, 90, 40, 94.5)),
             ('gatepost-e', (59, 76, 66, 95.5), 94, (60, 90, 65, 94.5)),
         ],
@@ -1117,11 +1162,12 @@ def build(scene, spec):
             if clip:
                 mask &= clip_mask(clip, box, W, H)
             piece = np.dstack([rgb[y0:y1, x0:x1], np.where(mask, 255, 0).astype(np.uint8)])
-        Image.fromarray(piece.astype(np.uint8), 'RGBA').save(os.path.join(out_dir, f'{pid}.png'), optimize=True)
+        cut_path = os.path.join(out_dir, f'{pid}.png')
+        Image.fromarray(piece.astype(np.uint8), 'RGBA').save(cut_path, optimize=True)
         props.append({'id': pid, 'src': f'assets/layers/{scene}/{pid}.png',
                       'x': round(x0 / W * 100, 3), 'y': round(y0 / H * 100, 3),
                       'w': round((x1 - x0) / W * 100, 3), 'h': round((y1 - y0) / H * 100, 3),
-                      'base': base, 'foot': list(foot) if foot else None})
+                      'base': base, 'foot': foot_for(foot, cut_path, box, W, H)})
         if PREVIEW:
             cut = Image.fromarray(piece.astype(np.uint8), 'RGBA')
             alpha = np.asarray(cut)[..., 3]
@@ -1148,6 +1194,40 @@ def build(scene, spec):
     return {'props': props, 'floor': spec['floor'], 'blocks': [list(b) for b in spec.get('blocks', [])]}
 
 
+def derived_foot(src_path, box, W, H):
+    """Where this prop touches the floor, in percent, from its own alpha."""
+    x0, y0, x1, y1 = box
+    alpha = np.asarray(Image.open(src_path).convert('RGBA'))[..., 3]
+    ys, xs = np.nonzero(alpha > FOOT_ALPHA)
+    if not len(ys):
+        return None
+    # The cut-out is a 1:1 crop of the scene, so one image row is one scene row.
+    band = max(1, int(round(FOOT_BAND_PCT * H / 100.0)))
+    keep = ys >= ys.max() - band
+    bx = xs[keep]
+    by = ys[keep]
+    w = int(bx.max()) - int(bx.min()) + 1
+    h = int(by.max()) - int(by.min()) + 1
+    if len(bx) < FOOT_FILL * w * h:
+        return None          # too full of holes for a rect to describe
+    return [round((x0 + int(bx.min())) / W * 100, 2),
+            round((y0 + int(by.min())) / H * 100, 2),
+            round((x0 + int(bx.max()) + 1) / W * 100, 2),
+            round((y0 + int(by.max()) + 1) / H * 100, 2)]
+
+
+def foot_for(declared, src_path, box, W, H):
+    """The footprint written to the data: declared, derived, or both."""
+    if declared == OVER:
+        return None
+    if declared:
+        return [float(v) for v in declared]
+    found = derived_foot(src_path, box, W, H)
+    if not found:
+        SPARSE.append(os.path.relpath(src_path, ROOT))
+    return found
+
+
 def rebuild_data(scene, spec, previous):
     """The generated entry for a scene, reusing the prop cut-outs on disk."""
     img = load_scene(scene)
@@ -1162,7 +1242,8 @@ def rebuild_data(scene, spec, previous):
         props.append({'id': pid, 'src': src,
                       'x': round(x0 / W * 100, 3), 'y': round(y0 / H * 100, 3),
                       'w': round((x1 - x0) / W * 100, 3), 'h': round((y1 - y0) / H * 100, 3),
-                      'base': base, 'foot': list(foot) if foot else None})
+                      'base': base,
+                      'foot': foot_for(foot, os.path.join(ROOT, src), (x0, y0, x1, y1), W, H)})
     print(f'  {scene}: {len(props)} props (data only)')
     void = previous
     del void
@@ -1205,6 +1286,13 @@ def main():
     with open(js_path, 'w', encoding='utf8') as fh:
         fh.write(rendered)
     print(f'{len(wanted)} scene(s) -> assets/layers/, js/data/sceneLayers.js')
+    if SPARSE:
+        # Not an error: a railing or a pair of lamps cut into one layer has a
+        # base full of holes, and one rect cannot describe it. Declare a rect
+        # in LAYERS, or mark it OVER, if one of these should block.
+        print(f'  {len(SPARSE)} prop(s) too sparse at the base for a derived rect:')
+        for f in SPARSE:
+            print(f'    {f}')
 
 
 if __name__ == '__main__':
