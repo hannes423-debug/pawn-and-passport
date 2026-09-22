@@ -8,7 +8,7 @@
 export const GAME = Object.freeze({
   title: 'Pawn & Passport',
   subtitle: 'A Chess Career RPG',
-  version: '0.1.0-jam',
+  version: '1.0.0',
   saveVersion: 3
 });
 

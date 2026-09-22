@@ -1,6 +1,6 @@
 {
   "name": "pawn-and-passport",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Pawn & Passport: A Chess Career RPG. A jam-sized fork of Chess: World Tour.",
   "private": true,
   "type": "module",
