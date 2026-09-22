@@ -183,6 +183,21 @@ def run_viewport(spec, failures):
               opponent: { id: 'nyc-x', name: 'Grace Whitfield', elo: 650, style: 'aggressive', openingId: 'italian', look: { sprite: 'young-red' } } })""",
            "document.querySelector('.cwt-board')?.dataset.interactive === 'true'", settle=1.5)
         check("match")
+        # A tip that names a host must END UP in that host. The match asks
+        # for its tip while the screen is still being built, so the host is
+        # not in the document yet; the fallback used to keep the `--inline`
+        # class while appending to <body>, which is position:static - the
+        # tip lost its fixed placement and the safe-area offsets with it,
+        # and landed in the top-left corner under the notch.
+        coach = json.loads(c.eval("(() => { const el = document.querySelector('.pp-coach');\n          if (!el) return JSON.stringify({ none: true });\n          return JSON.stringify({ none: false, inline: el.classList.contains('pp-coach--inline'),\n            inPanel: !!el.closest('.pp-match__right'), fixed: getComputedStyle(el).position === 'fixed' }); })()"))
+        if coach["none"]:
+            failures.append(f"{spec} match: no coach tip to check")
+        elif coach["inline"] != coach["inPanel"]:
+            failures.append(f"{spec} match: coach inline={coach['inline']} but inside the panel={coach['inPanel']}")
+        elif not coach["inline"] and not coach["fixed"]:
+            failures.append(f"{spec} match: a hostless coach must be position:fixed")
+        else:
+            print(f"  {spec:>9} {'coach-placement':<18} ok")
         rect = lambda: c.eval("JSON.stringify(document.querySelector('.pp-boardframe').getBoundingClientRect())")
         before = rect()
         for uci in ["e2e4", "g1f3", "f1c4"]:

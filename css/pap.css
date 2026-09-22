@@ -634,7 +634,16 @@ img, canvas { image-rendering: pixelated; }
   width: min(320px, calc(100vw - 20px)); display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
   padding: 10px 12px; border-radius: 8px; background: #fff6dc; color: var(--ink); border: 3px solid var(--gold);
   box-shadow: 0 6px 0 rgba(20, 10, 5, 0.45); font-size: 16px; line-height: 1.25;
+  /* A landscape phone is about 390px tall and the tip hangs from the top, so
+     a long one has to be told where to stop - otherwise "Got it" ends up
+     under the home indicator. */
+  max-height: calc(100vh - var(--coach-top, 0px) - max(10px, env(safe-area-inset-top)) - max(10px, env(safe-area-inset-bottom)) - 10px);
 }
+/* The TEXT scrolls, never the card: "Got it" has to stay visible, and a card
+   that scrolled would also read as "reachable by scrolling" to
+   tools/cdp_layout.py and quietly excuse a button that really was off. */
+.pp-coach > div { min-height: 0; overflow-y: auto; }
+.pp-coach > .pp-btn { flex: none; }
 .pp-coach__title { font-family: var(--font-pixel); font-size: 10px; color: var(--red, #b3372a); }
 :root:not([data-reduced-motion="true"]) .pp-coach { animation: pp-coach-in 260ms ease-out; }
 @keyframes pp-coach-in { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }

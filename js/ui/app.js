@@ -245,7 +245,7 @@ export function createApp(root, screens) {
       const c = app.career;
       if (!c || c.taught?.[key] || coachQueue.some((t) => t.key === key) || coachEl?.dataset.key === key) return false;
       coachQueue.push({ key, text, title, host });
-      if (!coachEl) showNextCoach();
+      if (!coachEl && !coachPending) showNextCoach();
       return true;
     },
 
@@ -258,17 +258,40 @@ export function createApp(root, screens) {
 
   const coachQueue = [];
   let coachEl = null;
-  function showNextCoach() {
-    const tip = coachQueue.shift();
-    if (!tip) { coachEl = null; return; }
-    const close = () => { learned(tip.key); coachEl?.remove(); coachEl = null; setTimeout(showNextCoach, 250); };
+  let coachPending = false;      // waiting for a host to enter the document
+  /**
+   * A screen asks for its tip while it is still being BUILT, so the host it
+   * passes is not in the document yet: app.go() appends the screen only once
+   * the factory has returned. That is one frame away, so wait for it.
+   *
+   * It used to fall through instead, and the fallback kept the `--inline`
+   * class while appending to <body> - which is `position: static`, so the tip
+   * lost the fixed placement AND the safe-area offsets that go with it and
+   * landed as a full-width bar in the top-left corner, under the notch on a
+   * landscape phone. Every first match showed it there.
+   */
+  function showNextCoach(attempt = 0) {
+    const tip = coachQueue[0];
+    if (!tip) { coachEl = null; coachPending = false; return; }
+    if (tip.host && !tip.host.isConnected && attempt < 4) {
+      coachPending = true;
+      requestAnimationFrame(() => showNextCoach(attempt + 1));
+      return;
+    }
+    coachPending = false;
+    coachQueue.shift();
     /* With a host (a match's side panel) the tip sits inline in it and never
-       floats over the board or its buttons. */
-    coachEl = h(`div.pp-coach${tip.host ? '.pp-coach--inline' : ''}`, { role: 'note', dataset: { key: tip.key, shownAt: String(Date.now()) } },
+       floats over the board or its buttons. Without one - or if the host
+       never arrived - it floats, and the floating rules are the ones that
+       know about the safe area. The class and the parent are decided from
+       the SAME check, so they can never disagree again. */
+    const host = tip.host?.isConnected ? tip.host : null;
+    const close = () => { learned(tip.key); coachEl?.remove(); coachEl = null; setTimeout(showNextCoach, 250); };
+    coachEl = h(`div.pp-coach${host ? '.pp-coach--inline' : ''}`, { role: 'note', dataset: { key: tip.key, shownAt: String(Date.now()) } },
       tip.title ? h('b.pp-coach__title', { text: tip.title }) : null,
       h('div', { text: tip.text }),
       h('button.pp-btn.pp-btn--small', { type: 'button', text: 'Got it', onclick: (e) => { e.stopPropagation(); sfx.click(); close(); } }));
-    if (tip.host?.isConnected) tip.host.prepend(coachEl); else document.body.append(coachEl);
+    if (host) host.prepend(coachEl); else document.body.append(coachEl);
   }
 
   /* A tip counts as learned once dismissed, or once it was on screen long
@@ -282,6 +305,7 @@ export function createApp(root, screens) {
     if (coachEl && Date.now() - Number(coachEl.dataset.shownAt) > 4000) learned(coachEl.dataset.key);
     coachEl?.remove();
     coachEl = null;
+    coachPending = false;
     coachQueue.length = 0;
   };
 
