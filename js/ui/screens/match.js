@@ -189,14 +189,17 @@ export function matchScreen(app, params) {
     focusMeter.firstChild.style.width = `${(match.focus / match.focusMax) * 100}%`;
     const q = match.quoteHint();
     const affordable = match.focus >= q.cost;
-    hintBtn.replaceChildren(pixelIcon('hint', { size: 'md' }), ' ', h('span.pp-hintbtn__ask', { text: 'Ask for ' }), 'Hint', h('small', { text: `${q.cost} Focus \u00b7 ${q.label}` }));
+    /* 'sm', like every other inline icon. At 'md' these two were 24px and
+       pushed the Focus panel 8px past the height the portrait match layout
+       gives it, which clipped the "Focus 30 / 30" line above them. */
+    hintBtn.replaceChildren(pixelIcon('hint', { size: 'sm' }), ' ', h('span.pp-hintbtn__ask', { text: 'Ask for ' }), 'Hint', h('small', { text: `${q.cost} Focus \u00b7 ${q.label}` }));
     hintBtn.disabled = !match.isPlayersTurn || match.hintBusy || !affordable || finished;
     const u = match.undoState();
     const undoNote = u.reason === 'used' ? (u.max === 1 ? 'Used' : 'All used')
       : u.reason === 'cooldown' ? `In ${u.cooldown} move${u.cooldown === 1 ? '' : 's'}`
       : u.reason === 'nothing' ? 'Move first'
       : `${u.cost} Focus · ${u.left} left`;
-    undoBtn.replaceChildren(pixelIcon('back', { size: 'md' }), ' ', 'Undo', h('small', { text: undoNote }));
+    undoBtn.replaceChildren(pixelIcon('back', { size: 'sm' }), ' ', 'Undo', h('small', { text: undoNote }));
     undoBtn.disabled = !u.ok || finished;
     undoBtn.dataset.state = u.reason || 'ready';
     undoBtn.title = `Take back your last move. Costs ${u.cost} Focus, ${u.max} per game at level ${career.level}, then ${UNDO.cooldownMoves} moves of cooldown.`;
