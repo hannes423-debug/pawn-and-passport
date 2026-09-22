@@ -44,10 +44,16 @@ export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /** Next frame, twice: a style change after display:none needs both. */
 export const frames = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
+/**
+ * `icon` is normally a pixelIcon() element (js/ui/icons.js). A string still
+ * works and is drawn as text, which is what the keyboard hints and the plain
+ * arrows in the lesson player use - those are typography, not artwork.
+ */
 export function button(label, onClick, { cls = '', disabled = false, title = null, icon = null } = {}) {
   return h(`button.pp-btn${cls ? `.${cls.split(' ').join('.')}` : ''}`, {
     type: 'button', disabled, title, onclick: (e) => { if (!disabled) onClick?.(e); }
-  }, icon ? h('span.pp-btn__icon', { text: icon, 'aria-hidden': 'true' }) : null, h('span', { text: label }));
+  }, icon ? h('span.pp-btn__icon', { 'aria-hidden': 'true' }, icon instanceof Node ? icon : String(icon)) : null,
+    h('span', { text: label }));
 }
 
 export function meter(value, max, { cls = '', label = null } = {}) {

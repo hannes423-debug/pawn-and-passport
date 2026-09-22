@@ -15,6 +15,7 @@ import { openingById } from '../../data/openings.js';
 import { starById } from '../../data/starPlayers.js';
 import { MASTERY, DIFFICULTY } from '../../data/config.js';
 import { difficultyPicker } from '../difficultyPicker.js';
+import { pixelIcon, sideIcon } from '../icons.js';
 import { newCareer } from '../../core/career.js';
 
 export function createScreen(app) {
@@ -41,7 +42,7 @@ export function createScreen(app) {
       onclick: () => { clubId = club.clubId; sfx.stamp(); refresh(); }
     },
       h('img', { src: `assets/cities/${club.clubId}.webp`, alt: '', loading: 'lazy' }),
-      h('span.pp-badge.pp-city__side', { text: opening.side === 'w' ? '♔ White' : '♚ Black' }),
+      h('span.pp-badge.pp-city__side', null, sideIcon(opening.side, { size: 'sm' }), h('span', { text: opening.side === 'w' ? ' White' : ' Black' })),
       h('div.pp-city__body', null,
         h('div.pp-city__name', { text: `${club.city}` }),
         h('div.pp-small', { text: club.clubName }),
@@ -57,7 +58,7 @@ export function createScreen(app) {
     app.setCareer(career);
     sfx.trophy();
     app.go('scene', { sceneId: career.location.sceneId, arrival: true, intro: true });
-  }, { cls: 'pp-btn--gold', icon: '✈' });
+  }, { cls: 'pp-btn--gold', icon: pixelIcon('passport', { size: 'sm' }) });
 
   function refresh() {
     for (const b of avatarButtons) { const on = b.dataset.id === avatar; b.classList.toggle('is-picked', on); b.setAttribute('aria-pressed', String(on)); }

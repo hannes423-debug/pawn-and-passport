@@ -33,6 +33,8 @@ export const BOT_DIFFICULTY = Object.freeze({
  * @property {number} maxEvalLossCp      candidates worse than this are discarded
  * @property {number} blunderSeverityCp   the most an unforced error may hand over
  * @property {number} wildness            0..1, how aimless an unforced error is
+ * @property {number} [seesFreeMaterialCp] hanging material it notices, in cp
+ * @property {number} [greed]              0..1, how often it takes what it saw
  */
 export const DIFFICULTY_SPECS = Object.freeze({
   [BOT_DIFFICULTY.RANDOM_BEGINNER]: {
@@ -141,6 +143,12 @@ export class BotProfile {
     this.maxEvalLossCp = difficultySpec.maxEvalLossCp;
     this.blunderSeverityCp = difficultySpec.blunderSeverityCp ?? 100000;
     this.wildness = difficultySpec.wildness ?? 0;
+    /* How much material has to be hanging before this bot notices, and how
+       often it then takes it. The presets leave both off (the engine finds
+       free material by itself); js/core/difficulty.js sets them per Elo, so a
+       weak opponent is greedy rather than blind. */
+    this.seesFreeMaterialCp = difficultySpec.seesFreeMaterialCp ?? 0;
+    this.greed = difficultySpec.greed ?? 0;
 
     /** The personality dials the spec asks for, all 0..1. */
     this.tacticalBias = pick(traits.tacticalBias, styleSpec.tacticalBias);

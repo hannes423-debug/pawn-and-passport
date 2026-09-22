@@ -8,6 +8,7 @@
  */
 
 import { h } from '../dom.js';
+import { pixelIcon } from '../icons.js';
 import { sfx } from '../audio.js';
 import { GAME } from '../../data/config.js';
 import { clubById } from '../../data/clubs.js';
@@ -19,7 +20,7 @@ export function titleScreen(app) {
     type: 'button', disabled,
     onclick: () => { sfx.click(); onClick(); },
     onmouseenter: () => sfx.hover()
-  }, h('span', { text: icon, 'aria-hidden': 'true' }), h('span', { text: label }));
+  }, h('span', { 'aria-hidden': 'true' }, pixelIcon(icon, { size: 'lg' })), h('span', { text: label }));
 
   const newGame = async () => {
     if (career && !career.completed) {
@@ -48,10 +49,10 @@ export function titleScreen(app) {
     h('img.pp-title__logo', { src: 'assets/ui/logo.webp', alt: '' }),
     h('img.pp-title__logo-sub', { src: 'assets/ui/logo-sub.webp', alt: '' }),
     h('nav.pp-title__menu', { 'aria-label': 'Main menu' },
-      item('▶', career ? 'New Career' : 'New Game', newGame),
-      item('▣', 'Continue', cont, { disabled: !career }),
-      item('⚙', 'Settings', () => app.go('settings', { back: { screen: 'title', params: {} } })),
-      item('★', career ? 'Journal' : 'Credits', () => (career
+      item('play', career ? 'New Career' : 'New Game', newGame),
+      item('journal', 'Continue', cont, { disabled: !career }),
+      item('settings', 'Settings', () => app.go('settings', { back: { screen: 'title', params: {} } })),
+      item('passport', career ? 'Journal' : 'Credits', () => (career
         ? app.go('journal', { back: { screen: 'title', params: {} } })
         : app.go('ending', { creditsOnly: true })))),
     career ? h('div.pp-title__continue-note', { text: `${career.name} · Lv ${career.level} · ${clubById(career.location.clubId)?.city || 'Madrid'}` }) : null,

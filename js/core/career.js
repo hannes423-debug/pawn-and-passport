@@ -11,7 +11,7 @@
  *   Postcards      optional, 6, unlock the Beyond the Tour page
  */
 
-import { LEVELS, XP, ELO, DIFFICULTY, difficultyMode, FOCUS, HINTS, MASTERY, REPERTOIRE, TOURNAMENT, GAME, UNDO, MEMBERS, COINS } from '../data/config.js';
+import { LEVELS, XP, ELO, BOT_ELO, DIFFICULTY, difficultyMode, FOCUS, HINTS, MASTERY, REPERTOIRE, TOURNAMENT, GAME, UNDO, MEMBERS, COINS } from '../data/config.js';
 import { membersForClub, VISITORS } from '../data/members.js';
 import * as Event from './tournament.js';
 import { hintBand } from './focusHints.js';
@@ -223,21 +223,30 @@ export const hasAllPostcards = (career) => POSTCARDS.every((p) => career.postcar
 /* The Elo ladder belongs to the chosen difficulty (js/data/config.js). Every
    one of these takes the mode id, and every caller passes career.difficulty,
    so a career that changes difficulty meets the new ladder from its next
-   event on - and nothing already recorded moves. */
+   event on - and nothing already recorded moves.
+
+   The difficulty picks the NUMBER; js/core/difficulty.js turns that number
+   into a bot and is never told which mode asked. Every number that leaves
+   this file goes through botElo(), so the Elo shown to the player is always
+   one the bot layer can actually build - a spread that reached past 1500 or
+   under 250 would be printed on the screen and then silently clamped. */
 export const modeOf = (career) => difficultyMode(typeof career === 'string' ? career : career?.difficulty);
+
+/** An opponent rating, inside the range this game builds bots for. */
+export const botElo = (elo) => Math.max(BOT_ELO.min, Math.min(BOT_ELO.max, Math.round(elo)));
 
 export function regularElo(tierIndex, random = Math.random, mode = DIFFICULTY.default) {
   const bands = modeOf(mode).regularBands;
   const [lo, hi] = bands[Math.min(tierIndex, bands.length - 1)];
-  return Math.round((lo + (hi - lo) * random()) / 5) * 5;
+  return botElo(Math.round((lo + (hi - lo) * random()) / 5) * 5);
 }
 export function starElo(tierIndex, mode = DIFFICULTY.default) {
   const stars = modeOf(mode).starByTier;
-  return stars[Math.min(tierIndex, stars.length - 1)];
+  return botElo(stars[Math.min(tierIndex, stars.length - 1)]);
 }
 export const finaleElo = (round, mode = DIFFICULTY.default) => {
   const rounds = modeOf(mode).finaleRounds;
-  return rounds[Math.min(round, rounds.length - 1)];
+  return botElo(rounds[Math.min(round, rounds.length - 1)]);
 };
 
 export function travelTo(career, clubId, sceneId) {
@@ -286,7 +295,7 @@ export function memberElo(rel, tierIndex, mode = DIFFICULTY.default) {
   const [lo, hi] = bands[Math.min(tierIndex, bands.length - 1)];
   const from = lo - MEMBERS.belowBand;
   const to = hi + MEMBERS.aboveBand;
-  return Math.round((from + (to - from) * rel) / 5) * 5;
+  return botElo(Math.round((from + (to - from) * rel) / 5) * 5);
 }
 
 export const tournamentFormat = (clubId) => TOURNAMENT.format[clubId] || 'swiss';
@@ -658,7 +667,7 @@ export { missionById };
 
 export default {
   newCareer, levelForXp, xpProgress, grantXp, maxFocus, hintPlies, masteryState, learnFromPlay,
-  tier, trophyCount, postcardCount, hasAllTrophies, hasAllPostcards, regularElo, starElo, finaleElo, modeOf, travelTo, meetStar,
+  tier, trophyCount, postcardCount, hasAllTrophies, hasAllPostcards, botElo, regularElo, starElo, finaleElo, modeOf, travelTo, meetStar,
   enterTournament, currentRound, recordTournamentGame, awardTrophy, canReenter, tournamentField, memberElo,
   stakeFor, canAfford, earnCoins, settleChallenge, nextStep, validateCareer, commitMatchResult,
   enterFinale, currentFinaleRound, recordFinaleGame, applyGameResult, missionProgress, recordPuzzleSolved,

@@ -41,22 +41,31 @@ import { learnFromTutorial } from '../../core/career.js';
 import { practiceSummary } from '../../core/lessons.js';
 import { SCENE_LAYERS } from '../../data/sceneLayers.js';
 import { createWalkGrid, walkerFor } from '../../core/freeWalk.js';
+import { pixelIcon, sideIcon } from '../icons.js';
 
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
 const WALK_SPEED = 42;           // percent of the stage height per second
 
 /* What a hotspot is FOR decides how its label looks (css: .pp-hotspot.is-*). */
-const KIND_ICON = { goal: '🏆', star: '★', practice: '📖', puzzle: '🧩', exit: '⇦', member: '💬', info: '•' };
+const KIND_ICON = { goal: 'trophy', star: 'xp', practice: 'practice', puzzle: 'hint', exit: 'exit', member: 'dialogue', info: 'dialogue' };
 function spotKind(spot) {
   if (spot.member) return 'member';
   const t = spot.action.type;
-  if (t === 'tournament' || t === 'finale') return 'goal';
+  if (t === 'tournament' || t === 'finale' || t === 'trophies') return 'goal';
   if (t === 'star' || t === 'rivals') return 'star';
   if (t === 'friendly') return 'practice';
   if (t === 'mission') return 'puzzle';
   if (t === 'leave' || t === 'scene') return 'exit';
   return 'info';
 }
+
+/* How close the player has to be before an NPC's NAME appears. A club floor
+   holds a dozen members, and a dozen name plates permanently on screen hide
+   the room they are standing in - so a member shows only the speech bubble
+   until the player is near them, hovers them, or focuses them with the
+   keyboard. Everything else (the tournament desk, the exits) keeps its label:
+   those are signposts, and a signpost nobody can read is not a signpost. */
+const NAME_RADIUS = 22;   // percent of the scene height, like USE_RADIUS
 
 /** Is ?debugCollision=1 (or #debugCollision=1) in the address bar? */
 export function collisionDebugOn() {
@@ -341,6 +350,7 @@ export async function sceneScreen(app, params) {
   function stopWalking() {
     player.walking = false; player.frame = 0; player.draw();
     if (camera) nudgeLabels();
+    paintNames();
   }
 
   /** Free mode: walk a list of points (already collision-free) to the end. */
@@ -400,6 +410,7 @@ export async function sceneScreen(app, params) {
           player.walking = false; player.frame = 0; player.draw();
           playerNode = target; headingNode = null; walking = null;
           if (camera) nudgeLabels();
+          paintNames();
           resolve(true); return;
         }
         headingNode = path[segment];
@@ -457,8 +468,27 @@ export async function sceneScreen(app, params) {
     return '';
   }
 
+  /* The button drawn for each hotspot, so proximity can reveal a name without
+     repainting the layer (a repaint mid-walk drops hover and focus). */
+  const spotNodes = new Map();
+
+  function anchorOf(spot) {
+    return spot.npc?.at || scene.nodes[spot.node];
+  }
+
+  /** Reveal the names of the members the player is standing among. */
+  function paintNames() {
+    for (const [spot, node] of spotNodes) {
+      if (!spot.member) continue;
+      const [x, y] = anchorOf(spot);
+      const near = Math.hypot((x - player.x) * aspect, y - player.y) <= NAME_RADIUS;
+      node.classList.toggle('is-near', near);
+    }
+  }
+
   function drawHotspots() {
     clear(hotspotLayer);
+    spotNodes.clear();
     const list = h('div.pp-row');
     const people = h('div');
     scene.hotspots.forEach((spot, i) => {
@@ -466,12 +496,21 @@ export async function sceneScreen(app, params) {
       // Labels float just above a character's head, however tall characters are drawn here.
       const labelY = spot.npc?.at ? Math.min(y, spot.npc.at[1]) - ACTOR_H * 95 - 1 : y - Math.max(7, ACTOR_H * 70);
       const kind = spotKind(spot);
-      hotspotLayer.append(h('button.pp-hotspot', {
+      /* A member wears the speech bubble on its own; its name is a label that
+         is revealed, not drawn. Everything else keeps icon + words. */
+      const label = spot.member
+        ? h('span.pp-hotspot__label.pp-hotspot__name', { text: spot.label })
+        : h('span.pp-hotspot__label', null, h('small.pp-hotspot__key', { text: String(i + 1) }),
+            pixelIcon(KIND_ICON[kind], { size: 'sm' }), h('span', { text: ` ${spot.label}` }));
+      const node = h('button.pp-hotspot', {
         type: 'button', class: `${spotState(spot)} is-${kind}`,
         style: { left: `${spot.npc?.at ? spot.npc.at[0] : x}%`, top: `${Math.max(4, labelY)}%` },
         'aria-label': `${spot.verb}: ${spot.label}`,
         onclick: (e) => { e.stopPropagation(); use(spot); }
-      }, h('span.pp-hotspot__label', null, spot.member ? null : h('small.pp-hotspot__key', { text: String(i + 1) }), `${KIND_ICON[kind]} ${spot.label}`), h('span.pp-hotspot__arrow', { text: '▼' })));
+      }, spot.member ? h('span.pp-hotspot__bubble', null, pixelIcon('dialogue', { size: 'sm' })) : null,
+        label, h('span.pp-hotspot__arrow', { text: '\u25be', 'aria-hidden': 'true' }));
+      spotNodes.set(spot, node);
+      hotspotLayer.append(node);
       if (spot.member) people.append(button(spot.label.split(' ')[0], () => use(spot), { cls: 'pp-btn--small', title: `Talk to ${spot.label}` }));
       else list.append(button(`${i + 1}. ${spot.verb}`, () => use(spot), { cls: 'pp-btn--small', title: spot.label }));
     });
@@ -660,6 +699,7 @@ export async function sceneScreen(app, params) {
   function paintPad() {
     const pick = spotForAction();
     pad.setAction(pick ? (pick.ready ? pick.spot.verb : `Go: ${pick.spot.label}`) : '', pick?.ready);
+    paintNames();
   }
   viewport.append(pad.el);
 
@@ -686,9 +726,9 @@ export async function sceneScreen(app, params) {
     const choice = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
       h('h2.pp-h2', { text: 'Where to?' }),
       h('div.pp-col', null,
-        button('World map', () => close('map'), { icon: '🗺', cls: 'pp-btn--gold' }),
-        club && scene.kind !== 'venue' ? button(`${club.casualLocationName}`, () => close('venue'), { icon: '☕' }) : null,
-        club && scene.kind === 'venue' ? button(`${club.clubName}`, () => close('club'), { icon: '♜' }) : null,
+        button('World map', () => close('map'), { icon: pixelIcon('map', { size: 'sm' }), cls: 'pp-btn--gold' }),
+        club && scene.kind !== 'venue' ? button(`${club.casualLocationName}`, () => close('venue'), { icon: pixelIcon('exit', { size: 'sm' }) }) : null,
+        club && scene.kind === 'venue' ? button(`${club.clubName}`, () => close('club'), { icon: pixelIcon('club', { size: 'sm' }) }) : null,
         button('Stay here', () => close(null), { cls: 'pp-btn--small' }))));
     if (choice === 'map') app.go('map');
     if (choice === 'venue') app.go('scene', { sceneId: club.scenes.venue });
@@ -724,7 +764,7 @@ export async function sceneScreen(app, params) {
         h('p.pp-small', { text: `${club.trophyName} goes only to whoever beats ${star.name} in the final. Every game you play teaches you the ${opening.name}, even if you fall short.` }),
         lastLine ? h('p.pp-small', null, h('b', { text: lastLine })) : null,
         h('div.pp-row', null,
-          button(last ? 'Enter again' : 'Enter the tournament', () => close('enter'), { cls: 'pp-btn--gold', icon: '♞' }),
+          button(last ? 'Enter again' : 'Enter the tournament', () => close('enter'), { cls: 'pp-btn--gold', icon: pixelIcon('club', { size: 'sm' }) }),
           button('Not yet', () => close(null), { cls: 'pp-btn--small' }))));
       if (choice !== 'enter') return;
       run = enterTournament(career, clubId);
@@ -738,14 +778,14 @@ export async function sceneScreen(app, params) {
       statusBanner(run, star.name),
       /* Round, opponent, Elo, colour, Play: the only things needed to go on. */
       h(`div.pp-desk__next${isFinal ? '.is-final' : ''}`, null,
-        h('div.pp-desk__round', { text: isFinal ? '★ The final' : round.label }),
+        h('div.pp-desk__round', null, isFinal ? pixelIcon('trophy', { size: 'sm' }) : null, h('span', { text: isFinal ? ' The final' : round.label })),
         h('div.pp-desk__opp', null,
           h('img', { alt: '', src: portraitUrl(round.look || GUIDE_LOOK) }),
           h('div', null,
             h('div.pp-desk__name', { text: round.name }),
-            h('div', { text: `${round.elo} Elo · you play ${round.colour === 'w' ? 'White ♔' : 'Black ♚'}` }))),
+            h('div', null, `${round.elo} Elo · you play ${round.colour === 'w' ? 'White' : 'Black'} `, sideIcon(round.colour, { size: 'sm' })))),
         h('div.pp-row', null,
-          button(isFinal ? 'Play the final' : `Play ${round.label.toLowerCase()}`, () => close('play'), { cls: 'pp-btn--gold', icon: '♞' }),
+          button(isFinal ? 'Play the final' : `Play ${round.label.toLowerCase()}`, () => close('play'), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) }),
           button('Not yet', () => close(null), { cls: 'pp-btn--small' }))),
       h('details.pp-desk__more', { open: !isTouch() }, h('summary', { text: run.format === 'swiss' ? 'Standings' : 'This round' }), eventView(run)),
       h('details.pp-desk__more', null, h('summary', { text: 'How this event works' }), h('p.pp-small', { text: formatBlurb(run, star.name) }),
@@ -786,7 +826,7 @@ export async function sceneScreen(app, params) {
       name: member.name, role: `${club.clubName} · ${elo} Elo`, look: member.look,
       lines: [...said, offer],
       actions: afford
-        ? [{ id: 'w', label: `Play White (${stake}🪙)`, cls: 'pp-btn--gold' }, { id: 'b', label: `Play Black (${stake}🪙)`, cls: 'pp-btn--gold' }, { id: null, label: 'Not now' }]
+        ? [{ id: 'w', label: `Play White (${stake} coins)`, icon: sideIcon('w', { size: 'sm' }), cls: 'pp-btn--gold' }, { id: 'b', label: `Play Black (${stake} coins)`, icon: sideIcon('b', { size: 'sm' }), cls: 'pp-btn--gold' }, { id: null, label: 'Not now' }]
         : [{ id: null, label: 'Bye' }]
     });
     if (!choice) return;
@@ -827,7 +867,7 @@ export async function sceneScreen(app, params) {
       ? `${tree.lessonsOpen} lessons open, ${tree.lessonsDone} complete. Read, watch, then solve. ${tree.next.tier.label} opens after ${tree.next.trophiesNeeded} more ${tree.next.trophiesNeeded === 1 ? 'trophy' : 'trophies'}.`
       : `All ${tree.lessonsOpen} lessons open, ${tree.lessonsDone} complete. Read, watch, then solve.`;
     const option = (id, icon, label, sub, cls = '') => h('button.pp-practice__option', { type: 'button', class: cls, onclick: () => close(id) },
-      h('span.pp-practice__icon', { text: icon }), h('span', null, h('b', { text: label }), h('span.pp-small.pp-muted', { text: sub })));
+      h('span.pp-practice__icon', null, pixelIcon(icon, { size: 'lg' })), h('span', null, h('b', { text: label }), h('span.pp-small.pp-muted', { text: sub })));
     let close;
     const choice = await app.overlay((c) => {
       close = c;
@@ -836,11 +876,11 @@ export async function sceneScreen(app, params) {
         h('p.pp-small', { text: `${host.name} runs the practice room. Nothing here changes your rating.` }),
         /* The club's opening first: it is what this club's tournament is about. */
         h('div.pp-col', null,
-          option('tutorial', '📖', `Tutorial: ${opening.name}`, tutored ? 'Walk through every line again.' : mastery > 0 ? `Every line with notes. You know ${mastery}%.` : `Every line with notes. Finishing it unlocks the opening (${MASTERY.tutorialGrant}%).`, tutored ? '' : 'is-new'),
-          option('drill', '🎯', `Drills: ${opening.name}`, mastery > 0 ? `Find the book move. Pass a set: +${MASTERY.drillGain}% mastery (you know ${mastery}%).` : 'Do the tutorial first.'),
-          option('friendly', '♞', 'Friendly game', 'Unrated. Play a club member as White or Black.'),
-          option('puzzles', '🧩', 'Puzzles', `This club's own set, from real ${opening.name} games.`),
-          option('lessons', '🌱', 'Practice tree (optional)', treeLine)),
+          option('tutorial', 'journal', `Tutorial: ${opening.name}`, tutored ? 'Walk through every line again.' : mastery > 0 ? `Every line with notes. You know ${mastery}%.` : `Every line with notes. Finishing it unlocks the opening (${MASTERY.tutorialGrant}%).`, tutored ? '' : 'is-new'),
+          option('drill', 'practice', `Drills: ${opening.name}`, mastery > 0 ? `Find the book move. Pass a set: +${MASTERY.drillGain}% mastery (you know ${mastery}%).` : 'Do the tutorial first.'),
+          option('friendly', 'pawn', 'Friendly game', 'Unrated. Play a club member as White or Black.'),
+          option('puzzles', 'hint', 'Puzzles', `This club's own set, from real ${opening.name} games.`),
+          option('lessons', 'practice', 'Practice tree (optional)', treeLine)),
         h('div.pp-row', { style: { justifyContent: 'flex-end' } }, button('Leave', () => c(null), { cls: 'pp-btn--small' })));
     });
     if (choice === 'lessons') return app.go('practice', { clubId, returnScene: scene.id });
@@ -881,7 +921,7 @@ export async function sceneScreen(app, params) {
     await app.overlay((close) => h('div.pp-panel.pp-modal', null,
       h('h2.pp-h2', { text: `${club.clubName}: trophy hall` }),
       h('div.pp-tiles', null, CLUBS.map((c) => h('div.pp-tile', { class: career.trophies[c.clubId] ? 'pp-tile--epic' : '' },
-        h('b.pp-trophy', { class: career.trophies[c.clubId] ? '' : 'is-empty', text: '🏆' }),
+        h('b.pp-trophy', { class: career.trophies[c.clubId] ? '' : 'is-empty' }, pixelIcon('trophy', { size: 'xl' })),
         h('span', { text: c.trophyName }), h('div.pp-small.pp-muted', { text: c.city })))),
       h('p', { text: career.trophies[clubId] ? `Your name is engraved on ${club.trophyName}.` : `${club.trophyName} is still waiting for a name.` }),
       button('Close', () => close(), { cls: 'pp-btn--small' })));
@@ -919,10 +959,10 @@ export async function sceneScreen(app, params) {
       h('ol.pp-col', { style: { paddingLeft: '20px' } }, f.opponents.map((id, i) => {
         const s = starById(id);
         return h('li', null, h('b', { text: FINALE.rounds[i].label }), `: ${s.name} (${openingById(s.openingId).name}) · ${finaleElo(i, career.difficulty)}`,
-          i < f.round ? ' · ✔' : i === f.round ? ' · ◀ next' : '');
+          i < f.round ? ' \u00b7 done' : i === f.round ? ' \u00b7 next' : '');
       })),
       h('div.pp-row', null,
-        button(`${round.label} vs ${star.name}`, () => close('play'), { cls: 'pp-btn--gold', icon: '♛' }),
+        button(`${round.label} vs ${star.name}`, () => close('play'), { cls: 'pp-btn--gold', icon: pixelIcon('trophy', { size: 'sm' }) }),
         button('Not yet', () => close(null), { cls: 'pp-btn--small' }))));
     if (choice !== 'play') return;
     await app.dialogue({ name: star.name, role: `${round.label} · ${star.title}`, look: star.look, lines: starLines(career, star.id, 'finale') });
@@ -954,7 +994,7 @@ export async function sceneScreen(app, params) {
       app.coach('members', 'The people around the club like a game too. Talk to them for tips, or play them for coins.', { title: 'Club members' });
     }
     if (trophyCount(career) >= 1 && career.trophies[clubId] && !hasAllTrophies(career)) {
-      app.coach('travel', 'Trophy won! Open the 🗺 Map (top bar) and fly to another city for the next one.', { title: 'Time to travel' });
+      app.coach('travel', 'Trophy won! Open the Map (top bar) and fly to another city for the next one.', { title: 'Time to travel' });
     }
     if (scene.kind === 'interior' && (career.tournaments[clubId]?.attempt || 0) >= 1 && !career.trophies[clubId]) {
       app.coach('practice', `Want to get better at the ${openingById(club.openingId).name}? The practice room has its tutorial and drills. Optional, but it raises your mastery.`, { title: 'Practice room' });

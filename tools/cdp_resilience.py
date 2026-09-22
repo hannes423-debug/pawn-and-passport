@@ -65,6 +65,13 @@ try:
       engineService.analyze = async () => { throw new Error('worker died'); };
       engineService.review = async () => { throw new Error('worker died'); };
       window.__fallbacks = 0; window.__toasts = [];
+      /* Pin the bot's dice high. Three of its decisions never ask the engine
+         at all - the opening book, the free-material grab and the unforced
+         error - and at 700 Elo the error alone fires about two moves in
+         three, so with real dice four moves reach the ENGINE fallback only
+         about four times in five. 0.99 loses every one of those rolls, which
+         is the only way this can test the fallback rather than the weather. */
+      window.__pap.current.match.bot.random = () => 0.99;
       window.__pap.current.match.on((e) => { if (e.type === 'bot-fallback') window.__fallbacks += 1; });
       new MutationObserver(() => document.querySelectorAll('.pp-toast').forEach((t) => window.__toasts.push(t.textContent)))
         .observe(document.body, { childList: true, subtree: true }); })()""", await_promise=True)

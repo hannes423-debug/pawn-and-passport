@@ -10,6 +10,7 @@
  */
 
 import { h, button, wait } from '../dom.js';
+import { pixelIcon } from '../icons.js';
 import { sfx } from '../audio.js';
 import { portraitUrl } from '../sprites.js';
 import { createBoard } from '../board.js';
@@ -76,7 +77,7 @@ export function drillScreen(app, params) {
   const title = h('h2.pp-h2');
   const history = h('p.pp-small');
   const status = h('p');
-  const nextBtn = button('Next', () => load(index + 1), { cls: 'pp-btn--gold', icon: '▶' });
+  const nextBtn = button('Next', () => load(index + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) });
 
   const panel = h('aside.pp-match__left', null,
     h('div.pp-panel.pp-player.pp-match__opp', null,
@@ -87,7 +88,7 @@ export function drillScreen(app, params) {
       h('div.pp-puzzle__info', null, dots, title, history, status),
       h('div.pp-row.pp-puzzle__actions', null,
         nextBtn,
-        button('Show answer', () => reveal(), { cls: 'pp-btn--small pp-btn--blue', icon: '💡' }),
+        button('Show answer', () => reveal(), { cls: 'pp-btn--small pp-btn--blue', icon: pixelIcon('hint', { size: 'sm' }) }),
         button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small' }))));
   const el = h('div.pp-screen.pp-match.pp-match--puzzle', null, panel, h('main.pp-match__board', null, board.frame), h('aside.pp-match__right'));
 
@@ -126,7 +127,7 @@ export function drillScreen(app, params) {
       misses += 1;
       sfx.mistake();
       board.fx.shake();
-      board.fx.chip(move.to, '✗ Not book', '#ff8f3a');
+      board.fx.chip(move.to, 'Not book', '#ff8f3a');
       if (results[index] === undefined) results[index] = false;
       status.textContent = misses >= 2 ? 'Here is the book move: follow the arrow.' : 'Not the book move. Think about the plan of the opening.';
       if (misses >= 2) reveal(false);
@@ -143,7 +144,7 @@ export function drillScreen(app, params) {
     sfx.best();
     board.fx.ring(move.to, '#36d6d6');
     const others = p.answers.filter((a) => a.uci !== uci).map((a) => a.san);
-    status.textContent = `✔ ${hit.san}${others.length ? ` (also book: ${others.join(', ')})` : ''}`;
+    status.textContent = `${hit.san}${others.length ? ` (also book: ${others.join(', ')})` : ''}`;
     paintDots();
     await wait(700);
     nextBtn.hidden = false;

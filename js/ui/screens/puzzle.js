@@ -8,6 +8,7 @@
  */
 
 import { h, button, wait } from '../dom.js';
+import { pixelIcon } from '../icons.js';
 import { sfx } from '../audio.js';
 import { portraitUrl } from '../sprites.js';
 import { createBoard } from '../board.js';
@@ -57,7 +58,7 @@ export function puzzleScreen(app, params) {
   const dots = h('div.pp-dots');
   const hintText = h('p.pp-small.pp-muted');
   const source = h('p.pp-small.pp-muted');
-  const nextBtn = button('Next puzzle', () => load(index + 1), { cls: 'pp-btn--gold', icon: '▶' });
+  const nextBtn = button('Next puzzle', () => load(index + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) });
   const panel = h('aside.pp-match__left', null,
     h('div.pp-panel.pp-player.pp-match__opp', null,
       h('img', { alt: '', src: portraitUrl(host.look) }),
@@ -69,7 +70,7 @@ export function puzzleScreen(app, params) {
         dots, title, status, hintText, source),
       h('div.pp-row.pp-puzzle__actions', null,
         nextBtn,
-        button('Hint', () => giveHint(), { cls: 'pp-btn--small pp-btn--blue', icon: '💡' }),
+        button('Hint', () => giveHint(), { cls: 'pp-btn--small pp-btn--blue', icon: pixelIcon('hint', { size: 'sm' }) }),
         button('Retry', () => load(index), { cls: 'pp-btn--small' }),
         button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small' }))));
   if (practice) dots.classList.add('pp-dots--many');
@@ -112,7 +113,7 @@ export function puzzleScreen(app, params) {
     const mates = probe.isCheckmate();
     if (uci !== expected && !mates) {
       sfx.mistake();
-      board.fx.chip(move.to, '✗ Not quite', '#ff8f3a');
+      board.fx.chip(move.to, 'Not quite', '#ff8f3a');
       board.fx.shake();
       status.textContent = 'Not the move. Look again.';
       return;
@@ -190,7 +191,7 @@ export function puzzleScreen(app, params) {
     const letters = [...POSTCARDS].sort((x, y) => x.order - y.order)
       .map((pc) => h('span', { class: career.postcards[pc.id] ? `is-got${pc.id === postcard.id ? ' is-new' : ''}` : '', text: career.postcards[pc.id] ? pc.letter : '?' }));
     await app.overlay((close) => h('div.pp-panel.pp-modal.pp-postcard-reward', { style: { textAlign: 'center' } },
-      h('div.pp-postcard-reward__count', { text: `✉ Postcard ${count} of 6` }),
+      h('div.pp-postcard-reward__count', null, pixelIcon('postcard', { size: 'md' }), h('span', { text: ` Postcard ${count} of 6` })),
       h('h2.pp-h1', { text: `Greetings from ${club.city}!` }),
       h('p.pp-small', { text: `${tapWord()[0].toUpperCase()}${tapWord().slice(1)} the card to turn it over and read the back.` }),
       postcardFlip(postcard, { collected: true, startFlipped: false }),

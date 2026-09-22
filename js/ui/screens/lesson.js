@@ -15,6 +15,7 @@
  */
 
 import { h, button, wait } from '../dom.js';
+import { pixelIcon } from '../icons.js';
 import { sfx } from '../audio.js';
 import { createBoard } from '../board.js';
 import { createRules } from '../../chess/core/rules.js';
@@ -23,8 +24,9 @@ import { lessonById } from '../../data/lessons.js';
 import { tierForBand, lessonProgress, markRead, markWatched, recordChallengeSolved, settleLesson } from '../../core/lessons.js';
 
 const BRANCH_ICON = {
-  fundamentals: '♟', vision: '👁', tactics: '⚔', calculation: '🧮', checkmates: '♔',
-  openings: '📖', strategy: '🗺', pawns: '⛊', endgames: '🏁', defense: '🛡', practical: '⏱', analysis: '🔍'
+  fundamentals: 'pawn', vision: 'hint', tactics: 'xp', calculation: 'practice', checkmates: 'side-white',
+  openings: 'journal', strategy: 'map', pawns: 'pawn', endgames: 'trophy', defense: 'side-black',
+  practical: 'club', analysis: 'practice'
 };
 const bandLabel = (band) => (band === 0 ? 'Start' : String(band));
 
@@ -98,14 +100,14 @@ export function lessonScreen(app, params) {
   /* ------------------------------------------------------------------ paint */
   function paintTabs() {
     const p = lessonProgress(career, lesson);
-    const tab = (id, label, done, note) => h('button.pp-lesson__tab', {
+    const tab = (id, icon, label, done, note) => h('button.pp-lesson__tab', {
       type: 'button', class: `${step === id ? 'is-active' : ''} ${done ? 'is-done' : ''}`,
       onclick: () => setStep(id)
-    }, h('b', { text: label }), h('span.pp-small', { text: note }));
+    }, h('b', null, pixelIcon(icon, { size: 'sm' }), h('span', { text: ` ${label}` })), h('span.pp-small', { text: note }));
     fill(tabs,
-      tab('read', '📖 Instructions', p.read, p.read ? 'read' : 'unread'),
-      lesson.demo.length ? tab('watch', '▶ Watch', p.watched, p.watched ? 'watched' : `${lesson.demo.length} frames`) : null,
-      tab('solve', '🎯 Challenges', p.solved >= p.total, `${p.solved}/${p.total} solved`)
+      tab('read', 'journal', 'Instructions', p.read, p.read ? 'read' : 'unread'),
+      lesson.demo.length ? tab('watch', 'play', 'Watch', p.watched, p.watched ? 'watched' : `${lesson.demo.length} frames`) : null,
+      tab('solve', 'practice', 'Challenges', p.solved >= p.total, `${p.solved}/${p.total} solved`)
     );
     progressLine.textContent = p.complete
       ? 'Lesson complete. Everything here stays open: replay it whenever you like.'
@@ -145,8 +147,8 @@ export function lessonScreen(app, params) {
         : 'Next: try the challenges. You can come back to this page any time.' }));
     fill(actions,
       lesson.demo.length
-        ? button('Watch it', () => setStep('watch'), { cls: 'pp-btn--gold', icon: '▶' })
-        : button('Challenges', () => setStep('solve'), { cls: 'pp-btn--gold', icon: '🎯' }),
+        ? button('Watch it', () => setStep('watch'), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) })
+        : button('Challenges', () => setStep('solve'), { cls: 'pp-btn--gold', icon: pixelIcon('practice', { size: 'sm' }) }),
       button('Back to the tree', backToTree, { cls: 'pp-btn--small' }));
   }
 
@@ -178,11 +180,11 @@ export function lessonScreen(app, params) {
         h('p.pp-lesson__text', { html: richText(f.text || (f.move ? f.move.san : '')) })),
       h('div.pp-dots', null, lesson.demo.map((_, i) => h('span.pp-dot', { class: i === frame ? 'is-current' : (i < frame ? 'is-done' : '') }))));
     fill(actions,
-      button('◀', () => goFrame(frame - 1), { cls: 'pp-btn--small', title: 'Previous frame' }),
-      button(autoplay ? '⏸ Pause' : '▶ Play', () => toggleAuto(), { cls: 'pp-btn--small pp-btn--blue' }),
+      button('Back', () => goFrame(frame - 1), { cls: 'pp-btn--small', title: 'Previous frame', icon: pixelIcon('back', { size: 'sm' }) }),
+      button(autoplay ? 'Pause' : 'Play', () => toggleAuto(), { cls: 'pp-btn--small pp-btn--blue', icon: pixelIcon('play', { size: 'sm' }) }),
       last
-        ? button('Challenges', () => setStep('solve'), { cls: 'pp-btn--gold', icon: '🎯' })
-        : button('Next', () => goFrame(frame + 1), { cls: 'pp-btn--gold', icon: '▶' }),
+        ? button('Challenges', () => setStep('solve'), { cls: 'pp-btn--gold', icon: pixelIcon('practice', { size: 'sm' }) })
+        : button('Next', () => goFrame(frame + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) }),
       button('Instructions', () => setStep('read'), { cls: 'pp-btn--small' }),
       button('Tree', backToTree, { cls: 'pp-btn--small' }));
     if (last) finishWatching();
@@ -249,7 +251,7 @@ export function lessonScreen(app, params) {
     fill(body,
       h('div.pp-row', { style: { justifyContent: 'space-between' } },
         h('div.pp-small.pp-muted', { text: `Challenge ${index + 1} of ${lesson.challenges.length}${c.label ? ` · ${c.label}` : ''}` }),
-        h('div.pp-small', { text: done ? '✓ solved' : (c.kind === 'square' ? 'tap a square' : `${c.sideToMove === 'w' ? 'White' : 'Black'} to move`) })),
+        h('div.pp-small', { text: done ? 'solved' : (c.kind === 'square' ? 'tap a square' : `${c.sideToMove === 'w' ? 'White' : 'Black'} to move`) })),
       h('p.pp-lesson__text', { html: richText(c.prompt) }),
       verdictLine,
       hintLine,
@@ -260,10 +262,10 @@ export function lessonScreen(app, params) {
       }))));
     const next = index < lesson.challenges.length - 1;
     fill(actions,
-      solvedNow && next ? button('Next challenge', () => loadChallenge(index + 1), { cls: 'pp-btn--gold', icon: '▶' }) : null,
+      solvedNow && next ? button('Next challenge', () => loadChallenge(index + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) }) : null,
       solvedNow && !next ? button('Back to the tree', backToTree, { cls: 'pp-btn--gold' }) : null,
-      c.hints.length ? button('Hint', () => giveHint(), { cls: 'pp-btn--small pp-btn--blue', icon: '💡', disabled: hintLevel >= c.hints.length + 1 }) : null,
-      button('Retry', () => loadChallenge(index), { cls: 'pp-btn--small', icon: '↺' }),
+      c.hints.length ? button('Hint', () => giveHint(), { cls: 'pp-btn--small pp-btn--blue', icon: pixelIcon('hint', { size: 'sm' }), disabled: hintLevel >= c.hints.length + 1 }) : null,
+      button('Retry', () => loadChallenge(index), { cls: 'pp-btn--small', icon: pixelIcon('back', { size: 'sm' }) }),
       button('Instructions', () => setStep('read'), { cls: 'pp-btn--small' }),
       button('Tree', backToTree, { cls: 'pp-btn--small' }));
   }
@@ -309,7 +311,7 @@ export function lessonScreen(app, params) {
     renderer.render(rules.fen(), { move: { from: applied.from, to: applied.to } });
     locked = true;
     sfx.mistake();
-    board.fx.chip(applied.to, verdict?.outcome === 'retry' ? '↺ Try again' : '✗', '#ff8f3a');
+    board.fx.chip(applied.to, verdict?.outcome === 'retry' ? 'Try again' : 'No', '#ff8f3a');
     if (verdict?.outcome !== 'retry') board.fx.shake();
     paintChallenge(verdict?.text || c.fallback, 'is-bad');
     await wait(1500);

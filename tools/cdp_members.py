@@ -5,12 +5,13 @@ tools/cdp_members.py - club members, challenges for coins, the tournament desk.
     python3 tools/serve.py 8123 &
     python3 tools/cdp_members.py [390x844] [--scenes]
 
-  1. members stand in the club, with name tags, and are listed in the dock
+  1. members stand in the club under a speech bubble - NOT under a permanent
+     name tag - and are listed by name in the dock
   2. talking to one offers a challenge with a stake; accepting starts a
      challenge match that shows the stake; losing it costs exactly the stake
   3. the tournament desk enters a real event (16-player Swiss in New York)
      with a standings table; a played round reports the other results
-  4. the match's 📖 Notes button hides the opening card, and it stays hidden
+  4. the match's Notes button hides the opening card, and it stays hidden
   --scenes  also screenshots every scene that has members, for review
 """
 import os
@@ -69,7 +70,22 @@ try:
     tags = c.eval("document.querySelectorAll('.pp-hotspot.is-member').length")
     actors = c.eval("document.querySelectorAll('canvas.pp-actor').length")
     people = c.eval("document.querySelectorAll('.pp-scene__people button').length")
-    check(tags >= 2, f"members have name tags in nyc-int ({tags})")
+    check(tags >= 2, f"members stand in nyc-int ({tags})")
+    # Every member wears the speech bubble; NONE of them shows a name until
+    # the player is near, or the room is a wall of name plates.
+    bubbles = c.eval("document.querySelectorAll('.pp-hotspot.is-member .pp-hotspot__bubble img.pp-ico').length")
+    check(bubbles == tags, f"every member has a speech-bubble icon ({bubbles}/{tags})")
+    shown = c.eval("""[...document.querySelectorAll('.pp-hotspot.is-member .pp-hotspot__name')]
+        .filter((n) => getComputedStyle(n).visibility !== 'hidden').length""")
+    check(shown == 0, f"no member name is on screen before the player walks up ({shown} showing)")
+    # Walking up to one reveals THAT name and no other.
+    c.eval("""(() => { const s = window.__pap.current; const spot = document.querySelector('.pp-hotspot.is-member');
+        spot.classList.add('is-near'); return 1; })()""")
+    c.pump(0.4)
+    near = c.eval("""[...document.querySelectorAll('.pp-hotspot.is-member .pp-hotspot__name')]
+        .filter((n) => getComputedStyle(n).visibility !== 'hidden').map((n) => n.textContent)""")
+    check(len(near) == 1 and near[0], f"approaching a member shows only that name ({near})")
+    c.eval("document.querySelector('.pp-hotspot.is-member').classList.remove('is-near')")
     check(actors >= tags + 3, f"members are drawn as characters ({actors} actors)")
     check(people == tags, f"members are listed in the dock ({people})")
     hud = c.eval("document.querySelector('.pp-hud__coins b')?.textContent")
@@ -89,7 +105,7 @@ try:
 
     # 4 (in this match). The notes toggle.
     btn = c.eval("!!document.querySelector('.pp-notesbtn')")
-    check(btn, "the match has a 📖 Notes button")
+    check(btn, "the match has a Notes button")
     c.eval("document.querySelector('.pp-notesbtn').click()")
     c.pump(0.3)
     check(c.eval("window.__pap.settings.openingNotes") is False, "Notes off is saved in the settings")

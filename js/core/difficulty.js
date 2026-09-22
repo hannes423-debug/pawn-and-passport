@@ -5,15 +5,33 @@
  * is and how noisily it is sampled) from STYLE (which candidate a personality
  * prefers). This file only sets the strength knobs from an Elo, by
  * interpolating config.BOT_STRENGTH, and hands the rest to BotProfile.
+ *
+ * ELO IS ABSOLUTE. `strengthForElo` takes an Elo and nothing else: not the
+ * campaign difficulty, not the tier, not who the opponent is. That signature
+ * is the guarantee - a 900 met in Easy, in Normal and in Hard is built from
+ * the same row of the same table, so "900 Elo" means one thing everywhere in
+ * the game. Difficulty picks which Elos appear on the ladder (js/data/
+ * config.js DIFFICULTY); it never reaches past that into how one plays.
+ *
+ * `style` is the other axis and it is deliberately weak: it reorders moves
+ * the engine already called reasonable. It cannot make a stated 900 play like
+ * an 1100 because it never widens the candidate pool or the eval-loss filter
+ * - those come from the Elo alone.
  */
 
-import { BOT_STRENGTH, ELO } from '../data/config.js';
+import { BOT_STRENGTH, BOT_ELO } from '../data/config.js';
 import { BotProfile } from '../chess/bots/botProfile.js';
 
 const lerp = (a, b, t) => a + (b - a) * t;
 
+/**
+ * @param {number} elo the opponent's absolute rating - the ONLY input
+ * @returns {{elo:number, strength:number, blunderChance:number, blunderSeverityCp:number,
+ *            wildness:number, candidatePool:number, maxEvalLossCp:number,
+ *            seesFreeMaterialCp:number, greed:number, level:string}}
+ */
 export function strengthForElo(elo) {
-  const target = Math.max(BOT_STRENGTH[0].elo, Math.min(ELO.cap, elo));
+  const target = Math.max(BOT_ELO.min, Math.min(BOT_ELO.max, elo));
   let lo = BOT_STRENGTH[0];
   let hi = BOT_STRENGTH[BOT_STRENGTH.length - 1];
   for (let i = 0; i < BOT_STRENGTH.length - 1; i += 1) {
@@ -30,6 +48,8 @@ export function strengthForElo(elo) {
     wildness: +lerp(lo.wildness, hi.wildness, t).toFixed(3),
     candidatePool: Math.round(lerp(lo.candidatePool, hi.candidatePool, t)),
     maxEvalLossCp: Math.round(lerp(lo.maxEvalLossCp, hi.maxEvalLossCp, t)),
+    seesFreeMaterialCp: Math.round(lerp(lo.seesFreeMaterialCp, hi.seesFreeMaterialCp, t)),
+    greed: +lerp(lo.greed, hi.greed, t).toFixed(3),
     level: t < 0.5 ? lo.level : hi.level
   };
 }
@@ -53,6 +73,8 @@ export function profileForOpponent({ id = null, name, elo, style = 'balanced', o
   profile.wildness = s.wildness;
   profile.candidatePool = s.candidatePool;
   profile.maxEvalLossCp = s.maxEvalLossCp;
+  profile.seesFreeMaterialCp = s.seesFreeMaterialCp;
+  profile.greed = s.greed;
   return profile;
 }
 

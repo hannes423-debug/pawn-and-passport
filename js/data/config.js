@@ -60,13 +60,30 @@ export const PRACTICE = Object.freeze({
   xpLesson: 40      // first time a lesson is fully complete
 });
 
-/* ====================================================================== elo === */
+/* ====================================================================== elo ===
+ *
+ * TWO ratings live here and they are not the same number.
+ *
+ * ELO is the PLAYER's: where a career starts, how far it can fall, and the K
+ * factor each kind of game is rated at. It has no ceiling, because the player
+ * is allowed to outgrow the tour.
+ *
+ * BOT_ELO is the range of OPPONENT strength this game knows how to build. 250
+ * is the weakest opponent BOT_STRENGTH can describe; 1500 is the strongest the
+ * campaign is designed around (the Madrid final), and no campaign opponent may
+ * be asked for above it. They used to be one `ELO.cap`, which meant a change
+ * to the opponent ceiling silently moved the player's rating rules too.
+ */
 export const ELO = Object.freeze({
   start: 600,
   floor: 100,
   /* Friendlies are practice: unrated (K = 0). */
-  k: { friendly: 0, challenge: 16, tournament: 32, star: 32, finale: 32 },
-  cap: 1600
+  k: { friendly: 0, challenge: 16, tournament: 32, star: 32, finale: 32 }
+});
+
+export const BOT_ELO = Object.freeze({
+  min: 250,
+  max: 1500
 });
 
 /* ================================================================ difficulty ===
@@ -78,6 +95,14 @@ export const ELO = Object.freeze({
  * rounds. Nothing else in the game branches on the difficulty; everything
  * asks difficultyMode() for the curve and goes through the same
  * js/core/difficulty.js pipeline into a bot profile.
+ *
+ * THE RULE: Elo is absolute. A mode's numbers are literal opponent Elo and
+ * nothing else. Difficulty decides WHICH Elos a player meets, never how an
+ * opponent of a given Elo plays - a 900 in Easy, a 900 in Normal and a 900 in
+ * Hard are the same bot, because all three go through the one
+ * `strengthForElo(elo)` and it is not told which mode asked. Style
+ * (aggressive, positional, ...) chooses between REASONABLE moves and is a
+ * character trait, not a strength knob. tests/run.js asserts both halves.
  *
  * These numbers are PLAYING STRENGTH, checked with tools/dev/calibrate_bots.mjs
  * (average centipawn loss against a depth-12 reference), not labels. The
@@ -91,24 +116,22 @@ export const DIFFICULTY = Object.freeze({
       label: 'Easy',
       tagline: 'Learning the ropes',
       blurb: 'For complete beginners. Your opponents still get stronger as you travel, but they miss much more and leave you room to come back.',
-      /* The first rung is 500, not the 300 the design asked for, and that is a
-         floor rather than a choice: Stockfish refuses to limit itself below
-         UCI_Elo 1320, so under about 600 the only way left to weaken an
-         opponent is to have it play at random - which is exactly the "random
-         nonsense" an Easy mode must not be. Measured, 400 and 600 both come
-         out around 600. Everything from the second club up is where the
-         design put it. */
-      regularBands: Object.freeze([[500, 600], [580, 680], [650, 750], [720, 820], [790, 890], [860, 960]]),
-      starByTier: Object.freeze([550, 620, 700, 780, 860, 950]),
-      finaleRounds: Object.freeze([980, 1040, 1100])
+      /* Easy starts where somebody who has just learned how the pieces move
+         actually starts. A 250-400 opponent develops badly, hangs pieces and
+         misses what you are threatening - but it still takes what you leave
+         hanging, because a beginner who refuses a free queen is not a
+         beginner, it is a random move generator. See BOT_STRENGTH. */
+      regularBands: Object.freeze([[250, 400], [400, 500], [500, 600], [600, 700], [700, 800], [800, 900]]),
+      starByTier: Object.freeze([400, 500, 600, 700, 800, 900]),
+      finaleRounds: Object.freeze([900, 950, 1000])
     }),
     Object.freeze({
       id: 'normal',
       label: 'Normal',
       tagline: 'Chess career',
       blurb: 'The intended Pawn & Passport progression. A club player should finish it, and the last cities should still make them work.',
-      regularBands: Object.freeze([[550, 650], [700, 800], [850, 950], [1000, 1100], [1100, 1200], [1200, 1300]]),
-      starByTier: Object.freeze([600, 750, 900, 1050, 1150, 1250]),
+      regularBands: Object.freeze([[500, 650], [650, 800], [800, 900], [900, 1000], [1000, 1100], [1100, 1200]]),
+      starByTier: Object.freeze([650, 800, 900, 1000, 1100, 1250]),
       finaleRounds: Object.freeze([1300, 1375, 1450])
     }),
     Object.freeze({
@@ -116,9 +139,9 @@ export const DIFFICULTY = Object.freeze({
       label: 'Hard',
       tagline: 'Club challenge',
       blurb: 'For experienced club players who want the opposition to punish them. Every city is a step up from Normal.',
-      regularBands: Object.freeze([[750, 850], [900, 1000], [1050, 1150], [1200, 1300], [1300, 1400], [1400, 1500]]),
-      starByTier: Object.freeze([800, 950, 1100, 1250, 1350, 1450]),
-      finaleRounds: Object.freeze([1500, 1550, 1600])
+      regularBands: Object.freeze([[700, 800], [800, 900], [900, 1000], [1000, 1100], [1100, 1250], [1250, 1400]]),
+      starByTier: Object.freeze([850, 950, 1050, 1150, 1300, 1400]),
+      finaleRounds: Object.freeze([1400, 1450, 1500])
     })
   ])
 });
@@ -360,11 +383,14 @@ export const SCORE = Object.freeze({
 /* A target Elo, as an opponent. js/core/difficulty.js interpolates this table
  * and hands the result to the bot; nothing else decides how strong anyone is.
  *
- * MEASURED, NOT ASSUMED. The old table's numbers were labels: measured against
- * a depth-12 reference, its "600" opponent played like 1130 and its "1250"
- * like 1600+, which is why a 1200-rated player could not get past the sixth
- * club. tools/dev/calibrate_bots.mjs prints the average centipawn loss each
- * row actually produces; the comments are what it printed.
+ * MEASURED, NOT ASSUMED. tools/dev/calibrate_bots.mjs prints the average
+ * centipawn loss each row actually produces against a depth-12 reference.
+ * At --samples=40 this table measures 269 / 242 / 188 / 160 / 120 / 94 / 75
+ * ACPL at labels 300 / 500 / 700 / 900 / 1100 / 1300 / 1500: strictly
+ * monotone, evenly separated. Read the ladder, not the absolute number - the
+ * tool's ACPL-to-Elo anchors are approximate and its estimate runs about 130
+ * points under the label all the way up, which is an offset in the anchors,
+ * not a step in the table.
  *
  * Stockfish will not limit itself below UCI_Elo 1320, so under about 1200 the
  * strength does not come from the engine at all. It comes from `blunderChance`
@@ -372,15 +398,35 @@ export const SCORE = Object.freeze({
  * error may hand over - a hung queen at the bottom, a dropped pawn near the
  * top). That pair is what makes a beginner opponent feel like a beginner
  * rather than like a strong engine playing quickly.
+ *
+ * Two of the columns exist to keep a weak bot BAD rather than RANDOM:
+ *
+ *   seesFreeMaterialCp  how much material has to be hanging, in centipawns,
+ *                       before this opponent notices. At 250 it takes a loose
+ *                       knight or better; at 1500 a loose pawn is enough.
+ *   greed               how often it takes what it noticed. Weak players are
+ *                       greedy: they grab the piece first and find out
+ *                       afterwards that the capture walked into a fork. That
+ *                       is a far more believable 300 than one that leaves a
+ *                       queen standing because a dice roll said so.
+ *
+ * Together they mean the unforced-error roll can never skip an obviously free
+ * capture, which is what "human-like, not random" comes down to in practice.
+ * Stockfish itself is never asked to play below UCI_Elo 1320 (it refuses):
+ * every rung under that is this table and the bot layer on top of it.
  */
 export const BOT_STRENGTH = Object.freeze([
-  { elo: 250, strength: 0.02, blunderChance: 0.80, blunderSeverityCp: 950, wildness: 0.55, candidatePool: 6, maxEvalLossCp: 2000, level: 'novice' },
-  { elo: 500, strength: 0.05, blunderChance: 0.72, blunderSeverityCp: 820, wildness: 0.45, candidatePool: 6, maxEvalLossCp: 1600, level: 'novice' },
-  { elo: 750, strength: 0.09, blunderChance: 0.62, blunderSeverityCp: 680, wildness: 0.34, candidatePool: 5, maxEvalLossCp: 1200, level: 'novice' },
-  { elo: 1000, strength: 0.16, blunderChance: 0.50, blunderSeverityCp: 540, wildness: 0.24, candidatePool: 5, maxEvalLossCp: 900, level: 'novice' },
-  { elo: 1250, strength: 0.26, blunderChance: 0.38, blunderSeverityCp: 400, wildness: 0.15, candidatePool: 5, maxEvalLossCp: 700, level: 'novice' },
-  { elo: 1450, strength: 0.40, blunderChance: 0.28, blunderSeverityCp: 300, wildness: 0.08, candidatePool: 4, maxEvalLossCp: 480, level: 'beginner' },
-  { elo: 1600, strength: 0.58, blunderChance: 0.20, blunderSeverityCp: 230, wildness: 0.03, candidatePool: 4, maxEvalLossCp: 330, level: 'beginner' }
+  /* elo   strength  blunder  severity  wild  pool  maxLoss  seesFree  greed  level */
+  { elo: 250,  strength: 0.020, blunderChance: 0.850, blunderSeverityCp: 1100, wildness: 0.620, candidatePool: 6, maxEvalLossCp: 2000, seesFreeMaterialCp: 320, greed: 0.72, level: 'novice' },
+  { elo: 400,  strength: 0.035, blunderChance: 0.780, blunderSeverityCp: 980,  wildness: 0.530, candidatePool: 6, maxEvalLossCp: 1800, seesFreeMaterialCp: 300, greed: 0.76, level: 'novice' },
+  { elo: 550,  strength: 0.055, blunderChance: 0.715, blunderSeverityCp: 860,  wildness: 0.450, candidatePool: 6, maxEvalLossCp: 1560, seesFreeMaterialCp: 280, greed: 0.79, level: 'novice' },
+  { elo: 700,  strength: 0.082, blunderChance: 0.650, blunderSeverityCp: 740,  wildness: 0.375, candidatePool: 5, maxEvalLossCp: 1300, seesFreeMaterialCp: 250, greed: 0.82, level: 'novice' },
+  { elo: 850,  strength: 0.115, blunderChance: 0.580, blunderSeverityCp: 640,  wildness: 0.305, candidatePool: 5, maxEvalLossCp: 1100, seesFreeMaterialCp: 220, greed: 0.85, level: 'novice' },
+  { elo: 1000, strength: 0.160, blunderChance: 0.490, blunderSeverityCp: 545,  wildness: 0.240, candidatePool: 5, maxEvalLossCp: 900,  seesFreeMaterialCp: 190, greed: 0.87, level: 'novice' },
+  { elo: 1150, strength: 0.210, blunderChance: 0.410, blunderSeverityCp: 460,  wildness: 0.185, candidatePool: 5, maxEvalLossCp: 790,  seesFreeMaterialCp: 160, greed: 0.89, level: 'novice' },
+  { elo: 1300, strength: 0.280, blunderChance: 0.320, blunderSeverityCp: 370,  wildness: 0.125, candidatePool: 5, maxEvalLossCp: 670,  seesFreeMaterialCp: 130, greed: 0.91, level: 'novice' },
+  { elo: 1400, strength: 0.345, blunderChance: 0.255, blunderSeverityCp: 315,  wildness: 0.090, candidatePool: 4, maxEvalLossCp: 560,  seesFreeMaterialCp: 115, greed: 0.92, level: 'beginner' },
+  { elo: 1500, strength: 0.420, blunderChance: 0.195, blunderSeverityCp: 265,  wildness: 0.060, candidatePool: 4, maxEvalLossCp: 470,  seesFreeMaterialCp: 100, greed: 0.94, level: 'beginner' }
 ]);
 
 export const BOOK = Object.freeze({
@@ -389,4 +435,4 @@ export const BOOK = Object.freeze({
   starPreference: 1.0
 });
 
-export default { GAME, LEVELS, XP, ELO, DIFFICULTY, difficultyMode, FOCUS, HINTS, GUIDE, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, MEMBERS, SIM, COINS, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK, PRACTICE };
+export default { GAME, LEVELS, XP, ELO, BOT_ELO, DIFFICULTY, difficultyMode, FOCUS, HINTS, GUIDE, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, MEMBERS, SIM, COINS, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK, PRACTICE };

@@ -60,12 +60,12 @@ export const BEYOND_THE_TOUR = Object.freeze({
   ],
   /* Silhouettes on the teaser page. Deliberately vague: rumours, not features. */
   silhouettes: [
-    { id: 'leagues', label: 'International leagues', glyph: '🌐' },
-    { id: 'cards', label: 'A player you can collect', glyph: '🂠' },
-    { id: 'elite', label: 'Elite invitationals', glyph: '♛' },
-    { id: 'teams', label: 'Teams under one flag', glyph: '⚑' },
-    { id: 'events', label: 'Events that arrive with the seasons', glyph: '✦' },
-    { id: 'circuit', label: 'A world circuit', glyph: '✈' }
+    { id: 'leagues', label: 'International leagues', icon: 'map' },
+    { id: 'cards', label: 'A player you can collect', icon: 'postcard' },
+    { id: 'elite', label: 'Elite invitationals', icon: 'trophy' },
+    { id: 'teams', label: 'Teams under one flag', icon: 'club' },
+    { id: 'events', label: 'Events that arrive with the seasons', icon: 'xp' },
+    { id: 'circuit', label: 'A world circuit', icon: 'passport' }
   ],
   signoff: 'Same game. A bigger world. See you on the World Tour.'
 });

@@ -11,6 +11,7 @@ import { sfx, unlockAudio, configureAudio } from './audio.js';
 import * as music from './music.js';
 import { configureTouch, installTouchDetection, tapWord, canFullscreen, toggleFullscreen } from './touch.js';
 import { portraitUrl, PLAYER_LOOKS, setPlayerAvatar } from './sprites.js';
+import { pixelIcon } from './icons.js';
 import * as Save from '../core/save.js';
 import { xpProgress, maxFocus, trophyCount, postcardCount, migrateCareer, nextStep } from '../core/career.js';
 import { clubById, FINALE } from '../data/clubs.js';
@@ -124,7 +125,7 @@ export function createApp(root, screens) {
         let index = 0;
         let typing = null;
         const text = h('div.pp-dialogue__text');
-        const next = h('div.pp-dialogue__next', { text: `${tapWord()} to continue ▼` });
+        const next = h('div.pp-dialogue__next', { text: `${tapWord()} to continue` });
         const actionRow = h('div.pp-dialogue__actions');
         const img = h('img', { alt: '', src: portrait || (look ? portraitUrl(look) : portraitUrl(PLAYER_LOOKS.boy)) });
         const box = h('div.pp-dialogue', { role: 'dialog', 'aria-live': 'polite' },
@@ -159,9 +160,10 @@ export function createApp(root, screens) {
             next.hidden = true;
             for (const action of actions) {
               actionRow.append(h(`button.pp-btn${action.cls ? `.${action.cls}` : ''}`, {
-                type: 'button', text: action.label,
+                type: 'button',
                 onclick: (e) => { e.stopPropagation(); sfx.click(); finish(action.id); }
-              }));
+              }, action.icon ? h('span.pp-btn__icon', { 'aria-hidden': 'true' }, action.icon) : null,
+                h('span', { text: action.label })));
             }
             actionRow.querySelector('button')?.focus();
           } else {
@@ -197,19 +199,23 @@ export function createApp(root, screens) {
         h('div.pp-hud__lvl', { title: xp.max ? 'Max level' : `${xp.into} / ${xp.needed} XP` },
           h('div.pp-small', null, h('span', { text: 'XP' }), h('span', { text: xp.max ? 'MAX' : `${xp.into}/${xp.needed}` })),
           h('div.pp-meter.pp-meter--xp', null, h('div.pp-meter__fill', { style: { width: `${Math.round(xp.fraction * 100)}%` } }))),
-        h('div.pp-hud__stat', { title: 'Elo rating' }, '♟', h('b', { text: c.elo })),
-        h('div.pp-hud__stat.pp-hud__coins', { title: 'Coins: win them from club members and tournaments' }, '🪙', h('b', { text: c.coins ?? 0 })),
-        h('div.pp-hud__stat', { title: 'Maximum Focus' }, '✦', h('b', { text: maxFocus(c.level) })),
-        h('div.pp-hud__stat', { title: 'Club Trophies' }, '🏆', h('b', { text: `${trophyCount(c)}/6` })),
-        h('div.pp-hud__stat', { title: 'Postcards' }, '✉', h('b', { text: `${postcardCount(c)}/6` })),
+        h('div.pp-hud__stat', { title: 'Elo rating' }, pixelIcon('pawn', { size: 'sm' }), h('b', { text: c.elo })),
+        h('div.pp-hud__stat.pp-hud__coins', { title: 'Coins: win them from club members and tournaments' }, pixelIcon('coin', { size: 'sm' }), h('b', { text: c.coins ?? 0 })),
+        h('div.pp-hud__stat', { title: 'Maximum Focus' }, pixelIcon('xp', { size: 'sm' }), h('b', { text: maxFocus(c.level) })),
+        h('div.pp-hud__stat', { title: 'Club Trophies' }, pixelIcon('trophy', { size: 'sm' }), h('b', { text: `${trophyCount(c)}/6` })),
+        h('div.pp-hud__stat', { title: 'Postcards' }, pixelIcon('postcard', { size: 'sm' }), h('b', { text: `${postcardCount(c)}/6` })),
         where ? h('div.pp-hud__where', { text: where }) : null,
         h('div.pp-spacer'),
-        h('button.pp-btn.pp-btn--small.pp-btn--ghost', { type: 'button', 'aria-label': 'Map', onclick: () => { sfx.click(); app.go('map'); } }, '🗺', h('span.pp-hud__label', { text: ' Map' })),
-        h('button.pp-btn.pp-btn--small.pp-btn--ghost', { type: 'button', 'aria-label': 'Journal', onclick: () => { sfx.click(); app.go('journal', { back: app.backParams() }); } }, '📔', h('span.pp-hud__label', { text: ' Journal' })),
-        canFullscreen() ? h('button.pp-btn.pp-btn--small.pp-btn--ghost.pp-hud__fullscreen', { type: 'button', 'aria-label': 'Fullscreen', title: 'Fullscreen', onclick: () => { sfx.click(); toggleFullscreen(); } }, '⛶') : null,
-        h('button.pp-btn.pp-btn--small.pp-btn--ghost', { type: 'button', 'aria-label': 'Settings', onclick: () => { sfx.click(); app.go('settings', { back: app.backParams() }); } }, '⚙'),
+        h('button.pp-btn.pp-btn--small.pp-btn--ghost', { type: 'button', 'aria-label': 'Map', onclick: () => { sfx.click(); app.go('map'); } }, pixelIcon('map', { size: 'sm' }), h('span.pp-hud__label', { text: ' Map' })),
+        h('button.pp-btn.pp-btn--small.pp-btn--ghost', { type: 'button', 'aria-label': 'Journal', onclick: () => { sfx.click(); app.go('journal', { back: app.backParams() }); } }, pixelIcon('journal', { size: 'sm' }), h('span.pp-hud__label', { text: ' Journal' })),
+        /* The only glyph left in the HUD: the icon sheet has no fullscreen
+           symbol, and U+26F6 is a geometric shape rather than an emoji, so it
+           sits with the set rather than against it. Give it an icon and this
+           becomes a pixelIcon call like its neighbours. */
+        canFullscreen() ? h('button.pp-btn.pp-btn--small.pp-btn--ghost.pp-hud__fullscreen', { type: 'button', 'aria-label': 'Fullscreen', title: 'Fullscreen', onclick: () => { sfx.click(); toggleFullscreen(); } }, '\u26f6') : null,
+        h('button.pp-btn.pp-btn--small.pp-btn--ghost', { type: 'button', 'aria-label': 'Settings', onclick: () => { sfx.click(); app.go('settings', { back: app.backParams() }); } }, pixelIcon('settings', { size: 'sm', label: 'Settings' })),
         /* The one thing to do next, always in view. */
-        h('div.pp-hud__next', { role: 'status', title: 'Your next goal' }, h('b', { text: '▶ Next: ' }), nextStep(c).label));
+        h('div.pp-hud__next', { role: 'status', title: 'Your next goal' }, pixelIcon('play', { size: 'sm' }), h('b', { text: ' Next: ' }), nextStep(c).label));
       return bar;
     },
 
@@ -287,7 +293,7 @@ export function createApp(root, screens) {
     if (st.ok) { saveWarning?.remove(); saveWarning = null; return; }
     if (saveWarning) return;
     saveWarning = h('div.pp-savewarn', { role: 'status' },
-      h('b', { text: '⚠ Not saving. ' }),
+      h('b', { text: 'Not saving. ' }),
       st.persistent ? 'Your browser refused to store the game (storage full or blocked).' : 'This browser is not allowing the game to store data (private mode or blocked site data).',
       ' You can keep playing, but progress will be lost when the page is closed or reloaded.');
     document.body.append(saveWarning);

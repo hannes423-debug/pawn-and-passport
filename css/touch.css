@@ -37,7 +37,11 @@ button, a, select, label, .pp-hotspot, .pp-pin, .pp-city, .pp-title__item { touc
   .pp-hud__lvl { width: 84px; }
   .pp-hud__stat { gap: 3px; font-size: 17px; }
   .pp-hud__label { display: none; }
-  .pp-hud .pp-btn--small { min-height: 36px; min-width: 40px; padding: 2px 8px; }
+  /* On touch the HUD's labels are hidden, so Map, Journal, Settings and
+     Fullscreen are icon-only: widen them to a finger. The HEIGHT stays the
+     HUD's - the bar is the tightest thing on a phone screen, and a taller one
+     costs the scene more than a 44px-square target buys. */
+  .pp-hud .pp-btn--small { min-height: 38px; min-width: 44px; padding: 2px 8px; }
 }
 @media (max-height: 520px) { .pp-hud { flex-wrap: nowrap; } .pp-hud__where { display: none; } }
 

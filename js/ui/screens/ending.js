@@ -7,6 +7,7 @@
  */
 
 import { h, button } from '../dom.js';
+import { pixelIcon } from '../icons.js';
 import { sfx } from '../audio.js';
 import { portraitUrl, PLAYER_LOOKS } from '../sprites.js';
 import { STAR_PLAYERS } from '../../data/starPlayers.js';
@@ -25,7 +26,7 @@ export function endingScreen(app, params) {
       h('div.pp-ending__big', { text: 'You have qualified for the Big Leagues.' }),
       h('p', { style: { fontSize: '22px' }, text: `${career.name} arrived as an amateur with one opening at 40%. ${career.name} leaves Madrid with six Club Trophies, six mastered openings and a ${career.elo} rating.` }),
       /* The tour in one look: the six trophies, the six rivals, the numbers. */
-      h('div.pp-ending__shelf', null, CLUBS.map((c) => h('div.pp-ending__trophy', null, h('span', { text: '🏆' }), h('b', { text: c.trophyName }), h('small', { text: c.city })))),
+      h('div.pp-ending__shelf', null, CLUBS.map((c) => h('div.pp-ending__trophy', null, h('span', null, pixelIcon('trophy', { size: 'xl' })), h('b', { text: c.trophyName }), h('small', { text: c.city })))),
       h('div.pp-ending__rivals', null, STAR_PLAYERS.map((s) => h('figure', null, h('img', { src: portraitUrl(s.look, { size: 72 }), alt: '' }), h('figcaption', { text: s.name.split(' ')[0] })))),
       h('p', { text: 'Six rivals, six friends. The amateur circuit is finished.' }),
       h('div.pp-ending__stats', null, [
@@ -34,7 +35,7 @@ export function endingScreen(app, params) {
       ].map(([label, value]) => h('div', null, h('b', { text: String(value) }), h('span', { text: label })))),
       hasAllPostcards(career)
         ? h('div.pp-ending__secret', null,
-          h('div.pp-ending__secretword', { text: '✦ ✦ ✦' }),
+          h('div.pp-ending__secretword', null, pixelIcon('xp', { size: 'lg' }), pixelIcon('xp', { size: 'lg' }), pixelIcon('xp', { size: 'lg' })),
           h('p', null, h('b', { text: 'And you read every postcard.' })),
           h('p', { text: 'Six backs, six first letters. Somebody was counting all along, and they have left something for you in the journal: Beyond the Tour.' }))
         : h('p.pp-small', { style: { opacity: 0.75 }, text: `Some postcards are still out there, waiting to be read (${postcardCount(career)}/6). Their backs hide a message.` }));

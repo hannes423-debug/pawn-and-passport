@@ -149,7 +149,7 @@ export function createFx(frame, renderer, app) {
         chip(square, `${meta.glyph} Book`, '#c9a24a'); break;
       /* A move the Focus hint showed: named FOCUS in the plan's colour, no bonus. */
       case 'FOCUS':
-        ring(square, colour); chip(square, '◎ FOCUS', colour); sfx.good(); break;
+        ring(square, colour); chip(square, 'FOCUS', colour); sfx.good(); break;
       case 'INACCURACY':
       case 'MISTAKE':
       case 'MISS':

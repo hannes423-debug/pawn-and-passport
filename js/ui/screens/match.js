@@ -11,6 +11,7 @@
  */
 
 import { h, button, wait, meter } from '../dom.js';
+import { pixelIcon } from '../icons.js';
 import { tapWord } from '../touch.js';
 import { sfx } from '../audio.js';
 import { portraitUrl, PLAYER_LOOKS } from '../sprites.js';
@@ -51,15 +52,15 @@ export function matchScreen(app, params) {
 
   /* The hover card for suggested squares (filled in by onBoardHover). On a
      touch screen it is pinned beside the board and can cover part of it, so
-     it can be hidden: the 📖 Notes button (and the card's own Hide button)
+     it can be hidden: the Notes button (and the card's own Hide button)
      switches it off and on, and the choice is remembered. */
   let notesOn = app.settings.openingNotes !== false;
   const tipBody = h('div');
-  const tipHide = h('button.pp-tip__hide', { type: 'button', 'aria-label': 'Hide opening notes', text: 'Hide ▾', onclick: (e) => { e.stopPropagation(); setNotes(false); } });
+  const tipHide = h('button.pp-tip__hide', { type: 'button', 'aria-label': 'Hide opening notes', text: 'Hide', onclick: (e) => { e.stopPropagation(); setNotes(false); } });
   const tip = h('div.pp-tip', { hidden: true, role: 'tooltip' }, tipHide, tipBody);
   const notesBtn = h('button.pp-btn.pp-btn--small.pp-notesbtn', { type: 'button', onclick: () => setNotes(!notesOn) });
   function paintNotes() {
-    notesBtn.replaceChildren('📖 ', h('span', { text: notesOn ? 'Notes: on' : 'Notes: off' }));
+    notesBtn.replaceChildren(pixelIcon('journal', { size: 'sm' }), h('span', { text: notesOn ? ' Notes: on' : ' Notes: off' }));
     notesBtn.setAttribute('aria-pressed', String(notesOn));
     notesBtn.title = notesOn ? 'Hide the opening notes card' : 'Show the opening notes card on suggested squares';
   }
@@ -69,7 +70,7 @@ export function matchScreen(app, params) {
     app.applySettings();
     tip.hidden = true;
     paintNotes();
-    if (!on) app.toast('Opening notes hidden. The arrows stay; 📖 Notes brings the card back.', { ms: 2600 });
+    if (!on) app.toast('Opening notes hidden. The arrows stay; the Notes button brings the card back.', { ms: 2600 });
   }
   paintNotes();
 
@@ -90,7 +91,8 @@ export function matchScreen(app, params) {
     h('img', { alt: '', src: portraitUrl(opponent.look || PLAYER_LOOKS.boy, { ring: kind === 'star' || kind === 'finale' ? '#e8b04a' : '#8a6437' }) }),
     h('div', null,
       h('div.pp-player__name', { text: opponent.name }),
-      h('div.pp-small', { text: `${opponent.elo} Elo · ${opponent.style}${kind === 'challenge' ? ` · ${opponent.stake}🪙 on it` : ''}` }),
+      h('div.pp-small', null, `${opponent.elo} Elo \u00b7 ${opponent.style}`,
+        kind === 'challenge' ? h('span.pp-icotext', null, ' \u00b7 ', h('span', { text: opponent.stake }), pixelIcon('coin', { size: 'sm' }), h('span', { text: 'on it' })) : null),
       opening ? h('div.pp-small.pp-muted', { text: `Plays the ${opening.name}` }) : null,
       // visibility, not display: the card must not change height while the bot thinks.
       h('div.pp-thinking', { style: { visibility: 'hidden' }, text: 'thinking...' })));
@@ -118,7 +120,7 @@ export function matchScreen(app, params) {
     oppCard,
     meCard,
     h('div.pp-panel.pp-col.pp-match__focus', null,
-      h('div.pp-focus__row', null, h('span', { text: '✦ Focus' }), focusText),
+      h('div.pp-focus__row', null, h('span.pp-icotext', null, pixelIcon('xp', { size: 'sm' }), h('span', { text: 'Focus' })), focusText),
       focusMeter,
       // The two Focus abilities side by side, at every viewport.
       h('div.pp-abilities', null, hintBtn, undoBtn),
@@ -131,7 +133,7 @@ export function matchScreen(app, params) {
   /* Only worth a line when it is NOT simply working. */
   const paintEngine = () => {
     engineLine.dataset.status = engineService.status;
-    engineLine.textContent = `⚙ ${engineService.statusText}`;
+    engineLine.replaceChildren(pixelIcon('settings', { size: 'sm' }), h('span', { text: ` ${engineService.statusText}` }));
     engineLine.hidden = engineService.status === 'ready';
   };
   const stopEngineWatch = engineService.onStatus(paintEngine);
@@ -146,11 +148,10 @@ export function matchScreen(app, params) {
     paintGuide();
   }, { cls: 'pp-btn--small' });
   const moreBody = h('div.pp-col.pp-match__morebody', { hidden: true });
-  const moreBtn = h('button.pp-match__more', { type: 'button', 'aria-expanded': 'false', text: '▸ More: guide, notes, draw, resign',
+  const moreBtn = h('button.pp-match__more', { type: 'button', 'aria-expanded': 'false', text: 'More: guide, notes, draw, resign',
     onclick: () => {
       moreBody.hidden = !moreBody.hidden;
       moreBtn.setAttribute('aria-expanded', String(!moreBody.hidden));
-      moreBtn.textContent = `${moreBody.hidden ? '▸' : '▾'} More: guide, notes, draw, resign`;
     } });
   const right = h('aside.pp-match__right', null,
     hintCard,
@@ -188,14 +189,14 @@ export function matchScreen(app, params) {
     focusMeter.firstChild.style.width = `${(match.focus / match.focusMax) * 100}%`;
     const q = match.quoteHint();
     const affordable = match.focus >= q.cost;
-    hintBtn.replaceChildren('💡 ', h('span.pp-hintbtn__ask', { text: 'Ask for ' }), 'Hint', h('small', { text: `${q.cost} Focus · ${q.label}` }));
+    hintBtn.replaceChildren(pixelIcon('hint', { size: 'md' }), ' ', h('span.pp-hintbtn__ask', { text: 'Ask for ' }), 'Hint', h('small', { text: `${q.cost} Focus \u00b7 ${q.label}` }));
     hintBtn.disabled = !match.isPlayersTurn || match.hintBusy || !affordable || finished;
     const u = match.undoState();
     const undoNote = u.reason === 'used' ? (u.max === 1 ? 'Used' : 'All used')
       : u.reason === 'cooldown' ? `In ${u.cooldown} move${u.cooldown === 1 ? '' : 's'}`
       : u.reason === 'nothing' ? 'Move first'
       : `${u.cost} Focus · ${u.left} left`;
-    undoBtn.replaceChildren('↶ ', 'Undo', h('small', { text: undoNote }));
+    undoBtn.replaceChildren(pixelIcon('back', { size: 'md' }), ' ', 'Undo', h('small', { text: undoNote }));
     undoBtn.disabled = !u.ok || finished;
     undoBtn.dataset.state = u.reason || 'ready';
     undoBtn.title = `Take back your last move. Costs ${u.cost} Focus, ${u.max} per game at level ${career.level}, then ${UNDO.cooldownMoves} moves of cooldown.`;
@@ -272,8 +273,8 @@ export function matchScreen(app, params) {
     const hint = group.find((g) => g.kind === 'hint');
     const guide = group.find((g) => g.kind === 'guide');
     const titles = [];
-    if (hint) titles.push(`💡 ${QUALITY_META[hint.quality].label} plan, move ${hint.step} of ${hint.total}: ${hint.san}`);
-    if (guide) titles.push(hint ? '📖 also your opening guide' : `📖 Opening guide: ${guide.san}`);
+    if (hint) titles.push(`${QUALITY_META[hint.quality].label} plan, move ${hint.step} of ${hint.total}: ${hint.san}`);
+    if (guide) titles.push(hint ? 'also your opening guide' : `Opening guide: ${guide.san}`);
     if (guide?.mastered && !hint) titles.push('The game has left your prepared lines, but you have mastered this opening: this is how you would carry on.');
     const equipped = (e) => (career.equipped || []).includes(e.openingId);
     let primary = info.entries.filter(equipped);
@@ -374,7 +375,7 @@ export function matchScreen(app, params) {
         paintMoves(); paintGuide(); paintFocus();
         retuneMusic();
         if (record.color === colour && match.game.history.filter((m) => m.color === colour).length >= 4) {
-          app.coach('hint', 'Stuck? 💡 Hint spends ✦ Focus and rolls for ideas: green shows one move, purple a two-move plan, gold three. Play a lesser idea, or your own move, and some Focus comes back.', { title: 'Focus and Hint', host: right });
+          app.coach('hint', 'Stuck? Hint spends Focus and rolls for ideas: green shows one move, purple a two-move plan, gold three. Play a lesser idea, or your own move, and some Focus comes back.', { title: 'Focus and Hint', host: right });
         }
         break;
       }
@@ -387,7 +388,9 @@ export function matchScreen(app, params) {
         }
         const meta = GRADE_META[grade];
         lastGrade.replaceChildren(`Move ${Math.ceil(record.ply / 2)}. ${record.san}: `,
-          h(`b.pp-grade.pp-grade--${meta.tier}`, { text: `${meta.glyph} ${meta.label}`, style: payload.quality ? { color: QUALITY_META[payload.quality].colour } : null }),
+          /* The label, not the glyph: the glyph is the move LIST's shorthand
+             ("e4 B"), and beside the word it only ever reads "B Book". */
+          h(`b.pp-grade.pp-grade--${meta.tier}`, { text: meta.label, style: payload.quality ? { color: QUALITY_META[payload.quality].colour } : null }),
           payload.focusGain ? ` · +${payload.focusGain} Focus` : '', payload.followedHint ? ' (from your Focus hint: no Focus back)' : '');
         paintMoves(); paintFocus();
         break;
@@ -440,10 +443,10 @@ export function matchScreen(app, params) {
         }
         const ordinal = ['Best', 'Second', 'Third'];
         hintCard.replaceChildren(...rolls.map((r) => {
-          if (r.quality === 'fail') return h('div.pp-hintroll.is-fail', { text: `✖ ${ordinal[r.rank]} idea: it slipped away.` });
+          if (r.quality === 'fail') return h('div.pp-hintroll.is-fail', { text: `${ordinal[r.rank]} idea: it slipped away.` });
           const q = QUALITY_META[r.quality];
           const moves = { green: 'just this move', purple: 'a two-move plan', gold: 'a three-move plan' }[r.quality];
-          return h('div.pp-hintroll', null, h('b', { text: `✦ ${q.label}`, style: { color: q.colour } }), ` ${ordinal[r.rank]} idea: ${r.san} (${moves})`);
+          return h('div.pp-hintroll', null, pixelIcon('xp', { size: 'sm' }), h('b', { text: ` ${q.label}`, style: { color: q.colour } }), ` ${ordinal[r.rank]} idea: ${r.san} (${moves})`);
         }));
         app.toast(refund ? `-${quote.cost} Focus. Nothing came to mind: +${refund} back.` : `-${quote.cost} Focus`, { ms: refund ? 2600 : 1400 });
         paintFocus();
@@ -557,7 +560,7 @@ export function matchScreen(app, params) {
     return app.overlay((close) => h('div.pp-panel.pp-modal.pp-modal--wide', null,
       h('h2.pp-h2', { text: club.tournamentConfig.name }),
       roundReport(run, index),
-      h('div.pp-row', { style: { justifyContent: 'center', marginTop: '10px' } }, button('Continue', () => close(), { cls: 'pp-btn--gold', icon: '▶' }))),
+      h('div.pp-row', { style: { justifyContent: 'center', marginTop: '10px' } }, button('Continue', () => close(), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) }))),
     { dismissable: false });
   }
 
@@ -595,13 +598,13 @@ export function matchScreen(app, params) {
     if (kind === 'finale') {
       progressText = progress.won ? 'You won the Grand Finale!' : progress.cleared ? 'Through to the next round!' : 'Not this time. The round can be replayed.';
     }
-    const row = (icon, label, value, cls = '') => h(`li.pp-reward${cls ? `.${cls}` : ''}`, null, h('span.pp-reward__icon', { text: icon }), h('span', { text: label }), h('b', { text: value }));
+    const row = (icon, label, value, cls = '') => h(`li.pp-reward${cls ? `.${cls}` : ''}`, null, h('span.pp-reward__icon', null, pixelIcon(icon, { size: 'md' })), h('span', { text: label }), h('b', { text: value }));
     const rewardsList = [
-      row('♟', 'Elo', kind === 'friendly' ? `unrated · ${career.elo}` : `${rewards.eloDelta >= 0 ? '+' : ''}${rewards.eloDelta} → ${career.elo}`, rewards.eloDelta < 0 ? 'is-neg' : ''),
-      row('★', 'XP', `+${rewards.xp.xp}${progress?.trophy ? ` +${progress.trophy.xp.xp} trophy` : ''}${progress?.won && progress.xp ? ` +${progress.xp.xp} finale` : ''}`),
-      ...Object.entries(rewards.mastery).map(([id, gain]) => row('📖', openingById(id).name, `+${gain}% → ${career.openings[id]}%`)),
-      progress?.mastery ? row('📖', `${openingById(club.openingId).name} (tournament)`, `+${progress.mastery}% → ${career.openings[club.openingId]}%`) : null,
-      coinDelta ? row('🪙', kind === 'challenge' ? 'Stake' : 'Prize money', `${coinDelta > 0 ? '+' : ''}${coinDelta} → ${career.coins}`, coinDelta < 0 ? 'is-neg' : '') : null
+      row('pawn', 'Elo', kind === 'friendly' ? `unrated · ${career.elo}` : `${rewards.eloDelta >= 0 ? '+' : ''}${rewards.eloDelta} → ${career.elo}`, rewards.eloDelta < 0 ? 'is-neg' : ''),
+      row('xp', 'XP', `+${rewards.xp.xp}${progress?.trophy ? ` +${progress.trophy.xp.xp} trophy` : ''}${progress?.won && progress.xp ? ` +${progress.xp.xp} finale` : ''}`),
+      ...Object.entries(rewards.mastery).map(([id, gain]) => row('journal', openingById(id).name, `+${gain}% → ${career.openings[id]}%`)),
+      progress?.mastery ? row('journal', `${openingById(club.openingId).name} (tournament)`, `+${progress.mastery}% → ${career.openings[club.openingId]}%`) : null,
+      coinDelta ? row('coin', kind === 'challenge' ? 'Stake' : 'Prize money', `${coinDelta > 0 ? '+' : ''}${coinDelta} → ${career.coins}`, coinDelta < 0 ? 'is-neg' : '') : null
     ].filter(Boolean);
     /* A level-up says exactly what got better. */
     const improved = [];
@@ -616,7 +619,7 @@ export function matchScreen(app, params) {
         h(`div.pp-result__word.is-${outcome}`, { text: outcome === 'win' ? 'Victory!' : outcome === 'draw' ? 'Draw' : 'Defeat' }),
         h('div.pp-small', { text: `${KIND_LABEL[kind]} · ${summary.headline}` })),
       h('ul.pp-rewards', null, rewardsList),
-      levelled ? h('div.pp-levelup', null, h('b', { text: `⬆ Level ${career.level}!` }), improved.length ? h('ul', null, improved.map((t) => h('li', { text: t }))) : null) : null,
+      levelled ? h('div.pp-levelup', null, h('b', { text: `Level ${career.level}!` }), improved.length ? h('ul', null, improved.map((t) => h('li', { text: t }))) : null) : null,
       progressText ? h('p.pp-result__next', null, h('b', { text: progressText })) : null,
       h('details.pp-result__details', null,
         h('summary', { text: `Match details · Score ${ms.letter} ${ms.total.toLocaleString('en')}${summary.accuracy === null ? '' : ` · accuracy ${summary.accuracy}%`}` }),
@@ -631,7 +634,7 @@ export function matchScreen(app, params) {
               : 'Too few of your moves were graded to give an accuracy.' }) : null,
             h('div.pp-tiles', null, gradeTiles)))),
       h('div.pp-row', { style: { justifyContent: 'center', marginTop: '10px' } },
-        button('Continue', () => close(), { cls: 'pp-btn--gold', icon: '▶' }))), { dismissable: false });
+        button('Continue', () => close(), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) }))), { dismissable: false });
   }
 
   /* One of the game's main rewards: the trophy, the rival beaten, the opening
@@ -644,22 +647,22 @@ export function matchScreen(app, params) {
     confetti();
     const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     return app.overlay((close) => h('div.pp-panel.pp-modal.pp-ceremony', null,
-      h('div.pp-ceremony__cup', { text: '🏆' }),
+      h('div.pp-ceremony__cup', null, pixelIcon('trophy', { size: 'hero' })),
       h('h2.pp-h1', { text: trophy.trophyName }),
       h('p', null, h('b', { text: `${club.clubName} champion!` }), ` You beat ${star.name} in the final.`),
       h('div.pp-stamp', { 'aria-label': 'Passport stamp' },
         h('span.pp-stamp__city', { text: club.city.toUpperCase() }),
-        h('span.pp-stamp__cup', { text: '🏆' }),
+        h('span.pp-stamp__cup', null, pixelIcon('trophy', { size: 'md' })),
         h('span.pp-stamp__date', { text: date })),
       h('ul.pp-rewards', null,
-        h('li.pp-reward', null, h('span.pp-reward__icon', { text: '📖' }), h('span', { text: `${o.name} mastered` }), h('b', { text: `${trophy.masteryBefore}% → 100%` })),
-        h('li.pp-reward', null, h('span.pp-reward__icon', { text: '★' }), h('span', { text: 'Trophy XP' }), h('b', { text: `+${trophy.xp.xp}` }))),
+        h('li.pp-reward', null, h('span.pp-reward__icon', null, pixelIcon('journal', { size: 'md' })), h('span', { text: `${o.name} mastered` }), h('b', { text: `${trophy.masteryBefore}% \u2192 100%` })),
+        h('li.pp-reward', null, h('span.pp-reward__icon', null, pixelIcon('xp', { size: 'md' })), h('span', { text: 'Trophy XP' }), h('b', { text: `+${trophy.xp.xp}` }))),
       trophy.equipped ? null : h('p.pp-small', { text: `Your repertoire is full: equip the ${o.name} in the Journal (Openings) to get its guide arrows.` }),
       h('div.pp-ceremony__shelf', { 'aria-label': `${count} of 6 Club Trophies` },
-        CLUBS.map((cl) => h('span', { class: career.trophies[cl.clubId] ? `is-won${cl.clubId === club.clubId ? ' is-new' : ''}` : '', title: cl.trophyName, text: '🏆' })),
+        CLUBS.map((cl) => h('span', { class: career.trophies[cl.clubId] ? `is-won${cl.clubId === club.clubId ? ' is-new' : ''}` : '', title: cl.trophyName }, pixelIcon('trophy', { size: 'lg' }))),
         h('b', { text: `${count}/6` })),
       trophy.finaleUnlocked
-        ? h('p.pp-ceremony__madrid', null, h('b', { text: '🏟 All six trophies! You are invited to the Grand Finale in Madrid.' }))
+        ? h('p.pp-ceremony__madrid', null, pixelIcon('club', { size: 'md' }), h('b', { text: ' All six trophies! You are invited to the Grand Finale in Madrid.' }))
         : h('p.pp-small', { text: `${6 - count} more ${6 - count === 1 ? 'trophy' : 'trophies'} to an invitation to Madrid.` }),
       button('Add it to my passport', () => close(), { cls: 'pp-btn--gold' })), { dismissable: false });
   }

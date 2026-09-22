@@ -78,27 +78,118 @@ finale reunion, all-postcards.
 Maya Castellano (aggressive), Oliver Pembrook (positional), Clara Vogelsang
 (tactical), Emre Kaplan (aggressive), Priya Raghavan (defensive), Zhou Lan (practical).
 
-## 7. Difficulty
+## 7. Difficulty: Elo is absolute
 
-Strength is set by campaign **tier** = Club Trophies already won when the
-tournament is entered, because clubs can be visited in any order. The run's
-opponents are fixed at entry.
+**The rule.** An opponent's Elo is the only thing that decides how it plays.
+`strengthForElo(elo)` takes an Elo and nothing else - no mode, no tier, no
+character - so a 900 met in Easy, a 900 met in Normal and a 900 met in Hard
+are built from the same row of the same table and play the same chess.
+Campaign difficulty decides **which Elos you meet**, never how one of them
+plays. Style (aggressive, positional, tactical, defensive, ...) reorders moves
+the engine has already called reasonable; it is a character trait, and it
+cannot turn a stated 900 into an 1100 because it never touches the candidate
+pool or the eval-loss filter. `tests/run.js` asserts both halves: that
+`strengthForElo.length === 1`, that no file in the strength pipeline reads the
+campaign difficulty, and that every Elo the three ladders can produce builds
+byte-identical strength fields from all three.
 
-| Tier (trophies held) | Regulars | Star Player |
+**Two ratings, two constants.** `config.ELO` is the PLAYER's rating rules
+(start 600, floor 100, K per game kind) and has no ceiling. `config.BOT_ELO`
+is the opponent range this game can build: **min 250, max 1500**. They used to
+be one `ELO.cap`, so moving the opponent ceiling silently moved the player's
+rules with it. Every number that leaves `career.js` goes through `botElo()`,
+which clamps into that range - a club member's spread used to be able to sail
+past the ceiling and then be printed on screen and silently clamped.
+
+Within a mode, strength is set by campaign **tier** = Club Trophies already won
+when the tournament is entered, because clubs can be visited in any order. The
+run's opponents are fixed at entry.
+
+### Easy - for somebody who has just learned the rules
+
+| Tier | Regulars | Star Player |
 |------|----------|------|
-| 0 | 500-700 | 800 |
-| 1 | 600-800 | 900 |
-| 2 | 700-900 | 1000 |
-| 3 | 800-1050 | 1150 |
-| 4 | 900-1150 | 1250 |
-| 5 | 1000-1250 | 1375 |
-| Finale | quarter 1400, semi 1450, final 1500 | |
+| 0 | 250-400 | 400 |
+| 1 | 400-500 | 500 |
+| 2 | 500-600 | 600 |
+| 3 | 600-700 | 700 |
+| 4 | 700-800 | 800 |
+| 5 | 800-900 | 900 |
+| Finale | quarter 900, semi 950, final 1000 | |
 
-Stockfish's own `UCI_Elo` stops at 1320, so an Elo is mapped
-(`config.BOT_STRENGTH`, interpolated) to the World Tour bot's knobs: candidate
-pool width, sampling temperature (`strength`), maximum eval loss accepted, and
-the unforced-error chance (34% at 400 Elo down to 4.5% at 1500). These are
-target bands, not calibrated ratings (see TODO).
+### Normal - the intended career
+
+| Tier | Regulars | Star Player |
+|------|----------|------|
+| 0 | 500-650 | 650 |
+| 1 | 650-800 | 800 |
+| 2 | 800-900 | 900 |
+| 3 | 900-1000 | 1000 |
+| 4 | 1000-1100 | 1100 |
+| 5 | 1100-1200 | 1250 |
+| Finale | quarter 1300, semi 1375, final 1450 | |
+
+### Hard - for a club player
+
+| Tier | Regulars | Star Player |
+|------|----------|------|
+| 0 | 700-800 | 850 |
+| 1 | 800-900 | 950 |
+| 2 | 900-1000 | 1050 |
+| 3 | 1000-1100 | 1150 |
+| 4 | 1100-1250 | 1300 |
+| 5 | 1250-1400 | 1400 |
+| Finale | quarter 1400, semi 1450, final **1500** | |
+
+Club members spread `MEMBERS.belowBand` (100) under and `aboveBand` (60) over
+their tier's band, so the weakest person in an Easy club is a 250 and the
+strongest in a Hard one is a 1460. Nothing anywhere reaches 1500 except the
+Hard final, which is the campaign ceiling exactly.
+
+### How an Elo becomes a bot
+
+Stockfish's own `UCI_Elo` stops at 1320 and it refuses to go below, so every
+rung under that is the bot layer, not the engine. `config.BOT_STRENGTH` is
+ten anchors from 250 to 1500, interpolated: candidate pool width, sampling
+temperature (`strength`), maximum eval loss accepted, the unforced-error
+chance and how expensive that error may be - plus two columns that exist to
+keep a weak bot **bad rather than random**:
+
+- `seesFreeMaterialCp` - how much has to be hanging before this opponent
+  notices (320cp at 250, 100cp at 1500), and `greed` - how often it then takes
+  it (0.72 to 0.94). The check runs BEFORE the unforced-error roll, so no bot
+  can leave a free queen standing because a dice roll said so. A weak player
+  grabs the piece and finds out about the fork afterwards, which is what a 300
+  actually does.
+- The error itself is **weighted by what it costs**, not picked uniformly.
+  `blunderSeverityCp` used to be only a ceiling, and a ceiling of 980 excludes
+  nothing a beginner would play - which is why every rung under about 900 used
+  to measure the same. Now a move that concedes near the whole budget is
+  roughly seven times likelier than a safe one for a 250, and about twice as
+  likely for a 1500 (`CARELESSNESS` in `chessBot.js`). That is the difference
+  between a 300 and a 1300 when both of them go wrong.
+
+### Measured
+
+`node tools/dev/calibrate_bots.mjs --elo 300,500,700,900,1100,1300,1500
+--samples=40` (1200 sampled moves each, depth-12 reference):
+
+| label | ACPL | blunders | the tool's Elo estimate |
+|-------|------|----------|-------------------------|
+| 300 | 269 | 53% | 381 |
+| 500 | 242 | 48% | 456 |
+| 700 | 188 | 35% | 611 |
+| 900 | 160 | 29% | 749 |
+| 1100 | 120 | 19% | 971 |
+| 1300 | 94 | 15% | 1168 |
+| 1500 | 75 | 10% | 1355 |
+
+Strictly monotone with even separation, which is what was tuned for. The
+estimate column runs about 130 points under the label from 700 up; that offset
+is flat across the whole ladder, which points at the tool's ACPL-to-Elo anchors
+rather than at the table (the tool says so itself: treat that column as a band,
+not a rating). Relative strength is the design target - a 900 is clearly above
+a 700 and clearly below an 1100 - not FIDE calibration.
 
 Tournament: two regular rounds (a win or a draw clears), then the Star Player
 (must be won). A failed round stays current and can be replayed.
@@ -312,8 +403,6 @@ XP for `counts.GREAT`, which the classifier never produces: a dead term there.)
 **MUST before jam submission**
 - Play a full campaign by hand in a real browser (the headless tests drive every
   flow, but nobody has played 20 real games through it).
-- Calibrate difficulty: the Elo bands are targets; whether a "700" bot plays
-  like 700 has not been measured.
 - Casual venue art: Central Park has its own; London, Vienna, Istanbul, Chennai and
   Wenzhou still walk on their city cards.
 - Six supplied character sheets cover the player and 36 NPCs, so several NPCs
@@ -465,6 +554,56 @@ frame reachable by the move it claims, every answer and judged move legal,
 every square target real, and the tier table reaching 1500 at six trophies.
 `tests/run.js` covers the unlock ladder, the "any order" rule and the XP
 accounting; `tools/cdp_lessons.py` drives the whole thing in a browser.
+
+## 26b. The UI icon set
+
+Every symbol the game draws is a pixel-art icon from one sheet. No emoji, no
+Unicode glyph standing in for artwork, no icon font, no external library.
+
+`ui-pixel-icons.png` (the artist's sheet, never edited) is cut by
+`python3 tools/build_pixel_icons.py` into `assets/ui/icons/<name>.png`, 18
+icons at **32x32** native. Each cell is found by its own alpha - the rows and
+columns are segmented, not hand-measured - trimmed to the drawing and padded
+to a square, so the play triangle and the club building end up the same
+optical size. Stale files are deleted on every run, so a renamed icon cannot
+leave its old file behind to be referenced by accident.
+
+`js/ui/icons.js` is the only place that knows a path:
+
+```js
+pixelIcon('trophy')                        // decorative: aria-hidden
+pixelIcon('map', { size: 'sm' })
+pixelIcon('settings', { label: 'Settings' })   // role=img, announced
+sideIcon('w')                              // White or Black from a colour letter
+```
+
+Sizes are CSS pixels: `sm` 16, `md` 24, `lg` 32, `xl` 48, `hero` 64, plus `em`
+(1.4em) for the journal's book pages, which are laid out in container-query
+units and would otherwise drift out of step with their own text. Everything is
+`image-rendering: pixelated`, so the art never gets the browser's smoothing.
+Decorative icons are `aria-hidden` and contribute nothing to the accessible
+name; an icon that IS the control passes `label` and the button keeps its own
+`aria-label`. Icon-only buttons get `.pp-btn--icon` (44px minimum).
+
+Naming an icon that does not exist throws at the call site, and
+`tools/validate-content.mjs` (so `predeploy.sh`) fails if any name in `ICONS`
+has no PNG. `build-itch.sh` re-checks inside the built zip, because the paths
+are templated and the build's "is every asset shipped" sweep skips those by
+design.
+
+### NPC names are revealed, not printed
+
+A club floor holds twelve members, and a name plate over every head hides the
+room. A member now wears only the speech-bubble icon; the NAME appears when
+the player walks up to them (`.is-near`, within `NAME_RADIUS` = 22% of the
+scene height, refreshed by the scene's own walk tick), hovers them, or focuses
+them with the keyboard - and when the dialogue opens, the name is the
+dialogue's own header. Everything else - the tournament desk, the exits, the
+practice room - keeps its label, because those are signposts and a signpost
+nobody can read is not a signpost. The dock at the bottom still lists every
+member by name, so nothing is reachable only by walking.
+`tools/cdp_members.py` asserts that no name is on screen before the player
+approaches, and that approaching one shows exactly that one.
 
 ## 27. Club members, coins and real tournaments (2026-09-18)
 

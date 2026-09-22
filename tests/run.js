@@ -26,7 +26,7 @@ import { POSTCARDS, BEYOND_THE_TOUR } from '../js/data/postcards.js';
 import { MISSIONS } from '../js/data/missions.js';
 import { PUZZLES } from '../js/data/puzzles.js';
 import { SCENES, findPath } from '../js/data/scenes.js';
-import { LEVELS, ELO, HINTS, DIFFICULTY, difficultyMode, BOT_STRENGTH } from '../js/data/config.js';
+import { LEVELS, ELO, BOT_ELO, HINTS, DIFFICULTY, difficultyMode, BOT_STRENGTH } from '../js/data/config.js';
 import * as Career from '../js/core/career.js';
 import { ClubBook, fullBook } from '../js/core/openingBook.js';
 import { hintQuote } from '../js/core/hints.js';
@@ -234,8 +234,146 @@ test('three difficulties, each a ladder that climbs and never crosses the next',
   const lowest = BOT_STRENGTH[0].elo;
   for (const mode of DIFFICULTY.modes) {
     assert(mode.regularBands[0][0] >= lowest, `${mode.id}: the easiest opponent is on the table (${mode.regularBands[0][0]} >= ${lowest})`);
-    assert(mode.finaleRounds.at(-1) <= ELO.cap, `${mode.id}: the hardest is under the cap`);
+    assert(mode.finaleRounds.at(-1) <= BOT_ELO.max, `${mode.id}: the hardest is under the bot ceiling`);
   }
+});
+
+/* TEST 3: no campaign opponent, anywhere, at any tier, above BOT_ELO.max.
+   Not only the finale: the widest number the campaign can produce is a club
+   member at the top of the last tier's band plus MEMBERS.aboveBand, which is
+   the one that used to sail past the ceiling unnoticed. */
+test('no campaign opponent is above the bot ceiling, or below its floor', () => {
+  eq(BOT_ELO.max, 1500, 'the campaign ceiling is 1500');
+  eq(BOT_ELO.min, 250, 'and the floor is 250');
+  eq(BOT_STRENGTH.at(-1).elo, BOT_ELO.max, 'the strength table reaches the ceiling');
+  eq(BOT_STRENGTH[0].elo, BOT_ELO.min, 'and starts at the floor');
+  for (const mode of DIFFICULTY.modes) {
+    for (let t = 0; t < 6; t += 1) {
+      // Both ends of the random draw, not just the middle.
+      for (const roll of [0, 0.5, 1]) {
+        const elo = Career.regularElo(t, () => roll, mode.id);
+        assert(elo <= BOT_ELO.max && elo >= BOT_ELO.min, `${mode.id} regular tier ${t} roll ${roll}: ${elo}`);
+      }
+      for (const rel of [0, 0.5, 1]) {
+        const elo = Career.memberElo(rel, t, mode.id);
+        assert(elo <= BOT_ELO.max && elo >= BOT_ELO.min, `${mode.id} member tier ${t} rel ${rel}: ${elo}`);
+      }
+      const star = Career.starElo(t, mode.id);
+      assert(star <= BOT_ELO.max && star >= BOT_ELO.min, `${mode.id} star tier ${t}: ${star}`);
+    }
+    for (let r = 0; r < 3; r += 1) {
+      const elo = Career.finaleElo(r, mode.id);
+      assert(elo <= BOT_ELO.max && elo >= BOT_ELO.min, `${mode.id} finale ${r}: ${elo}`);
+    }
+  }
+  // A whole drawn tournament field, at the hardest tier of the hardest mode.
+  const c = Career.newCareer({ name: 'Ceiling', avatar: 'boy', startClubId: 'nyc', difficulty: 'hard' });
+  for (const club of ['lon', 'vie', 'ist', 'maa', 'wnz']) c.trophies[club] = { wonAt: 1, starElo: 1000, tier: 0 };
+  const run = Career.enterTournament(c, 'nyc', seeded(99));
+  for (const player of [...run.players, run.star]) {
+    if (player.id === 'you') continue;
+    assert(player.elo <= BOT_ELO.max, `${player.name} drawn at ${player.elo}`);
+  }
+});
+
+/* TEST 4: Easy has to contain real beginners, or it is not an Easy mode.
+   The point of the rung is somebody who has just learned the rules. */
+test('Easy starts with genuine beginner opponents under 500', () => {
+  const easy = difficultyMode('easy');
+  assert(easy.regularBands[0][0] < 500, `easy opens at ${easy.regularBands[0][0]}, under 500`);
+  assert(easy.regularBands[0][0] >= BOT_ELO.min, 'and not under the table');
+  assert(easy.starByTier[0] <= 500, `easy's first Star Player is ${easy.starByTier[0]}`);
+  // The weakest a beginner can actually meet, once the member spread is on.
+  assert(Career.memberElo(0, 0, 'easy') < 400, 'the weakest Easy club member is a true beginner');
+  // And a 300 bot must still be recognisably worse than a 700 one.
+  const beginner = strengthForElo(300);
+  const club = strengthForElo(700);
+  assert(beginner.blunderChance > club.blunderChance + 0.1, 'a 300 errs far more often than a 700');
+  assert(beginner.blunderSeverityCp > club.blunderSeverityCp, 'and far more expensively');
+});
+
+/* TEST 1 (structural): strengthForElo has ONE parameter. A mode cannot be
+   passed in even by accident, which is the cheapest possible guarantee that
+   difficulty never reaches into playing strength. */
+test('Elo is absolute: strengthForElo takes an Elo and nothing else', () => {
+  eq(strengthForElo.length, 1, 'strengthForElo(elo) - no mode argument');
+  const once = strengthForElo(900);
+  for (const junk of ['easy', 'normal', 'hard', undefined, null, { mode: 'hard' }]) {
+    eq(JSON.stringify(strengthForElo(900, junk)), JSON.stringify(once),
+      `a second argument (${JSON.stringify(junk)}) changes nothing`);
+  }
+  // No file that builds an opponent may branch on the difficulty either.
+  const guilty = [];
+  for (const file of ['js/core/difficulty.js', 'js/chess/bots/chessBot.js', 'js/chess/bots/botProfile.js']) {
+    const src = readFileSync(path.join(ROOT, file), 'utf8');
+    if (/difficultyMode\s*\(|DIFFICULTY\.modes|career\.difficulty|regularBands|starByTier|finaleRounds/.test(src)) guilty.push(file);
+  }
+  eq(guilty.join(', '), '', 'the strength pipeline never reads the campaign difficulty');
+});
+
+/* TEST 2: the same Elo out of three different ladders is the same opponent.
+   Style may differ; every strength field must be identical. */
+test('the same Elo is the same bot in Easy, Normal and Hard', () => {
+  const STRENGTH_FIELDS = ['rating', 'strength', 'blunderChance', 'blunderSeverityCp', 'wildness',
+    'candidatePool', 'maxEvalLossCp', 'analysisLevel', 'seesFreeMaterialCp', 'greed', 'limitStrength'];
+  const readFields = (profile) => STRENGTH_FIELDS.map((f) => `${f}=${profile[f]}`).join(' ');
+
+  // Every Elo any mode's ladder can produce, met from all three modes.
+  const ladder = new Set();
+  for (const mode of DIFFICULTY.modes) {
+    for (let t = 0; t < 6; t += 1) {
+      ladder.add(Career.starElo(t, mode.id));
+      for (const roll of [0, 0.5, 1]) ladder.add(Career.regularElo(t, () => roll, mode.id));
+    }
+    for (let r = 0; r < 3; r += 1) ladder.add(Career.finaleElo(r, mode.id));
+  }
+  assert(ladder.size > 20, 'the ladders cover a real spread of Elos');
+
+  for (const elo of ladder) {
+    // Built as an Easy tournament regular, a Normal club opponent and a Hard
+    // finale rival: three different callers, three different characters.
+    const fromEasy = profileForOpponent({ id: 'e', name: 'Easy regular', elo, style: 'balanced' });
+    const fromNormal = profileForOpponent({ id: 'n', name: 'Club member', elo, style: 'positional' });
+    const fromHard = profileForOpponent({ id: 'h', name: 'Hard rival', elo, style: 'aggressive' });
+    eq(readFields(fromNormal), readFields(fromEasy), `${elo}: Normal matches Easy`);
+    eq(readFields(fromHard), readFields(fromEasy), `${elo}: Hard matches Easy`);
+    // Style is the ONLY thing that may differ, and it does.
+    assert(fromHard.aggression !== fromNormal.aggression, `${elo}: style still separates characters`);
+  }
+
+  // The worked example from the brief, spelled out.
+  const nine = ['easy', 'normal', 'hard'].map(() => strengthForElo(900));
+  eq(JSON.stringify(nine[1]), JSON.stringify(nine[0]));
+  eq(JSON.stringify(nine[2]), JSON.stringify(nine[0]));
+  // And a stated 900 must not be secretly a 700 or an 1100.
+  assert(strengthForElo(900).strength > strengthForElo(700).strength, '900 is stronger than 700');
+  assert(strengthForElo(900).strength < strengthForElo(1100).strength, 'and weaker than 1100');
+});
+
+/* TEST 5: each mode climbs, and the three never cross. */
+test('Easy, Normal and Hard progress monotonically and stay in order', () => {
+  for (const mode of DIFFICULTY.modes) {
+    const m = difficultyMode(mode.id);
+    for (let t = 1; t < 6; t += 1) {
+      assert(m.starByTier[t] > m.starByTier[t - 1], `${mode.id}: star tier ${t}`);
+      assert(m.regularBands[t][0] >= m.regularBands[t - 1][0], `${mode.id}: band floor tier ${t}`);
+      assert(m.regularBands[t][1] >= m.regularBands[t - 1][1], `${mode.id}: band ceiling tier ${t}`);
+    }
+    /* A tier's Star Player guards that tier, so it sits at or above the
+       regulars it is drawn beside - and the NEXT tier's regulars may start
+       below it, which is the shape of the ladder, not a break in it. */
+    for (let t = 0; t < 6; t += 1) {
+      assert(m.starByTier[t] >= m.regularBands[t][1] - 100, `${mode.id}: the tier ${t} star is not softer than its regulars`);
+      assert(m.starByTier[t] <= m.regularBands[t][1] + 150, `${mode.id}: the tier ${t} star is not a wall`);
+    }
+    // The finale starts above everything the clubs could offer.
+    assert(m.finaleRounds[0] >= m.starByTier[5], `${mode.id}: the finale opens above the last club`);
+    for (let r = 1; r < 3; r += 1) assert(m.finaleRounds[r] > m.finaleRounds[r - 1], `${mode.id}: finale round ${r}`);
+  }
+  const [easy, normal, hard] = DIFFICULTY.modes.map((m) => difficultyMode(m.id));
+  assert(easy.finaleRounds.at(-1) < normal.finaleRounds.at(-1), 'easy finishes below normal');
+  assert(normal.finaleRounds.at(-1) < hard.finaleRounds.at(-1), 'normal finishes below hard');
+  eq(hard.finaleRounds.at(-1), BOT_ELO.max, "Hard's last opponent is exactly the ceiling");
 });
 
 test('difficulty is part of the save, defaults to Normal, and survives a reload', () => {
@@ -307,10 +445,21 @@ test('bot strength is monotone in Elo and capped', () => {
     }
     prev = s;
   }
-  eq(strengthForElo(2400).elo, ELO.cap, 'above the cap clamps to it');
-  eq(strengthForElo(1).elo, BOT_STRENGTH[0].elo, 'below the table clamps to its first row');
+  eq(strengthForElo(2400).elo, BOT_ELO.max, 'above the bot ceiling clamps to it');
+  eq(strengthForElo(1).elo, BOT_ELO.min, 'below the table clamps to its first row');
   const p = profileForOpponent({ name: 'X', elo: 900, style: 'aggressive' });
   assert(p.blunderChance > 0.05 && p.style === 'aggressive');
+  // What a weak bot can SEE has to sharpen with the Elo too, or a 1500 would
+  // overlook the same hanging rook a 300 does.
+  let sharper = null;
+  for (const elo of [250, 500, 750, 1000, 1250, 1500]) {
+    const s = strengthForElo(elo);
+    assert(s.greed > 0 && s.greed <= 1, `greed at ${elo}`);
+    if (sharper) assert(s.seesFreeMaterialCp <= sharper, `free-material sight at ${elo}`);
+    sharper = s.seesFreeMaterialCp;
+  }
+  // The player's own rating is a separate thing and has no ceiling.
+  eq(ELO.cap, undefined, 'ELO no longer carries a cap that means two things');
 });
 
 test('opening book: positions, transpositions and bot lookup', () => {
@@ -599,13 +748,18 @@ test('a mastered opening keeps guiding after the opponent leaves the book', asyn
 
 import { fallbackMove } from '../js/game/match.js';
 
-async function brokenMatch({ colour = 'w', failFrom = 0 } = {}) {
+/* The bot's own dice are seeded here. Two of its decisions (the unforced
+   error and the free-material grab) never ask the engine at all, so with
+   Math.random a test that asserts the ENGINE fallback ran is a coin toss it
+   loses about once in a few hundred runs. */
+async function brokenMatch({ colour = 'w', failFrom = 0, seed = 20260922 } = {}) {
   let searches = 0;
   const state = { down: false };
   const svc = fakeEngine({ failing: () => state.down || (failFrom >= 0 && ++searches > failFrom && failFrom > 0) });
   const career = Career.newCareer({ name: 'S', avatar: 'boy', startClubId: 'nyc' });
   const match = new PapMatch({ career, kind: 'friendly', playerColour: colour, service: svc,
     opponent: { id: 'x', name: 'X', elo: 1200, style: 'balanced', openingId: null } });
+  match.bot.random = seeded(seed);
   const events = [];
   match.on((e) => events.push(e.type));
   return { match, state, events };

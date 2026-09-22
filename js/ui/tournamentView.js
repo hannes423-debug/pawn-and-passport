@@ -53,7 +53,7 @@ export function resultsList(run, index) {
 export function finalLine(run) {
   const f = run.final;
   if (!f) return null;
-  const nameOf = (id) => (id === run.star.id ? `★ ${run.star.name}` : id === YOU ? 'You' : run.players.find((p) => p.id === id)?.name);
+  const nameOf = (id) => (id === run.star.id ? `* ${run.star.name}` : id === YOU ? 'You' : run.players.find((p) => p.id === id)?.name);
   return h('p.pp-small', null, h('b', { text: 'Final: ' }), `${nameOf(f.w)} ${score(f.result)} ${nameOf(f.b)}`);
 }
 
@@ -85,7 +85,7 @@ const ordinal = (n) => {
  * @returns {{text:string, tone:'final'|'good'|'out'|'win'|'neutral'}}
  */
 export function eventStatus(run, starName = 'the Star Player') {
-  if (run.outcome === 'champion') return { text: `🏆 Champion! You beat ${starName}.`, tone: 'win' };
+  if (run.outcome === 'champion') return { text: `Champion! You beat ${starName}.`, tone: 'win' };
   if (run.outcome === 'runner-up') return { text: `Runner-up: ${starName} won the final.`, tone: 'out' };
   if (run.outcome === 'eliminated') return { text: `Knocked out in the ${roundLabel(run, exitRound(run)).toLowerCase()}.`, tone: 'out' };
   if (run.outcome === 'placed') return { text: `Finished ${ordinal(run.place)} of ${run.players.length}: only first place reaches the final.`, tone: 'out' };

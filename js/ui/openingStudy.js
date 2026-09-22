@@ -12,6 +12,7 @@
  */
 
 import { h, button } from './dom.js';
+import { pixelIcon, sideIcon } from './icons.js';
 import { sfx } from './audio.js';
 import { createBoard } from './board.js';
 import { createRules } from '../chess/core/rules.js';
@@ -73,7 +74,7 @@ export function openOpeningStudy(app, openingId, { mode = 'review' } = {}) {
 
     const title = h('div.pp-study__title', null,
       h('h2.pp-h2', { text: tutorial ? `Tutorial: ${opening.name}` : opening.name }),
-      h('div.pp-small', null, h('b', { text: opening.side === 'w' ? '♔ White' : '♚ Black' }), ` · ${opening.eco} · `,
+      h('div.pp-small', null, h('b', null, sideIcon(opening.side, { size: 'sm' }), h('span', { text: opening.side === 'w' ? ' White' : ' Black' })), ` · ${opening.eco} · `,
         tutorial ? 'every line, with notes' : `${mastery}% ${masteryState(mastery).label}`));
     const note = h('div.pp-study__note');
     const moveList = h('div.pp-study__moves');
@@ -83,7 +84,8 @@ export function openOpeningStudy(app, openingId, { mode = 'review' } = {}) {
     const popularity = h('div.pp-small.pp-muted.pp-study__popularity');
 
     const nav = (label, fn, aria) => h('button.pp-btn.pp-btn--small', { type: 'button', 'aria-label': aria, onclick: () => { stopAuto(); fn(); } }, label);
-    const playBtn = h('button.pp-btn.pp-btn--small.pp-btn--gold', { type: 'button', onclick: () => toggleAuto() }, '▶ Play');
+    const playBtn = h('button.pp-btn.pp-btn--small.pp-btn--gold', { type: 'button', onclick: () => toggleAuto() },
+      pixelIcon('play', { size: 'sm' }), h('span', { text: ' Play' }));
 
     function selectLine(i) {
       lineIndex = i;
@@ -110,7 +112,7 @@ export function openOpeningStudy(app, openingId, { mode = 'review' } = {}) {
     function toggleAuto() {
       if (autoplay) { stopAuto(); return; }
       if (ply >= limitFor(lineIndex)) ply = 0;
-      playBtn.textContent = '⏸ Pause';
+      playBtn.replaceChildren(pixelIcon('play', { size: 'sm' }), h('span', { text: ' Pause' }));
       autoplay = setInterval(() => {
         if (ply >= limitFor(lineIndex)) { stopAuto(); return; }
         go(ply + 1);
@@ -119,7 +121,7 @@ export function openOpeningStudy(app, openingId, { mode = 'review' } = {}) {
     function stopAuto() {
       clearInterval(autoplay);
       autoplay = null;
-      playBtn.textContent = '▶ Play';
+      playBtn.replaceChildren(pixelIcon('play', { size: 'sm' }), h('span', { text: ' Play' }));
     }
 
     function paint(fresh = false, animate = false) {
@@ -203,8 +205,8 @@ export function openOpeningStudy(app, openingId, { mode = 'review' } = {}) {
         h('div.pp-study__side', null,
           note,
           h('div.pp-row.pp-study__nav', null,
-            nav('⏮', () => go(0), 'Start'), nav('◀', () => go(ply - 1), 'Back'), counter,
-            nav('▶', () => go(ply + 1), 'Forward'), nav('⏭', () => go(limitFor(lineIndex)), 'End'), playBtn),
+            nav('|<', () => go(0), 'Start'), nav(pixelIcon('back', { size: 'sm' }), () => go(ply - 1), 'Back'), counter,
+            nav(pixelIcon('play', { size: 'sm' }), () => go(ply + 1), 'Forward'), nav('>|', () => go(limitFor(lineIndex)), 'End'), playBtn),
           popularity,
           moveList,
           depthNote,

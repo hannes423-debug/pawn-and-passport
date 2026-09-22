@@ -21,7 +21,16 @@ import { CLUTCH } from '../data/config.js';
 import { tierFor } from '../chess/render/feedback.js';
 import { winProbability, scoreToCp } from '../chess/analysis/moveClassifier.js';
 
-/** Display metadata for the grade keys, best first. */
+/**
+ * Display metadata for the grade keys, best first.
+ *
+ * The glyphs are deliberately NOT pixel icons. They are chess move
+ * ANNOTATION - the same family as !!, !?, ?! and ?? - and they are drawn two
+ * ways the icon set cannot serve: as a superscript beside a move in the move
+ * list ("e4 B"), and as text painted into a canvas chip on the board by
+ * js/ui/fx.js. A star and a tick belong in that family; an emoji did not, and
+ * the two that were here (a book and a ring) are now letters.
+ */
 export const GRADE_META = Object.freeze({
   EPIC:       { label: 'Epic',       glyph: '!!!', tier: 'epic' },
   BRILLIANT:  { label: 'Brilliant',  glyph: '!!',  tier: 'brilliant' },
@@ -29,11 +38,11 @@ export const GRADE_META = Object.freeze({
   BEST:       { label: 'Best',       glyph: '★',   tier: 'best' },
   EXCELLENT:  { label: 'Excellent',  glyph: '!',   tier: 'best' },
   GOOD:       { label: 'Good',       glyph: '✓',   tier: 'good' },
-  BOOK:       { label: 'Book',       glyph: '📖',  tier: 'playable' },
+  BOOK:       { label: 'Book',       glyph: 'B',  tier: 'playable' },
   /* A move the player was SHOWN (a Focus hint) is not graded as their own
      find: it reads FOCUS, earns no Focus back and no grade bonus. */
-  FOCUS:      { label: 'Focus',      glyph: '◎',   tier: 'playable' },
-  FORCED:     { label: 'Forced',     glyph: '⇥',   tier: 'neutral' },
+  FOCUS:      { label: 'Focus',      glyph: 'F',   tier: 'playable' },
+  FORCED:     { label: 'Forced',     glyph: '=',   tier: 'neutral' },
   INACCURACY: { label: 'Inaccuracy', glyph: '?!',  tier: 'mistake' },
   MISS:       { label: 'Missed win', glyph: '×',   tier: 'mistake' },
   MISTAKE:    { label: 'Mistake',    glyph: '?',   tier: 'mistake' },

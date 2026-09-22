@@ -31,6 +31,8 @@ import { MISSIONS } from '../js/data/missions.js';
 import { MASTERY } from '../js/data/config.js';
 import { createRules } from '../js/chess/core/rules.js';
 import { drillPositions, pickDrillSet } from '../js/ui/screens/drill.js';
+import { ICON_NAMES } from '../js/ui/icons.js';
+import { existsSync } from 'node:fs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const quiet = process.argv.includes('--quiet');
@@ -95,6 +97,17 @@ for (const o of OPENINGS) {
   }
 }
 
+/* ------------------------------------------------------------------ icons */
+/* The UI icon set is built from a sheet by tools/build_pixel_icons.py and
+   referenced by NAME, so a file that never got cut - or a name that got
+   renamed on one side only - is a broken image in the HUD and nothing else.
+   The path is a template, so the build's own "is every asset shipped" sweep
+   cannot see it: this is the check that can. */
+for (const name of ICON_NAMES) {
+  const file = path.join(ROOT, 'assets', 'ui', 'icons', `${name}.png`);
+  if (!existsSync(file)) fail('icons', `js/ui/icons.js names "${name}", but assets/ui/icons/${name}.png is not there (run tools/build_pixel_icons.py)`);
+}
+
 /* ---------------------------------------------------------------- lessons */
 try {
   execFileSync('node', [path.join(ROOT, 'tools/verify-lessons.mjs'), '--quiet'], { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -103,7 +116,7 @@ try {
 }
 
 if (!quiet) {
-  console.log(`${PUZZLES.length} venue puzzles · ${CLUB_PUZZLES.length} club puzzles · ${OPENINGS.length} openings (${OPENINGS.reduce((n, o) => n + o.lines.length, 0)} lines) · drills for ${OPENINGS.map((o) => `${o.id} ${drillPositions(o.id).length}`).join(', ')}`);
+  console.log(`${ICON_NAMES.length} UI icons · ${PUZZLES.length} venue puzzles · ${CLUB_PUZZLES.length} club puzzles · ${OPENINGS.length} openings (${OPENINGS.reduce((n, o) => n + o.lines.length, 0)} lines) · drills for ${OPENINGS.map((o) => `${o.id} ${drillPositions(o.id).length}`).join(', ')}`);
 }
 if (problems.length) {
   console.error(`\nCONTENT INVALID: ${problems.length} problem(s)\n  ${problems.slice(0, 60).join('\n  ')}`);

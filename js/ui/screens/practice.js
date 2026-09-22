@@ -15,14 +15,16 @@
  */
 
 import { h, button } from '../dom.js';
+import { pixelIcon } from '../icons.js';
 import { sfx } from '../audio.js';
 import { LESSONS } from '../../data/lessons.js';
 import { clubById } from '../../data/clubs.js';
 import { TIERS, isTierUnlocked, lessonProgress, practiceSummary, suggestedLesson, nextTier } from '../../core/lessons.js';
 
 const BRANCH_ICON = {
-  fundamentals: '♟', vision: '👁', tactics: '⚔', calculation: '🧮', checkmates: '♔',
-  openings: '📖', strategy: '🗺', pawns: '⛊', endgames: '🏁', defense: '🛡', practical: '⏱', analysis: '🔍'
+  fundamentals: 'pawn', vision: 'hint', tactics: 'xp', calculation: 'practice', checkmates: 'side-white',
+  openings: 'journal', strategy: 'map', pawns: 'pawn', endgames: 'trophy', defense: 'side-black',
+  practical: 'club', analysis: 'practice'
 };
 const bandLabel = (band) => (band === 0 ? 'Start' : String(band));
 
@@ -50,15 +52,15 @@ export function practiceScreen(app, params) {
       onclick: () => openLesson(lesson),
       title: `${lesson.title} — ${p.solved}/${p.total} challenges solved`
     },
-      h('span.pp-tree__icon', { text: BRANCH_ICON[lesson.branch] || '•' }),
+      h('span.pp-tree__icon', null, pixelIcon(BRANCH_ICON[lesson.branch] || 'practice', { size: 'md' })),
       h('span.pp-tree__name', null,
         h('b', { text: lesson.title }),
         h('span.pp-small.pp-muted', { text: `${bandLabel(lesson.band)} · ${lesson.branch}` })),
       h('span.pp-tree__marks', null,
-        h('span', { class: p.read ? 'is-on' : '', title: 'Instructions read', text: '📖' }),
-        lesson.demo.length ? h('span', { class: p.watched ? 'is-on' : '', title: 'Demonstration watched', text: '▶' }) : null,
+        h('span', { class: p.read ? 'is-on' : '', title: 'Instructions read' }, pixelIcon('journal', { size: 'sm' })),
+        lesson.demo.length ? h('span', { class: p.watched ? 'is-on' : '', title: 'Demonstration watched' }, pixelIcon('play', { size: 'sm' })) : null,
         h('span.pp-tree__count', { class: p.solved >= p.total ? 'is-on' : '', title: 'Challenges solved', text: `${p.solved}/${p.total}` })),
-      p.complete ? h('span.pp-tree__tick', { text: '✓' }) : null);
+      p.complete ? h('span.pp-tree__tick', { text: 'done' }) : null);
   }
 
   /* One tier: its bands, or a locked panel saying what opens it. */
@@ -72,7 +74,7 @@ export function practiceScreen(app, params) {
         h('span.pp-small.pp-muted', { text: ` · ${tier.bands.map(bandLabel).join(', ')}` })),
       unlocked
         ? h('span.pp-small', { text: `${done}/${lessons.length} complete` })
-        : h('span.pp-pill.pp-pill--locked', { text: `🔒 ${tier.trophies} ${tier.trophies === 1 ? 'trophy' : 'trophies'}` }));
+        : h('span.pp-pill.pp-pill--locked', { text: `Locked: ${tier.trophies} ${tier.trophies === 1 ? 'trophy' : 'trophies'}` }));
     if (!unlocked) {
       const need = tier.trophies - Object.keys(career.trophies).length;
       return h('section.pp-tree__tier.is-locked', null, head,
@@ -117,7 +119,7 @@ export function practiceScreen(app, params) {
             ? h('p.pp-small.pp-muted', { text: `${next.tier.label} opens after ${next.trophiesNeeded} more Club ${next.trophiesNeeded === 1 ? 'Trophy' : 'Trophies'}.` })
             : h('p.pp-small.pp-muted', { text: 'Every tier is open: you hold all six Club Trophies.' })),
         h('div.pp-row', null,
-          resume ? button(lessonProgress(career, resume).started ? 'Continue' : 'Start here', () => openLesson(resume), { cls: 'pp-btn--gold', icon: '▶' }) : null,
+          resume ? button(lessonProgress(career, resume).started ? 'Continue' : 'Start here', () => openLesson(resume), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) }) : null,
           button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small' }))),
       filters,
       list));

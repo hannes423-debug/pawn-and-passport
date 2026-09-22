@@ -95,13 +95,22 @@ There is no rubber-banding anywhere - the strength is chosen, not adapted.
 
 | | first club | sixth club | finale |
 |---|---|---|---|
-| **Easy** "Learning the ropes" | 550 | 950 | 980-1100 |
-| **Normal** "Chess career" | 600 | 1250 | 1300-1450 |
-| **Hard** "Club challenge" | 800 | 1450 | 1500-1600 |
+| **Easy** "Learning the ropes" | 250-400 | 800-900 | 900-1000 |
+| **Normal** "Chess career" | 500-650 | 1100-1250 | 1300-1450 |
+| **Hard** "Club challenge" | 700-850 | 1250-1400 | 1400-**1500** |
+
+**Elo is absolute.** A 900 is a 900 in all three modes: the difficulty picks
+which Elos you meet, never how one of them plays. `strengthForElo(elo)` takes
+an Elo and nothing else, and `tests/run.js` asserts that every Elo the three
+ladders can produce builds identical strength from all three. Style
+(aggressive, positional, ...) chooses between moves the engine already called
+reasonable - it is a character trait, not a handicap.
 
 `DIFFICULTY` in `js/data/config.js` owns all three ladders and nothing else in
 the game branches on the mode. A target Elo becomes a bot through
-`js/core/difficulty.js` and the `BOT_STRENGTH` table beside it.
+`js/core/difficulty.js` and the `BOT_STRENGTH` table beside it. `BOT_ELO` is
+the range that table covers - **250 to 1500** - and is separate from `ELO`,
+which is the player's own rating rules and has no ceiling.
 
 Those numbers are MEASURED, not labels. Stockfish refuses to limit itself
 below UCI_Elo 1320, so under about 1200 the engine is not what is being turned
@@ -112,11 +121,15 @@ opening book runs before any of it.
 
 ```bash
 node tools/dev/calibrate_bots.mjs          # every mode and tier: ACPL vs a depth-12 reference
-node tools/dev/calibrate_bots.mjs --elo 600,1000,1400
+node tools/dev/calibrate_bots.mjs --elo 300,900,1500 --samples=40
 ```
 
-The floor is about 600: below that the only lever left is random play, which
-is the one thing an Easy mode must not be.
+Weak does not mean random. A bot takes obviously free material before it rolls
+for a mistake (`seesFreeMaterialCp` and `greed`), so even a 250 normally takes
+the queen you left hanging - it just does not look at what the capture walks
+into. And when it does go wrong, the mistake is weighted by what it costs, so
+a 300's errors are expensive and a 1400's are cheap. Measured numbers and the
+whole ladder are in `docs/DESIGN.md` section 7.
 
 ## Soundtrack
 
@@ -218,6 +231,7 @@ and rebuild: each prop then takes that file's pixels inside its rect.
 ```bash
 python3 tools/build_assets.py          # only after new scene/UI art arrives
 python3 tools/build_characters.py      # only after new character sheets arrive
+python3 tools/build_pixel_icons.py     # only after a new UI icon sheet arrives
 ./tools/build-itch.sh                  # -> dist/pawn-and-passport-<version>.zip (about 73 MB)
 ```
 
@@ -258,6 +272,7 @@ js/game/match.js        one game: bot, live grading, Focus, hints, guide arrows
 js/ui/                  app shell, board, effects, sprites, screens/
   audio.js              synthesised sound effects
   music.js              the four-track soundtrack: crossfades, autoplay, volume
+  icons.js              the pixel-art UI icon set: pixelIcon('trophy')
   difficultyPicker.js   Easy / Normal / Hard, shared by new-game and Settings
 js/chess/               the reused Chess: World Tour chess core (see docs/DESIGN.md)
 vendor/                 chess.js, Stockfish 18 lite single-threaded WASM

@@ -5,6 +5,7 @@
  *   node tools/dev/calibrate_bots.mjs                 every mode, every tier
  *   node tools/dev/calibrate_bots.mjs easy normal     only these modes
  *   node tools/dev/calibrate_bots.mjs --elo 400,700   raw Elos instead of the curve
+ *   node tools/dev/calibrate_bots.mjs --samples=40    more move choices per position
  *
  * The displayed Elo of an opponent is a LABEL. What a player actually meets is
  * the move js/chess/bots/chessBot.js ends up choosing, after the blunder roll,
@@ -48,7 +49,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CACHE = path.join(HERE, 'positions.json');
 const REF_DEPTH = 12;
 const REF_MULTIPV = 24;
-const SAMPLES = 8;                 // move choices per position per profile
+const SAMPLES = Number((process.argv.find((a) => a.startsWith('--samples=')) || '').split('=')[1]) || 8;
 const ANCHORS = [[280, 350], [190, 600], [150, 800], [115, 1000], [90, 1200], [70, 1400], [55, 1600]];
 
 const seeded = (s0) => { let s = s0 % 2147483647 || 1; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; };

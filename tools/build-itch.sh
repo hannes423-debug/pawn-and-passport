@@ -53,6 +53,15 @@ done < <(grep -rhoE "assets/[A-Za-z0-9_./-]+\.(webp|png|woff2|mp3|json)" "$out/j
          | sed 's#^\.\./##' | sort -u | grep -v '\${')
 [ "$missing" = 0 ] || exit 1
 
+# Every icon js/ui/icons.js names is really in the build. Its paths are built
+# from the name, so the templated-path sweep above skips them by design.
+icons=$(grep -oE "^  '?[a-z-]+'?:" "$out/js/ui/icons.js" | tr -d " ':" | sort -u)
+[ -n "$icons" ] || { echo "js/ui/icons.js names no icons"; exit 1; }
+for i in $icons; do
+  [ -s "$out/assets/ui/icons/$i.png" ] || { echo "MISSING icon: assets/ui/icons/$i.png"; exit 1; }
+done
+echo "ui icons: $(echo "$icons" | wc -w)"
+
 # Every track js/ui/music.js names is really there, and is really an MP3.
 tracks=$(grep -oE "assets/audio/[A-Za-z0-9_-]+\.mp3" "$out/js/ui/music.js" | sort -u)
 [ -n "$tracks" ] || { echo "no soundtrack referenced by js/ui/music.js"; exit 1; }
