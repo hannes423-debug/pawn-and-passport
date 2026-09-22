@@ -292,6 +292,25 @@ test('Easy starts with genuine beginner opponents under 500', () => {
   assert(beginner.blunderSeverityCp > club.blunderSeverityCp, 'and far more expensively');
 });
 
+/* An icon MAP holds icon NAMES now, not glyphs, so interpolating one into a
+   string no longer draws a symbol - it prints the word "trophy" next to the
+   label. It still renders, still passes a smoke test, and is only visible to
+   somebody looking at the screen: the practice tree's filter pills shipped
+   reading "pawn fundamentals" and "xp tactics" exactly once. */
+test('an icon name is never interpolated into a string', () => {
+  const guilty = [];
+  const files = ['js/ui/screens/practice.js', 'js/ui/screens/lesson.js', 'js/ui/screens/scene.js',
+    'js/ui/screens/journal.js', 'js/ui/screens/map.js', 'js/ui/screens/match.js', 'js/ui/app.js'];
+  for (const file of files) {
+    const src = readFileSync(path.join(ROOT, file), 'utf8');
+    for (const [i, line] of src.split('\n').entries()) {
+      if (/\$\{[A-Za-z_]*ICON\[/.test(line)) guilty.push(`${file}:${i + 1} interpolates an icon map`);
+      if (/text:\s*[A-Za-z_]*ICON\[/.test(line)) guilty.push(`${file}:${i + 1} sets an icon map as text`);
+    }
+  }
+  eq(guilty.join('\n'), '', 'icon names reach pixelIcon(), never a string');
+});
+
 /* TEST 1 (structural): strengthForElo has ONE parameter. A mode cannot be
    passed in even by accident, which is the cheapest possible guarantee that
    difficulty never reaches into playing strength. */

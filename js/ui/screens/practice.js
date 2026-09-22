@@ -100,7 +100,8 @@ export function practiceScreen(app, params) {
     fill(filters, branches.map((id) => h('button.pp-tree__filter', {
       type: 'button', class: branch === id ? 'is-active' : '',
       onclick: () => { branch = id; sfx.click(); paint(); }
-    }, id === 'all' ? 'Everything' : `${BRANCH_ICON[id] || '•'} ${id}`)));
+    }, id === 'all' ? h('span', { text: 'Everything' })
+      : [pixelIcon(BRANCH_ICON[id] || 'practice', { size: 'sm' }), h('span', { text: ` ${id}` })])));
     if (focusId) {
       requestAnimationFrame(() => list.querySelector('.is-focus')?.scrollIntoView({ block: 'center' }));
     }

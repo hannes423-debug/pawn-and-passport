@@ -379,7 +379,7 @@ export function lessonScreen(app, params) {
   }
 
   fill(subtitle,
-    h('span', { text: `${BRANCH_ICON[lesson.branch] || '•'} ${lesson.branch}` }),
+    h('span.pp-icotext', null, pixelIcon(BRANCH_ICON[lesson.branch] || 'practice', { size: 'sm' }), h('span', { text: lesson.branch })),
     h('span', { text: ` · ${tier ? tier.label : 'Practice'} · rating band ${bandLabel(lesson.band)}` }));
   setStep(step);
 
