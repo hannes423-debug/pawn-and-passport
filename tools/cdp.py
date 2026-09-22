@@ -111,8 +111,16 @@ class Chrome:
 
     def shot(self, name):
         os.makedirs(SHOTS, exist_ok=True)
-        # Let background images and fonts decode.
-        self.eval("Promise.all([...document.images].map(i => i.decode ? i.decode().catch(()=>{}) : 0)).then(() => document.fonts.ready).then(() => 1)", await_promise=True)
+        # Let background images and fonts decode - but never wait forever for
+        # them. decode() on an image the browser has not started fetching (a
+        # loading="lazy" one inside a display:none panel) never settles, and
+        # this used to hang the whole run on a screenshot.
+        self.eval(
+            "Promise.race(["
+            "  Promise.all([...document.images].map(i => i.decode ? i.decode().catch(() => {}) : 0))"
+            "    .then(() => document.fonts.ready),"
+            "  new Promise(r => setTimeout(r, 3000))"
+            "]).then(() => 1)", await_promise=True)
         self.pump(0.3)
         data = self.send("Page.captureScreenshot", {"format": "png"})["data"]
         path = os.path.join(SHOTS, f"{name}.png")
@@ -164,6 +172,11 @@ def smoke():
         c.eval("window.__pap.go('create')")
         c.pump(1)
         print("create", c.shot("02-create"))
+        # Page 2 of the creator: the home city, on its own.
+        c.eval("[...document.querySelectorAll('.pp-create__go .pp-btn')].find(b => b.offsetParent && /Next/.test(b.textContent)).click()")
+        c.wait_for("!document.querySelector('.pp-create__cities').hidden", timeout=10)
+        c.pump(0.8)
+        print("create city", c.shot("02b-create-city"))
         c.eval(NEW_CAREER % ("girl", "nyc"), await_promise=True)
         c.eval("window.__pap.go('map')")
         c.pump(1.5)

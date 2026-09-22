@@ -139,8 +139,14 @@ def run_viewport(spec, failures):
         c.goto()
         c.wait_for("!!window.__pap && !document.getElementById('curtain')", timeout=60)
         check("title")
+        # The creator is two pages and BOTH have to fit: the city list living
+        # on page 2 is the only reason it fits at all, so checking page 1
+        # alone would pass the screen that used to be broken.
         go("window.__pap.go('create')")
         check("create")
+        go("[...document.querySelectorAll('.pp-create__go .pp-btn')].find(b => b.offsetParent && /Next/.test(b.textContent)).click()",
+           "!document.querySelector('.pp-create__cities').hidden")
+        check("create-city")
         c.eval(NEW_CAREER % ("girl", "nyc"), await_promise=True)
         go("window.__pap.go('map')", settle=1.5)
         check("map")

@@ -136,7 +136,10 @@ def run(start):
         # A real new game through the creation screen.
         click(button("New Game"), "New Game")
         wait("window.__pap.currentName === 'create'", "character creation")
+        # The creator is two pages: who you are, then the home city.
         js("(() => { const i = document.querySelector('.pp-create input'); i.value = 'Judge'; i.dispatchEvent(new Event('input', { bubbles: true })); })()")
+        click(button("Next"), "Next, on to the home city")
+        wait("!document.querySelector('.pp-create__cities').hidden", "the home city page")
         click(f"[...document.querySelectorAll('.pp-create button, .pp-create [role=button]')].find(b => b.textContent.includes('{CITY[start]}'))", "the starting city")
         click(button("Get my passport"), "Get my passport")
         wait("window.__pap.currentName === 'scene'", "the first scene", 40)
