@@ -736,6 +736,13 @@ as background. Four layers were drawn at a slightly different size and are
 fitted with an ECC affine first (WARP). Characters take z = 2*round(10y)+1 and
 slices 2*round(10*line), so a character level with a line stands in front.
 
+Potted plants (user, same day): the masks made every pot solid. The build now
+opens the floor a potted plant hides wherever it carries on either side of it,
+keeping only the pot's lowest 12 px solid, so the player steps behind the pot
+and is covered by it (147 plants). Planters and trees in beds are left as the
+mask drew them: opening them put the player IN the flower beds. A plant whose
+opening would join two separate floors stays solid.
+
 Tolerated: the strip behind lon-venue's telephone box is standable but
 unreachable (a 1116-cell nook, allowed by name in tests/run.js). vie-venue's
 mask leaves the cafe little open floor: `vie-can` is pinned in

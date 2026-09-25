@@ -50,6 +50,7 @@ Output:
 import hashlib
 import json
 import os
+import re
 import sys
 
 import cv2
@@ -88,6 +89,18 @@ WARP = {
 }
 MASK_IN_ART_FRAME = {'wen-up'}
 
+# WALK BEHIND PLANTS (user, 2026-09-25): the masks make every potted plant
+# solid, but a player should be able to step behind most of them and be
+# hidden. Inside a potted plant's hint rect, floor the plant hides becomes walkable where the floor
+# visibly carries on either side of it (left and right in that row, or above
+# and below in that column), so a plant against a wall stays against the wall.
+# Only the pot's own base (its lowest FOOT px per column) keeps blocking. A
+# plant whose opening would JOIN two separate floor areas is left solid: some
+# of them close an aisle on purpose (vie-up's lower plants).
+PLANT = re.compile(r'(^|-)(plants?|pots?|bonsai|bamboo|topiary|cypress|palm|trees?|olive|pine|willow|planters?|urn|vase)(-|$)')
+POTTED = re.compile(r'(^|-)(plants?|pots?|topiary|urn|vase|bonsai|bamboo)(-|$)')   # stand on the pot's base only
+PLANT_REACH = 14           # px past the rect where the floor on either side is looked for
+
 
 def scene_actor_heights():
     """actorHeight per scene, from js/data/scenes.js itself (default 0.1)."""
@@ -118,11 +131,62 @@ def load(scene):
     return np.asarray(art), alpha >= ALPHA, walk > 127
 
 
+def plant_walk(scene, opaque, walk):
+    """The walk mask with the floor behind the scene's plants opened up. Returns (mask, plants opened)."""
+    H, W = walk.shape
+    lab, _ = ndimage.label(walk, structure=np.ones((3, 3)))
+    sizes = np.bincount(lab.ravel())
+    out = walk.copy()
+    opened = 0
+    for pid, (x0, y0, x1, y1), _base, fp in HINTS.get(scene, []):
+        if not PLANT.search(pid):
+            continue
+        xa, xb = max(0, int(x0 / 100 * W)), min(W, int(round(x1 / 100 * W)))
+        ya, yb = max(0, int(y0 / 100 * H)), min(H, int(round(y1 / 100 * H)))
+        if xb - xa < 3 or yb - ya < 3:
+            continue
+        # A planter or a tree in a bed stands on its whole box: the floor
+        # behind it is already open in the masks (canopies are walk-behind),
+        # and opening more would put the player IN the flowers. So only potted
+        # things open, standing on their lowest FOOT px.
+        if not POTTED.search(pid):
+            continue
+        foot = np.zeros((yb - ya, xb - xa), bool)
+        op = opaque[ya:yb, xa:xb]
+        for i in range(xb - xa):
+            ys = np.where(op[:, i])[0]
+            if ys.size:
+                foot[max(0, ys.max() - FOOT + 1):, i] = True
+        L = max(0, xa - PLANT_REACH); R = min(W, xb + PLANT_REACH)
+        T = max(0, ya - PLANT_REACH); B = min(H, yb + PLANT_REACH)
+        w = walk[T:B, L:R]
+        ox, oy = xa - L, ya - T
+        left = np.maximum.accumulate(w, axis=1)[oy:oy + yb - ya, ox:ox + xb - xa]
+        right = np.maximum.accumulate(w[:, ::-1], axis=1)[:, ::-1][oy:oy + yb - ya, ox:ox + xb - xa]
+        up = np.maximum.accumulate(w, axis=0)[oy:oy + yb - ya, ox:ox + xb - xa]
+        down = np.maximum.accumulate(w[::-1], axis=0)[::-1][oy:oy + yb - ya, ox:ox + xb - xa]
+        fill = ((left & right) | (up & down)) & ~foot & ~walk[ya:yb, xa:xb]
+        if not fill.any():
+            continue
+        # would it join two floors that were apart?
+        big = np.zeros((H, W), bool)
+        big[ya:yb, xa:xb] = fill
+        touch = lab[ndimage.binary_dilation(big, iterations=2) & walk]
+        touch = {int(t) for t in np.unique(touch) if t and sizes[t] >= 200}
+        if len(touch) > 1:
+            print(f'    {scene}: {pid} would join two floors, left solid')
+            continue
+        out[ya:yb, xa:xb] |= fill
+        opened += 1
+    out = ndimage.binary_opening(out, iterations=1) | walk     # no one-pixel slivers
+    return out, opened
+
+
 def hint_map(scene, W, H):
     """Per pixel: the ground line (percent) of the SMALLEST hint rect over it, else NaN."""
     out = np.full((H, W), np.nan, np.float32)
     area = np.full((H, W), np.inf, np.float32)
-    for _pid, (x0, y0, x1, y1), base in HINTS.get(scene, []):
+    for _pid, (x0, y0, x1, y1), base, _foot in HINTS.get(scene, []):
         xs = slice(max(0, int(x0 / 100 * W)), min(W, int(round(x1 / 100 * W))))
         ys = slice(max(0, int(y0 / 100 * H)), min(H, int(round(y1 / 100 * H))))
         a = (x1 - x0) * (y1 - y0)
@@ -299,7 +363,7 @@ def sources(scene):
     """What a scene's data is made from: both guides, its hints and this file's tunables."""
     folder = os.path.join(ROOT, CITY_DIR[scene[:3]])
     md5 = lambda path: hashlib.md5(open(path, 'rb').read()).hexdigest()[:12]
-    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, WARP.get(scene), HINTS.get(scene)))
+    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
             'occlusion': md5(os.path.join(folder, f'{scene}-occlusion.png')),
             'art': md5(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')),
@@ -326,8 +390,10 @@ def build(scene, actor_h, write=True):
     if write:
         os.makedirs(os.path.join(ROOT, 'assets', 'layers'), exist_ok=True)
         Image.fromarray(atlas, 'RGBA').save(os.path.join(ROOT, src), 'WEBP', quality=92, alpha_quality=100, method=6)
-    data = {'source': sources(scene), 'atlas': src, 'atlasSize': [aw, ah], 'size': [W, H], 'slices': props, 'walk': {'cols': GRID[0], 'rows': GRID[1], 'rle': walk_rows(walk)}}
-    return data, (art, opaque, walk, snapped, kinds)
+    walk_open, opened = plant_walk(scene, opaque, walk)
+    data = {'source': sources(scene), 'atlas': src, 'atlasSize': [aw, ah], 'size': [W, H], 'slices': props, 'walk': {'cols': GRID[0], 'rows': GRID[1], 'rle': walk_rows(walk_open)}}
+    print(f'    {scene}: floor behind {opened} plants opened (+{(walk_open & ~walk).sum()} px)')
+    return data, (art, opaque, walk_open, snapped, kinds)
 
 
 def preview(scene, data, debug, actor_h):
@@ -390,8 +456,8 @@ def check():
         if not d or d.get('source') != sources(scene):
             bad.append(f'{scene}: inputs changed since the last build')
             continue
-        _art, _op, walk = load(scene)
-        if d['walk']['rle'] != walk_rows(walk):
+        _art, op, walk = load(scene)
+        if d['walk']['rle'] != walk_rows(plant_walk(scene, op, walk)[0]):
             bad.append(f'{scene}: walk grid edited by hand')
         if not os.path.exists(os.path.join(ROOT, d['atlas'])):
             bad.append(f'{scene}: {d["atlas"]} missing')

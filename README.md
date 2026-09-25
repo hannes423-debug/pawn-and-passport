@@ -211,6 +211,10 @@ Both come from two guides the artist drew per scene, in the city folder:
   (signs over doorways, gate arches, banners, canopies) takes the hand-set line
   in `tools/depth_hints.py` (99 = always in front); one with floor above and
   below (an inlay, steps) never hides anybody.
+- Potted plants are walk-behind: the build opens the floor a plant hides
+  (where it carries on either side of it) so the player can step behind the
+  pot and be covered by it; only the pot's base blocks. Planters and trees in
+  beds keep the mask as drawn.
 
 ```bash
 python3 tools/build_occlusion.py --preview   # atlases + js/data/sceneLayers.js; previews in tools/shots/occlusion-<scene>.png
