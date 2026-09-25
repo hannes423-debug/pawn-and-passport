@@ -10,7 +10,7 @@
 import { OPENINGS } from '../js/data/openings.js';
 import { spriteId, setPlayerAvatar, PLAYER_LOOKS } from '../js/ui/sprites.js';
 import { SCENE_LAYERS } from '../js/data/sceneLayers.js';
-import { createWalkGrid, walkerFor, pointInPolygon } from '../js/core/freeWalk.js';
+import { createWalkGrid, walkerFor, solidFromWalk } from '../js/core/freeWalk.js';
 import { collisionDebugOn } from '../js/ui/screens/scene.js';
 import { MOODS, MOOD_RULES, moodFacts, heatOf, createMoodTracker } from '../js/core/musicMood.js';
 import { TRACKS, CROSSFADE_MS } from '../js/ui/music.js';
@@ -1299,14 +1299,21 @@ test('undo: level caps and scoring', () => {
 
 /* -------------------------------------------------------- free walking */
 
-test('layered scenes: every hotspot reachable from the spawn, nothing walks through a footprint', () => {
+test('layered scenes: every hotspot reachable from the spawn, and every slice inside its atlas', () => {
   const sizes = JSON.parse(readFileSync(path.join(ROOT, 'assets/manifest.json'), 'utf8')).scenes;
   for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
     const scene = sceneById(id);
     assert(scene, `${id}: scene exists`);
     const [w, h] = sizes[id];
     const grid = createWalkGrid(layers, { aspect: w / h, walker: walkerFor(scene.actorHeight ?? 0.1) });
-    for (const prop of layers.props) assert(existsSync(path.join(ROOT, prop.src)), `${id}/${prop.id}: layer image`);
+    assert(existsSync(path.join(ROOT, layers.atlas)), `${id}: occlusion atlas`);
+    const [AW, AH] = layers.atlasSize;
+    layers.slices.forEach(([base, , , , , ax, ay, aw, ah], k) => {
+      assert(ax >= 0 && ay >= 0 && ax + aw <= AW && ay + ah <= AH, `${id}/slice ${k}: inside the atlas`);
+      assert(base >= 0 && base <= 99, `${id}/slice ${k}: ground line`);
+    });
+    eq(layers.walk.rle.length, layers.walk.rows, `${id}: walk rows`);
+    for (const row of layers.walk.rle) eq(row.split(',').reduce((a, b) => a + Number(b), 0), layers.walk.cols, `${id}: walk row width`);
     const spawn = grid.nearestFree(...scene.nodes[scene.spawn.default]);
     assert(spawn, `${id}: spawn on the floor`);
     for (const spot of scene.hotspots) {
@@ -1314,10 +1321,6 @@ test('layered scenes: every hotspot reachable from the spawn, nothing walks thro
       assert(route, `${id}: ${spot.id} reachable`);
       let prev = spawn;
       for (const point of route) { assert(grid.lineFree(prev[0], prev[1], point[0], point[1]), `${id}: ${spot.id} route crosses an obstacle`); prev = point; }
-    }
-    for (const prop of layers.props.filter((p) => p.foot)) {
-      const [x0, y0, x1, y1] = prop.foot;
-      assert(!grid.free((x0 + x1) / 2, (y0 + y1) / 2), `${id}/${prop.id}: footprint is blocked`);
     }
   }
 });
@@ -1364,12 +1367,9 @@ test('every scene: every arrival reaches every interaction, and random walking n
 });
 
 test('a walker\'s body never leaves the floor, in any scene', () => {
-  /* The bug this pins: the grid used to grow only the BLOCKS by the walker's
-     size and leave the floor edge alone, so wherever a wall was spelled as the
-     gap between two floor polygons - which is how every interior is drawn - a
-     body could stand half inside it. Every scene had it, 3% to 16% of its
-     standable cells. Measured here against the floor polygons directly, not
-     against the grid that is derived from them. */
+  /* The walk mask marks where FEET may stand; the grid erodes it by the
+     walker's body. Measured here against the mask directly, not against the
+     grid that is derived from it. */
   const sizes = JSON.parse(readFileSync(path.join(ROOT, 'assets/manifest.json'), 'utf8')).scenes;
   const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1], [-1, 0], [1, 0], [0, -1], [0, 1]];
   for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
@@ -1378,11 +1378,18 @@ test('a walker\'s body never leaves the floor, in any scene', () => {
     const aspect = w / h;
     const walker = walkerFor(scene.actorHeight ?? 0.1);
     const grid = createWalkGrid(layers, { aspect, walker });
-    const padX = walker.halfWidth / aspect;
-    const padY = walker.halfDepth;
+    const { cols: mc, rows: mr } = layers.walk;
+    const mask = solidFromWalk(layers.walk, mc, mr);
+    const onFloor = (x, y) => {
+      const i = Math.floor((x / 100) * mc);
+      const j = Math.floor((y / 100) * mr);
+      return i >= 0 && j >= 0 && i < mc && j < mr && mask[j * mc + i] === 0;
+    };
+    // Inset by half a cell: a body edge exactly on a cell border belongs to neither side.
+    const padX = walker.halfWidth / aspect - 50 / grid.cols;
+    const padY = walker.halfDepth - 50 / grid.rows;
     const cw = 100 / grid.cols;
     const ch = 100 / grid.rows;
-    const onFloor = (x, y) => layers.floor.some((poly) => pointInPolygon(x, y, poly));
     let outside = 0;
     for (let j = 0; j < grid.rows; j += 1) {
       for (let i = 0; i < grid.cols; i += 1) {
@@ -1402,6 +1409,11 @@ test('every scene: walkable floor is reachable, apart from nooks inside the furn
      inside of a ring of armchairs, the strip behind a display case. */
   const sizes = JSON.parse(readFileSync(path.join(ROOT, 'assets/manifest.json'), 'utf8')).scenes;
   const NOOK = 600;                       // cells; a doorway loses far more than this
+  /* The strip behind lon-venue's telephone box: the walk mask lets feet stand
+     there (the box hides floor), but the box leaves no way round it. A sealed
+     doorway (nyc-int's hall, before freeWalk rounded to the nearest cell) is
+     2113. */
+  const NOOK_FOR = { 'lon-venue': 1200 };
   for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
     const scene = sceneById(id);
     const [w, h] = sizes[id];
@@ -1450,7 +1462,7 @@ test('every scene: walkable floor is reachable, apart from nooks inside the furn
       }
       worst = Math.max(worst, area);
     }
-    assert(worst <= NOOK, `${id}: ${worst} cells of floor are walled off from the spawn`);
+    assert(worst <= (NOOK_FOR[id] ?? NOOK), `${id}: ${worst} cells of floor are walled off from the spawn`);
   }
 });
 
@@ -1469,7 +1481,16 @@ test('the collision debug overlay is off unless the URL asks for it', () => {
 });
 
 test('free walking slides along obstacles instead of passing through', () => {
-  const layers = { floor: [[[0, 0], [100, 0], [100, 100], [0, 100]]], blocks: [[40, 40, 60, 60]], props: [] };
+  // A walk mask with a block in the middle: floor everywhere else.
+  const cols = 300; const rows = 225;
+  const rle = [];
+  for (let j = 0; j < rows; j += 1) {
+    const y = ((j + 0.5) / rows) * 100;
+    if (y < 40 || y > 60) { rle.push(`0,${cols}`); continue; }
+    const a = Math.round(0.4 * cols); const b = Math.round(0.6 * cols);
+    rle.push(`0,${a},${b - a},${cols - b}`);
+  }
+  const layers = { walk: { cols, rows, rle }, props: [] };
   const grid = createWalkGrid(layers, { aspect: 1 });
   const straight = grid.move(50, 70, 0, -30);
   assert(straight.y > 60, `stopped below the block (y ${straight.y})`);

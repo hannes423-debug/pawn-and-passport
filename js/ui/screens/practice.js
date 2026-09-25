@@ -74,7 +74,7 @@ export function practiceScreen(app, params) {
         h('span.pp-small.pp-muted', { text: ` · ${tier.bands.map(bandLabel).join(', ')}` })),
       unlocked
         ? h('span.pp-small', { text: `${done}/${lessons.length} complete` })
-        : h('span.pp-pill.pp-pill--locked', { text: `Locked: ${tier.trophies} ${tier.trophies === 1 ? 'trophy' : 'trophies'}` }));
+        : h('span.pp-pill.pp-pill--locked', null, pixelIcon('lock', { size: 'sm' }), h('span', { text: ` Locked: ${tier.trophies} ${tier.trophies === 1 ? 'trophy' : 'trophies'}` })));
     if (!unlocked) {
       const need = tier.trophies - Object.keys(career.trophies).length;
       return h('section.pp-tree__tier.is-locked', null, head,

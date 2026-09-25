@@ -8,11 +8,11 @@
  * clicking and the keyboard works (keys 1-9). On touch screens a joystick walks
  * the same graph link by link and the A button uses whatever is nearest.
  *
- * LAYERED scenes (js/data/sceneLayers.js, built by tools/build_layers.py) are
+ * LAYERED scenes (js/data/sceneLayers.js, built by tools/build_occlusion.py) are
  * walked FREELY instead: the joystick, arrow keys or WASD move the player
  * anywhere on the floor with collision, a tap walks there along an A* path,
- * and every cut-out object is drawn in depth order with the characters, so
- * the player passes behind a lamp and in front of a table.
+ * and the artist's occlusion layer is drawn in depth order with the
+ * characters, so the player passes behind a lamp and in front of a table.
  */
 
 import { h, button, wait, clear } from '../dom.js';
@@ -44,10 +44,10 @@ import { createWalkGrid, walkerFor } from '../../core/freeWalk.js';
 import { pixelIcon, sideIcon } from '../icons.js';
 
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
-const WALK_SPEED = 42;           // percent of the stage height per second
+const WALK_SPEED = 33.6;         // percent of the stage height per second (42 until 2026-09-25: too brisk)
 
 /* What a hotspot is FOR decides how its label looks (css: .pp-hotspot.is-*). */
-const KIND_ICON = { goal: 'trophy', star: 'xp', practice: 'practice', puzzle: 'hint', exit: 'exit', member: 'dialogue', info: 'dialogue' };
+const KIND_ICON = { goal: 'trophy', star: 'crown', practice: 'practice', puzzle: 'scroll', exit: 'exit', member: 'dialogue', info: 'dialogue' };
 function spotKind(spot) {
   if (spot.member) return 'member';
   const t = spot.action.type;
@@ -74,8 +74,8 @@ export function collisionDebugOn() {
   return /[?&]debugCollision=1(&|$)/.test(q);
 }
 
-/** A canvas of the walk grid, plus a box per prop footprint. Debug only. */
-function collisionOverlay(grid, layers) {
+/** A canvas of the walk grid. Debug only. */
+function collisionOverlay(grid) {
   const canvas = h('canvas.pp-scene__collision', { width: String(grid.cols), height: String(grid.rows) });
   Object.assign(canvas.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', pointerEvents: 'none', zIndex: '9000', opacity: '0.45' });
   const ctx = canvas.getContext('2d');
@@ -88,13 +88,6 @@ function collisionOverlay(grid, layers) {
     img.data[n * 4 + 3] = free ? 150 : 190;
   }
   ctx.putImageData(img, 0, 0);
-  ctx.strokeStyle = 'rgba(255, 220, 0, 0.9)';
-  ctx.lineWidth = 0.6;
-  for (const prop of layers.props || []) {
-    if (!prop.foot) continue;
-    const [x0, y0, x1, y1] = prop.foot;
-    ctx.strokeRect((x0 / 100) * grid.cols, (y0 / 100) * grid.rows, ((x1 - x0) / 100) * grid.cols, ((y1 - y0) / 100) * grid.rows);
-  }
   return canvas;
 }
 
@@ -275,7 +268,8 @@ export async function sceneScreen(app, params) {
         drawCharacter(ctx, look, { dir: this.dir, frame: this.frame, walking: this.walking, height: this.height || 60 });
         canvas.style.left = `${this.x}%`; canvas.style.top = `${this.y}%`;
         shadow.style.left = `${this.x}%`; shadow.style.top = `${this.y}%`;
-        canvas.style.zIndex = String(Math.round(this.y * 10));
+        // Odd: a character level with a slice's ground line stands in front of it.
+        canvas.style.zIndex = String(Math.round(this.y * 10) * 2 + 1);
       }
     };
     actorList.push(actor);
@@ -300,24 +294,33 @@ export async function sceneScreen(app, params) {
     if (look) makeActor(look, npc.at, { dir: 'down' });
   }
 
-  /* Depth layers: each cut-out object sits in the actors layer, stacked by its ground line. */
+  /* Depth layers: the artist's occlusion layer, cut into slices by ground line
+     (tools/build_occlusion.py). Each slice sits in the actors layer at its own
+     z, so a character is drawn behind every slice whose ground line is lower
+     down the picture than its feet. One atlas image per scene. */
   const layers = SCENE_LAYERS[scene.id] || null;
   const freeMode = !!layers;
   const grid = freeMode ? walkGridFor(scene.id, layers, aspect, ACTOR_H) : null;
   if (freeMode) {
-    for (const prop of layers.props) {
-      actors.append(h('img.pp-prop', {
-        src: prop.src, alt: '', draggable: 'false', dataset: { prop: prop.id },
-        style: { left: `${prop.x}%`, top: `${prop.y}%`, width: `${prop.w}%`, height: `${prop.h}%`, zIndex: String(Math.round(prop.base * 10)) }
+    const [AW, AH] = layers.atlasSize;
+    const pct = (a, size, whole) => (whole === size ? 0 : (a / (whole - size)) * 100);
+    for (const [base, x, y, pw, ph, ax, ay, w, hgt] of layers.slices) {
+      actors.append(h('div.pp-prop', {
+        style: {
+          left: `${x}%`, top: `${y}%`, width: `${pw}%`, height: `${ph}%`,
+          zIndex: String(Math.round(base * 10) * 2),
+          backgroundImage: `url("${layers.atlas}")`,
+          backgroundSize: `${(AW / w) * 100}% ${(AH / hgt) * 100}%`,
+          backgroundPosition: `${pct(ax, w, AW)}% ${pct(ay, hgt, AH)}%`
+        }
       }));
     }
   }
 
   /* ?debugCollision=1 paints the grid the player actually walks on, over the
-     art: green where a body fits, red where it does not, yellow round every
-     prop footprint. Off unless the flag is in the URL - it is a development
+     art: green where a body fits, red where it does not. Off unless the flag is in the URL - it is a development
      aid, never part of a build's normal run. */
-  if (freeMode && collisionDebugOn()) stage.append(collisionOverlay(grid, layers));
+  if (freeMode && collisionDebugOn()) stage.append(collisionOverlay(grid));
 
   const spawnNode = (params.node && scene.nodes[params.node] ? params.node : null) || scene.spawn[params.spawn] || scene.spawn.default;
   let playerNode = spawnNode;
@@ -764,7 +767,7 @@ export async function sceneScreen(app, params) {
         h('p.pp-small', { text: `${club.trophyName} goes only to whoever beats ${star.name} in the final. Every game you play teaches you the ${opening.name}, even if you fall short.` }),
         lastLine ? h('p.pp-small', null, h('b', { text: lastLine })) : null,
         h('div.pp-row', null,
-          button(last ? 'Enter again' : 'Enter the tournament', () => close('enter'), { cls: 'pp-btn--gold', icon: pixelIcon('club', { size: 'sm' }) }),
+          button(last ? 'Enter again' : 'Enter the tournament', () => close('enter'), { cls: 'pp-btn--gold', icon: pixelIcon('medal', { size: 'sm' }) }),
           button('Not yet', () => close(null), { cls: 'pp-btn--small' }))));
       if (choice !== 'enter') return;
       run = enterTournament(career, clubId);
@@ -842,7 +845,7 @@ export async function sceneScreen(app, params) {
     const round = currentRound(career, clubId);
     const ready = round && round.kind === 'star';
     const actions = ready
-      ? [{ id: 'play', label: `Challenge ${star.name.split(' ')[0]}`, cls: 'pp-btn--gold' }, { id: null, label: 'Later' }]
+      ? [{ id: 'play', label: `Challenge ${star.name.split(' ')[0]}`, icon: pixelIcon('crown', { size: 'sm' }), cls: 'pp-btn--gold' }, { id: null, label: 'Later' }]
       : null;
     const choice = await app.dialogue({ name: star.name, role: star.title, look: star.look, lines, actions });
     if (!ready && !career.trophies[clubId] && !first) {
@@ -878,7 +881,7 @@ export async function sceneScreen(app, params) {
         h('div.pp-col', null,
           option('tutorial', 'journal', `Tutorial: ${opening.name}`, tutored ? 'Walk through every line again.' : mastery > 0 ? `Every line with notes. You know ${mastery}%.` : `Every line with notes. Finishing it unlocks the opening (${MASTERY.tutorialGrant}%).`, tutored ? '' : 'is-new'),
           option('drill', 'practice', `Drills: ${opening.name}`, mastery > 0 ? `Find the book move. Pass a set: +${MASTERY.drillGain}% mastery (you know ${mastery}%).` : 'Do the tutorial first.'),
-          option('friendly', 'pawn', 'Friendly game', 'Unrated. Play a club member as White or Black.'),
+          option('friendly', 'handshake', 'Friendly game', 'Unrated. Play a club member as White or Black.'),
           option('puzzles', 'hint', 'Puzzles', `This club's own set, from real ${opening.name} games.`),
           option('lessons', 'practice', 'Practice tree (optional)', treeLine)),
         h('div.pp-row', { style: { justifyContent: 'flex-end' } }, button('Leave', () => c(null), { cls: 'pp-btn--small' })));

@@ -196,35 +196,36 @@ node tools/opening-research/stats.mjs          # -> js/data/openingStats.js (gam
 ## Depth layers and free walking
 
 Every walkable scene (all 24: club gardens, interiors and upper floors, the
-six casual venues and both Madrid scenes) is listed in `tools/build_layers.py` and are walked freely: joystick, arrow keys or WASD move the
-player anywhere on the floor with collision, and a tap walks there along an A*
-path (`js/core/freeWalk.js`). Every object a character can pass behind (lamps,
-trees, tables, signs, the pavilion, the fountain) is cut out of the scene art
-into `assets/layers/<scene>/` and stacked with the characters by its ground
-line, so the player walks behind a lamp and in front of a table.
+six casual venues and both Madrid scenes) is walked freely: joystick, arrow
+keys or WASD move the player anywhere on the floor with collision, and a tap
+walks there along an A* path (`js/core/freeWalk.js`).
+
+Both come from two guides the artist drew per scene, in the city folder:
+
+- `<scene>-walkmask.png`: white where a character's FEET may stand. It is the
+  collision, as is; the grid erodes it by the walker's body.
+- `<scene>-occlusion.png`: the scene with the floor removed. Every opaque
+  pixel gets a ground line and the player is drawn behind it when their feet
+  are higher up the picture than that line. A column of the layer that stands
+  on unwalkable floor takes its own lowest pixel; one the player walks UNDER
+  (signs over doorways, gate arches, banners, canopies) takes the hand-set line
+  in `tools/depth_hints.py` (99 = always in front); one with floor above and
+  below (an inlay, steps) never hides anybody.
 
 ```bash
-python3 tools/build_layers.py --preview   # cut-outs + js/data/sceneLayers.js; previews in tools/shots/layers-<scene>.png
-python3 tools/build_layers.py --data      # collision data only, no re-cutting (geometry-only changes)
-python3 tools/build_layers.py --check     # is the committed sceneLayers.js still what LAYERS makes?
-python3 tools/cdp_depth.py                # browser: cut-outs, walking with collision, depth order, every hotspot
-node tools/dev/clearance.mjs              # any floor walled off from the spawn?
-open '...?debugCollision=1'               # paint the walk grid over the art, in play
+python3 tools/build_occlusion.py --preview   # atlases + js/data/sceneLayers.js; previews in tools/shots/occlusion-<scene>.png
+python3 tools/build_occlusion.py nyc-int     # one scene (about 10 s each)
+python3 tools/build_occlusion.py --check     # fast: guides unchanged since the build, walk grid not hand-edited
+python3 tools/cdp_depth.py                   # browser: slices, walking with collision, depth order, every hotspot
+node tools/dev/clearance.mjs                 # any floor walled off from the spawn?
+open '...?debugCollision=1'                  # paint the walk grid over the art, in play
 ```
 
-Each prop is a rect (GrabCut seeds from it), a base line and a footprint;
-each scene has floor polygons and extra blocks.
-
-**Walls are the GAP between floor polygons**, not blocks, in every interior.
-The grid therefore marks solid first and then grows it by the walker's own
-half-size, so a wall spelled as a gap stops a body exactly as hard as an
-explicit block does. Growing only the blocks, which is what `freeWalk.js` used
-to do, left the floor edge unguarded and let a character stand half inside
-every wall in the game. `tests/run.js` pins that: in all 24 scenes, no
-standable cell puts a body off the floor. To use hand-made layers
-instead of GrabCut, put a transparent PNG the size of the scene at
-`<City folder>/layers/<scene>.png` (for example `London/layers/lon-venue.png`)
-and rebuild: each prop then takes that file's pixels inside its rect.
+The preview stands a magenta figure on a grid of walkable spots, each drawn in
+its real depth order, and tints the pixels that are not simply "stands on the
+floor": blue = a depth hint, orange = a lintel with no hint, green = on the
+floor. The pixels drawn in play are the scene's own, cut by the layer's alpha:
+the layer is a redraw and pasting it would show a seam round every object.
 
 ## Build for itch.io
 
@@ -232,11 +233,12 @@ and rebuild: each prop then takes that file's pixels inside its rect.
 python3 tools/build_assets.py          # only after new scene/UI art arrives
 python3 tools/build_characters.py      # only after new character sheets arrive
 python3 tools/build_pixel_icons.py     # only after a new UI icon sheet arrives
-python3 tools/build_layers.py --data   # collision data, after editing its LAYERS table
-./tools/build-itch.sh                  # -> dist/pawn-and-passport-<version>.zip (about 73 MB)
+python3 tools/build_occlusion.py       # after new walk masks or occlusion layers
+python3 tools/build_city_popup.py      # after a new city preview frame
+./tools/build-itch.sh                  # -> dist/pawn-and-passport-<version>.zip (about 65 MB)
 ```
 
-Most of that is art: 23 MB of prop cut-outs, 11 MB of scene paintings, 13 MB
+Most of that is art: 12 MB of occlusion atlases, 11 MB of scene paintings, 13 MB
 of music and 18 MB of Stockfish. Nothing is preloaded that does not need to
 be - a track is fetched the first time it plays, not at boot.
 

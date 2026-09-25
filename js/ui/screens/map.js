@@ -1,19 +1,23 @@
 /**
  * map.js - the stylised world map: six cities and Madrid.
  *
- * Each pin shows that city's trophy and postcard state. Choosing a pin opens a
- * travel card (club, casual venue, opening, progress) and flying there shows
- * the city's arrival card. Madrid stays locked until all six Club Trophies.
+ * Each pin shows that city's trophy and postcard state. Choosing a pin opens
+ * the city preview (the artist's card frame, css .pp-citypop): the city's
+ * picture, four tiles lit by what the player has earned there, the club, its
+ * opening and Star Player, and two buttons - fly there, or back to the map.
+ * Flying shows the city's arrival card. Madrid stays locked until all six
+ * Club Trophies.
  *
  * The map art is a wide landscape picture. When the window is narrower than
  * the art (a phone held upright), the map is ZOOMED to fill the height of its
  * area and the player drags it sideways; it opens centred on the current
- * city and glides to any city that is chosen. The travel card then sits in a
- * panel under the map instead of on top of it.
+ * city and glides to any city that is chosen. A panel under the map then
+ * holds the trophy count and the hint to drag.
  */
 
 import { h, button, wait } from '../dom.js';
 import { pixelIcon } from '../icons.js';
+import { portraitUrl } from '../sprites.js';
 import { sfx } from '../audio.js';
 import { CLUBS, FINALE, clubById } from '../../data/clubs.js';
 import { openingById } from '../../data/openings.js';
@@ -26,8 +30,6 @@ export function mapScreen(app) {
   const here = career.location.clubId;
   const stage = h('div.pp-map__stage', { role: 'main', 'aria-label': 'World map' });
   const area = h('div.pp-map__area', null, stage);
-  const card = h('div.pp-map__card');
-  const plane = h('div.pp-map__plane', { 'aria-hidden': 'true' }, pixelIcon('passport', { size: 'lg' }));
 
   // Dotted routes from home to every visited city.
   const svgNS = 'http://www.w3.org/2000/svg';
@@ -60,17 +62,12 @@ export function mapScreen(app) {
       onclick: () => { sfx.click(); select(entry); }
     },
       h('span.pp-pin__flag', null,
-        entry.finale ? pixelIcon(locked ? 'exit' : 'club', { size: 'sm' }) : null, label,
+        entry.finale ? pixelIcon(locked ? 'lock' : 'crown', { size: 'sm' }) : null, label,
         entry.club && trophy ? pixelIcon('trophy', { size: 'sm', label: 'Club Trophy' }) : null,
         entry.club && postcard ? pixelIcon('postcard', { size: 'sm', label: 'Postcard' }) : null),
-      h('span.pp-pin__stem'), h('span.pp-pin__dot'));
+      pixelIcon('pin', { size: 'lg', cls: 'pp-pin__marker' }));
     stage.append(b);
   }
-  plane.style.left = `${(clubById(here)?.mapPin || FINALE.mapPin).x}%`;
-  /* Clear of the city's name plate: the marker is a solid pixel icon now, not
-     a thin glyph, and at -7% it sat on top of the label. */
-  plane.style.top = `${(clubById(here)?.mapPin || FINALE.mapPin).y - 12}%`;
-  stage.append(plane);
 
   /* ------------------------------------------------------ zoom and pan -- */
   const RATIO = 1672 / 941;
@@ -139,9 +136,7 @@ export function mapScreen(app) {
 
   async function fly(entry, sceneId) {
     sfx.plane();
-    plane.style.left = `${entry.pin.x}%`;
-    plane.style.top = `${entry.pin.y - 12}%`;
-    await wait(1100);
+    await wait(350);
     const clubId = entry.finale ? FINALE.id : entry.club.clubId;
     const firstVisit = !entry.finale && !career.visited[clubId];
     travelTo(career, clubId, sceneId);
@@ -149,53 +144,70 @@ export function mapScreen(app) {
     app.go('scene', { sceneId, arrival: true, firstVisit });
   }
 
-  function closeCard() {
-    card.replaceChildren(defaultPanel);
-    el.classList.remove('has-card');
-  }
-
+  /* The city preview: the artist's frame with the game's content in its slots. */
   function select(entry) {
-    card.replaceChildren();
-    el.classList.add('has-card');
     centreOn(entry.pin);
+    const id = entry.finale ? FINALE.id : entry.club.clubId;
+    const isHere = here === id;
+    const visited = isHere || !!career.visited[id];
+    let title; let lines; let tiles; let portrait = null; let flyLabel; let canFly = true; let sceneId;
     if (entry.finale) {
-      card.append(h('div.pp-panel', null,
-        h('h2.pp-h2', { text: `${FINALE.city}: ${FINALE.eventName}` }),
-        finaleOpen
-          ? h('p', { text: `All six Star Players are waiting at the ${FINALE.venueName}, stronger than when you met them. Win three rounds to qualify for the Big Leagues.` })
-          : h('p', { text: `Locked. Win all six Club Trophies to receive your invitation (${trophyCount(career)}/6).` }),
-        h('div.pp-row', null,
-          button(finaleOpen ? 'Fly to Madrid' : 'Locked', () => fly(entry, FINALE.scenes.exterior), { cls: 'pp-btn--gold', disabled: !finaleOpen, icon: pixelIcon('passport', { size: 'sm' }) }),
-          button('Close', () => closeCard(), { cls: 'pp-btn--small' }))));
-      return;
+      const won = !!career.finale?.won;
+      title = FINALE.city;
+      canFly = finaleOpen;
+      sceneId = FINALE.scenes.exterior;
+      flyLabel = isHere ? 'Go to the championship' : finaleOpen ? 'Fly to Madrid' : 'Locked';
+      lines = [
+        h('b', { text: FINALE.eventName }),
+        h('span', { text: FINALE.venueName }),
+        h('span', { text: finaleOpen ? 'The six Star Players are waiting, stronger than before.' : `Locked: win all six Club Trophies (${trophyCount(career)}/6).` })];
+      tiles = [
+        ['pin', visited, visited ? 'Visited' : 'Not visited yet'],
+        ['trophy', finaleOpen, `Club Trophies ${trophyCount(career)}/6`],
+        ['crown', won, won ? 'Grand Finale won' : 'Grand Finale not won yet'],
+        ['postcard', postcardCount(career) >= 6, `Postcards ${postcardCount(career)}/6`]];
+    } else {
+      const club = entry.club;
+      const opening = openingById(club.openingId);
+      const star = starById(club.starPlayerId);
+      const mastery = career.openings[club.openingId] ?? 0;
+      const mission = missionProgress(career, club.puzzleMissionId);
+      const won = !!career.trophies[club.clubId];
+      const beaten = !!career.stars?.[star.id]?.beaten;
+      const postcard = !!career.postcards[club.postcardId];
+      title = club.city;
+      sceneId = club.scenes.exterior;
+      flyLabel = isHere ? 'Go to the club' : `Fly to ${club.city}`;
+      portrait = portraitUrl(star.look, { ring: '#c8963e', ground: '#f6e7c8' });
+      lines = [
+        h('b', { text: club.clubName }),
+        h('span', { text: `${opening.name} (${opening.side === 'w' ? 'White' : 'Black'}) \u00b7 you know ${mastery}%` }),
+        h('span', { text: `Star Player: ${star.name}` })];
+      tiles = [
+        ['pin', visited, isHere ? 'You are here' : visited ? 'Visited' : 'Not visited yet'],
+        ['trophy', won, won ? `${club.trophyName}: won` : `${club.trophyName}: not won yet`],
+        ['crown', beaten, beaten ? `${star.name}: beaten` : `${star.name}: not beaten yet`],
+        ['postcard', postcard, `${postcard ? 'Postcard collected' : 'Postcard not collected yet'}: ${club.casualLocationName}, puzzles ${mission.solved}/${mission.total}`]];
     }
-    const club = entry.club;
-    const opening = openingById(club.openingId);
-    const star = starById(club.starPlayerId);
-    const mastery = career.openings[club.openingId] ?? 0;
-    const mission = missionProgress(career, club.puzzleMissionId);
-    const isHere = here === club.clubId;
-    const won = !!career.trophies[club.clubId];
-    /* City, club, trophy state, Travel: first and biggest. The rest is detail. */
-    card.append(h('div.pp-panel.pp-mapcard', null,
-      h('h2.pp-h2', { text: club.city }),
-      h('div.pp-mapcard__club', null, h('b', { text: club.clubName })),
-      h(`div.pp-mapcard__trophy${won ? '.is-won' : ''}`, null, pixelIcon('trophy', { size: 'sm' }),
-        h('span', { text: won ? ` ${club.trophyName}: won!` : ` ${club.trophyName}: not won yet` })),
-      h('div.pp-row', { style: { marginTop: '8px' } },
-        button(isHere ? 'Go to the club' : 'Fly to the club', () => (isHere ? app.go('scene', { sceneId: club.scenes.exterior }) : fly(entry, club.scenes.exterior)), { cls: 'pp-btn--gold', icon: pixelIcon(isHere ? 'club' : 'passport', { size: 'sm' }) }),
-        button(isHere ? 'Casual venue' : 'Fly to the venue', () => (isHere ? app.go('scene', { sceneId: club.scenes.venue }) : fly(entry, club.scenes.venue)), { icon: pixelIcon('postcard', { size: 'sm' }) }),
-        button('Close', () => closeCard(), { cls: 'pp-btn--small' })),
-      h('div.pp-col.pp-small.pp-muted.pp-mapcard__more', null,
-        h('div', null, pixelIcon('pawn', { size: 'sm' }), ` ${opening.name} (${opening.side === 'w' ? 'White' : 'Black'}) \u00b7 you know ${mastery}%`),
-        h('div', null, pixelIcon('xp', { size: 'sm' }), ` Star Player: ${star.name}`),
-        h('div', null, pixelIcon('postcard', { size: 'sm' }), ` ${club.casualLocationName} \u00b7 puzzles ${mission.solved}/${mission.total}${career.postcards[club.postcardId] ? ' \u00b7 postcard collected' : ''}`))));
+    app.overlay((close) => h('div.pp-citypop', { role: 'dialog', 'aria-label': `${title}: city preview` },
+      h('img.pp-citypop__pic', { src: `assets/cities/${id}.webp`, alt: '', draggable: 'false' }),
+      h('img.pp-citypop__frame', { src: 'assets/ui/city-popup.png', alt: '', draggable: 'false' }),
+      h('div.pp-citypop__title', null, h('span', { text: title })),
+      ...tiles.map(([icon, lit, what], i) => h(`div.pp-citypop__tile.pp-citypop__tile--${i + 1}`, { class: lit ? 'is-lit' : '', title: what },
+        pixelIcon(icon, { size: 'lg', label: what }))),
+      portrait ? h('img.pp-citypop__portrait', { src: portrait, alt: '' }) : h('div.pp-citypop__portrait', null, pixelIcon('crown', { size: 'xl' })),
+      h('div.pp-citypop__info', null, ...lines),
+      h('button.pp-citypop__fly', {
+        type: 'button', title: flyLabel, 'aria-label': flyLabel, disabled: !canFly,
+        onclick: () => { sfx.click(); close(); if (isHere) app.go('scene', { sceneId }); else fly(entry, sceneId); }
+      }, canFly ? null : pixelIcon('lock', { size: 'xl' })),
+      h('button.pp-citypop__close', { type: 'button', title: 'Back to the map', 'aria-label': 'Back to the map', onclick: () => { sfx.click(); close(); } })));
   }
 
   const legend = h('div.pp-map__legend.pp-panel.pp-small', null,
     h('div', null, pixelIcon('trophy', { size: 'sm' }), ' Club Trophies ', h('b', { text: `${trophyCount(career)}/6` })),
     h('div', null, pixelIcon('postcard', { size: 'sm' }), ' Postcards ', h('b', { text: `${postcardCount(career)}/6` })),
-    h('div', null, pixelIcon('club', { size: 'sm' }), h('span', { text: finaleOpen ? ' Grand Finale: OPEN' : ' Grand Finale: locked' })));
+    h('div', null, pixelIcon(finaleOpen ? 'crown' : 'lock', { size: 'sm' }), h('span', { text: finaleOpen ? ' Grand Finale: OPEN' : ' Grand Finale: locked' })));
 
   // What the bottom panel shows on a narrow screen when no city is open.
   const defaultPanel = h('div.pp-panel.pp-map__default', null,
@@ -203,14 +215,14 @@ export function mapScreen(app) {
     h('p.pp-small', { text: 'Tap a city to travel. Drag the map to look around.' }),
     h('div.pp-small', null, pixelIcon('trophy', { size: 'sm' }), ` Club Trophies ${trophyCount(career)}/6 \u00b7 `,
       pixelIcon('postcard', { size: 'sm' }), ` Postcards ${postcardCount(career)}/6 \u00b7 `,
-      pixelIcon('club', { size: 'sm' }), h('span', { text: finaleOpen ? ' Grand Finale: OPEN' : ' Grand Finale: locked' })));
+      pixelIcon(finaleOpen ? 'crown' : 'lock', { size: 'sm' }), h('span', { text: finaleOpen ? ' Grand Finale: OPEN' : ' Grand Finale: locked' })));
 
+  const card = h('div.pp-map__card', null, defaultPanel);
   const el = h('div.pp-screen.pp-map', null, app.hud({ where: 'World map' }), area, card, legend);
   const start = pins.find((p) => p.id === here) || pins[pins.length - 1];
   requestAnimationFrame(() => {
     layout();
     centreOn(start.pin, false);
-    if (start && !start.finale) select(start); else closeCard();
     if (area.classList.contains('is-pannable')) area.append(h('div.pp-map__drag', { 'aria-hidden': 'true', text: 'Drag the map to see every city' }));
     welcome();
   });
@@ -222,7 +234,7 @@ export function mapScreen(app) {
       app.save();
       sfx.trophy();
       const choice = await app.overlay((close) => h('div.pp-panel.pp-modal.pp-invite', null,
-        h('div.pp-invite__seal', null, pixelIcon('club', { size: 'hero' })),
+        h('div.pp-invite__seal', null, pixelIcon('crown', { size: 'hero' })),
         h('div.pp-small', { text: 'An invitation' }),
         h('h2.pp-h1', { text: FINALE.eventName }),
         h('p', { text: `${career.name}: with all six Club Trophies in your passport, you are invited to ${FINALE.venueName} in Madrid. The six Star Players are waiting, stronger than before. Win three rounds to qualify for the Big Leagues.` }),
@@ -232,7 +244,7 @@ export function mapScreen(app) {
       if (choice === 'fly') fly(pins.find((p) => p.finale), FINALE.scenes.exterior);
       return;
     }
-    app.coach('map', 'Pick a city, then Fly. Every city has its own club, Star Player and opening, in any order you like.', { title: 'World map' });
+    app.coach('map', 'Pick a city to see what waits there, then fly. Every city has its own club, Star Player and opening, in any order you like.', { title: 'World map' });
   }
   return { el, destroy() { ro.disconnect(); } };
 }

@@ -668,7 +668,7 @@ transition of a full campaign.
 **Scene art** never blocks: after 2.5 s the room is shown from
 `assets/manifest.json` sizes with a placeholder and a Retry button.
 
-## 28b. Prop footprints are read off the art (2026-09-22)
+## 28b. Prop footprints are read off the art (2026-09-22) - SUPERSEDED by 28c
 
 A prop blocks the player through its `foot`, a percent rect in
 `tools/build_layers.py`'s LAYERS table. **147 props declared none at all** and
@@ -709,6 +709,37 @@ near 100%. It runs in `predeploy.sh` at `--fail-over=50`; the 13 props left in
 the 10-46% band are a lamp's flared base or an armchair's arm sticking past
 the rect that blocks it, which is the ordinary overlap of a three-quarter view.
 `tools/dev/audit_layers.py` draws the same thing over the scene art.
+
+## 28c. Artist walk masks and occlusion layers (2026-09-25)
+
+The GrabCut cut-outs, floor polygons, blocks and footprints of 28b are gone.
+The artist drew two guides per scene (in the city folder):
+
+- `<scene>-walkmask.png` - white where FEET may stand. It is the collision,
+  stored as run lengths per row of the 300x225 grid; `freeWalk.js` erodes it by
+  the walker's body. The erosion now rounds to the NEAREST cell: rounding up
+  made the body ~30% fatter than the one the masks were drawn for and sealed
+  nyc-int's tournament hall doorway.
+- `<scene>-occlusion.png` - the scene with the floor removed. Every opaque
+  pixel gets a ground line (`tools/build_occlusion.py`, rules in its header):
+  a column that stands on unwalkable floor takes its own lowest pixel; one the
+  player walks under takes a hand-set line from `tools/depth_hints.py` (the old
+  LAYERS bases: signs, gate arches at 99, banners, canopies), else the line of
+  whatever holds it up either side (porch pillars, the wall round a doorway);
+  one with floor above and below (an inlay, steps) never hides anybody.
+
+Slices are the scene's OWN pixels cut by the layer's alpha (the layer is a
+redraw, 35-80 levels off), grouped by ground line and snapped down to the next
+feet row that can actually overlap them, packed into one lossy WebP atlas per
+scene (12 MB total, was 23 MB of PNG cut-outs) and drawn as divs with the atlas
+as background. Four layers were drawn at a slightly different size and are
+fitted with an ECC affine first (WARP). Characters take z = 2*round(10y)+1 and
+slices 2*round(10*line), so a character level with a line stands in front.
+
+Tolerated: the strip behind lon-venue's telephone box is standable but
+unreachable (a 1116-cell nook, allowed by name in tests/run.js). vie-venue's
+mask leaves the cafe little open floor: `vie-can` is pinned in
+tools/place-members.mjs.
 
 **Gates**: `tools/predeploy.sh` (content gate + unit tests + syntax) must pass
 before pushing main; `tools/validate-content.mjs` fails on any bad puzzle,

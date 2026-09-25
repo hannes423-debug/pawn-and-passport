@@ -92,10 +92,10 @@ export function matchScreen(app, params) {
     h('div', null,
       h('div.pp-player__name', { text: opponent.name }),
       h('div.pp-small', null, `${opponent.elo} Elo \u00b7 ${opponent.style}`,
-        kind === 'challenge' ? h('span.pp-icotext', null, ' \u00b7 ', h('span', { text: opponent.stake }), pixelIcon('coin', { size: 'sm' }), h('span', { text: 'on it' })) : null),
+        kind === 'challenge' ? h('span.pp-icotext', null, ' \u00b7 ', h('span', { text: opponent.stake }), pixelIcon('coins', { size: 'sm' }), h('span', { text: 'on it' })) : null),
       opening ? h('div.pp-small.pp-muted', { text: `Plays the ${opening.name}` }) : null,
       // visibility, not display: the card must not change height while the bot thinks.
-      h('div.pp-thinking', { style: { visibility: 'hidden' }, text: 'thinking...' })));
+      h('div.pp-thinking', { style: { visibility: 'hidden' } }, pixelIcon('hourglass', { size: 'sm' }), h('span', { text: ' thinking...' }))));
   const thinking = oppCard.querySelector('.pp-thinking');
   const meCard = h('div.pp-panel.pp-player.pp-match__me', null,
     h('img', { alt: '', src: portraitUrl(PLAYER_LOOKS[career.avatar], { ring: '#3d7fd9' }) }),

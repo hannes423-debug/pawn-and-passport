@@ -141,12 +141,12 @@ export function journalScreen(app, params) {
         style: { minHeight: '0', padding: '0.2cqw 0.7cqw', fontSize: 'max(10px, 0.95cqw)' },
         title: unlocked ? '' : 'Play this opening or win its club to unlock it',
         onclick: () => toggleEquip(o, on, slots)
-      }, unlocked ? (on ? 'Equipped' : 'Equip') : 'Locked');
+      }, unlocked ? (on ? 'Equipped' : 'Equip') : [pixelIcon('lock', { size: 'em' }), ' Locked']);
       const studyBtn = unlocked ? h('button.pp-btn.pp-btn--small.pp-btn--blue', {
         type: 'button', title: 'Review the lines you know',
         style: { minHeight: '0', padding: '0.2cqw 0.7cqw', fontSize: 'max(10px, 0.95cqw)' },
         onclick: () => study(o.id)
-      }, pixelIcon('journal', { size: 'em' }), h('span', { text: ' Study' })) : null;
+      }, pixelIcon('analysis', { size: 'em' }), h('span', { text: ' Study' })) : null;
       book.append(h('div.pp-slot', { class: m > 0 ? 'pp-slot--known' : '', style: { ...rect, fontSize: 'max(9px, 0.95cqw)', padding: '2%', gap: '3%', outline: on ? '3px solid #e8b04a' : '' }, title: `${o.description}\n\nIdea: ${o.idea}` },
         h('div.pp-slot__name', { text: m > 0 ? o.name : '???' }),
         h('div.pp-muted', { text: home.city }),
@@ -193,8 +193,8 @@ export function journalScreen(app, params) {
         h('div.pp-small', null, h('b', { text: `${m}%` }), ` ${masteryState(m).label}`, m > 0 ? h('span.pp-muted', { text: ` · ${o.idea}` }) : null),
         h('div.pp-row', null,
           h('button.pp-btn.pp-btn--small', { type: 'button', class: on ? 'pp-btn--gold' : '', disabled: !unlocked, onclick: () => toggleEquip(o, on, slots) },
-            unlocked ? (on ? 'Equipped' : 'Equip') : 'Locked'),
-          unlocked ? h('button.pp-btn.pp-btn--small.pp-btn--blue', { type: 'button', onclick: () => study(o.id) }, pixelIcon('journal', { size: 'sm' }), h('span', { text: ' Study' })) : null));
+            ...(unlocked ? [on ? 'Equipped' : 'Equip'] : [pixelIcon('lock', { size: 'sm' }), ' Locked'])),
+          unlocked ? h('button.pp-btn.pp-btn--small.pp-btn--blue', { type: 'button', onclick: () => study(o.id) }, pixelIcon('analysis', { size: 'sm' }), h('span', { text: ' Study' })) : null));
     };
     return h('div.pp-journal__list', null,
       h('div.pp-panel.pp-small', null, h('b', { text: `Repertoire ${equipped.length}/${slots}` }), ' · ', KNOWN_VS_EQUIPPED),

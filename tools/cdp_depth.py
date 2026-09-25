@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-tools/cdp_depth.py - layered scenes in the browser: cut-outs, free walking, depth order.
+tools/cdp_depth.py - layered scenes in the browser: occlusion slices, free walking, depth order.
 
     python3 tools/serve.py 8123 &
     python3 tools/cdp_depth.py [scene ...]
 
 For every scene in js/data/sceneLayers.js:
-  - every cut-out is on the stage, stacked at its ground line
-  - holding each arrow key moves the player and never ends inside a footprint
+  - every occlusion slice is on the stage, stacked at its ground line
+  - holding each arrow key moves the player and never ends off the walk mask
   - the player's stacking follows its feet (behind a prop above its base, in front below it)
   - walking to each hotspot triggers it (dialogue, menu or a new scene)
 Screenshots: $PAP_SHOTS/depth-<scene>.png
@@ -49,7 +49,7 @@ try:
             c.eval(f"window.__pap.go('scene', {{ sceneId: '{sid}' }}).then(() => 1)", await_promise=True)
             c.pump(1.5)
         print(sid)
-        expected = c.eval(f"import('./js/data/sceneLayers.js').then(m => m.SCENE_LAYERS['{sid}'].props.length)", await_promise=True)
+        expected = c.eval(f"import('./js/data/sceneLayers.js').then(m => m.SCENE_LAYERS['{sid}'].slices.length)", await_promise=True)
         c.wait_for(f"document.querySelectorAll('.pp-prop').length === {expected}", timeout=30)
         got = c.eval("document.querySelectorAll('.pp-prop').length")
         if got != expected:
@@ -72,7 +72,7 @@ try:
             after = pos()
             moved_any = moved_any or abs(after[0] - before[0]) + abs(after[1] - before[1]) > 0.5
             check(c.eval(f"window.__grid.free({after[0]}, {after[1]})"), f"{sid}: {key} ends on walkable floor ({after[0]:.1f}, {after[1]:.1f})")
-            check(after[2] == round(after[1] * 10), f"{sid}: player stacked by its feet")
+            check(after[2] == round(after[1] * 10) * 2 + 1, f"{sid}: player stacked by its feet")
         check(moved_any, f"{sid}: the arrow keys move the player (from {start[0]:.1f}, {start[1]:.1f})")
         c.shot(f"depth-{sid}")
         spots = json.loads(c.eval(f"import('./js/data/scenes.js').then(m => JSON.stringify(m.sceneById('{sid}').hotspots.map(h => h.verb + ': ' + h.label)))", await_promise=True))

@@ -4,8 +4,9 @@
  * Every UI symbol the game draws comes from here. Screens name an icon; they
  * never name a file, a size or a sheet offset, so the art can be recut,
  * renamed or moved without touching a screen. The files themselves are made by
- * `python3 tools/build_pixel_icons.py` out of the artist's sheet
- * (`ui-pixel-icons.png`) into assets/ui/icons/<name>.png at 32x32 native.
+ * `python3 tools/build_pixel_icons.py` out of the artist's sheets
+ * (`ui-pixel-icons.png`, `ui-pixel-icons2.png`) into assets/ui/icons/<name>.png
+ * at 32x32 native.
  *
  *     pixelIcon('trophy')                        decorative, aria-hidden
  *     pixelIcon('map', { size: 'sm' })
@@ -43,7 +44,17 @@ export const ICONS = Object.freeze({
   coin: 'coins',
   club: 'a chess club, and the tournament',
   back: 'back, undo, retry',
-  hint: 'a hint, an idea, the answer'
+  hint: 'a hint, an idea, the answer',
+  // The second sheet (ui-pixel-icons2.png).
+  medal: 'the club tournament',
+  hourglass: 'the opponent is thinking',
+  handshake: 'a friendly game',
+  pin: 'a city on the world map',
+  crown: 'a Star Player, and the Grand Finale',
+  scroll: 'a venue\'s puzzle mission',
+  analysis: 'studying an opening',
+  coins: 'coins, and a stake',
+  lock: 'locked'
 });
 
 export const ICON_NAMES = Object.freeze(Object.keys(ICONS));

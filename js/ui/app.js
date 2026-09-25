@@ -200,7 +200,7 @@ export function createApp(root, screens) {
           h('div.pp-small', null, h('span', { text: 'XP' }), h('span', { text: xp.max ? 'MAX' : `${xp.into}/${xp.needed}` })),
           h('div.pp-meter.pp-meter--xp', null, h('div.pp-meter__fill', { style: { width: `${Math.round(xp.fraction * 100)}%` } }))),
         h('div.pp-hud__stat', { title: 'Elo rating' }, pixelIcon('pawn', { size: 'sm' }), h('b', { text: c.elo })),
-        h('div.pp-hud__stat.pp-hud__coins', { title: 'Coins: win them from club members and tournaments' }, pixelIcon('coin', { size: 'sm' }), h('b', { text: c.coins ?? 0 })),
+        h('div.pp-hud__stat.pp-hud__coins', { title: 'Coins: win them from club members and tournaments' }, pixelIcon('coins', { size: 'sm' }), h('b', { text: c.coins ?? 0 })),
         h('div.pp-hud__stat', { title: 'Maximum Focus' }, pixelIcon('xp', { size: 'sm' }), h('b', { text: maxFocus(c.level) })),
         h('div.pp-hud__stat', { title: 'Club Trophies' }, pixelIcon('trophy', { size: 'sm' }), h('b', { text: `${trophyCount(c)}/6` })),
         h('div.pp-hud__stat', { title: 'Postcards' }, pixelIcon('postcard', { size: 'sm' }), h('b', { text: `${postcardCount(c)}/6` })),

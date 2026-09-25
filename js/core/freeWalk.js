@@ -7,21 +7,20 @@
  *
  * The walkable area is baked once into a grid in two passes:
  *
- *   1. SOLID: a cell is solid when its centre is outside every floor polygon
- *      (that is the wall side of a wall), or inside a block or prop footprint.
+ *   1. SOLID: the artist's walk mask (tools/build_occlusion.py stores it in
+ *      js/data/sceneLayers.js as run lengths per grid row). A cell is solid
+ *      where no foot may stand. The mask is the whole truth about the floor:
+ *      walls, furniture footprints, water and doorways are all drawn into it.
  *   2. ERODE: the solid mask is grown by the walker's own half-size, so a cell
  *      is free only when the walker's whole body fits there.
  *
- * Step 2 is what keeps a character out of walls. Growing only the blocks (as
- * this file used to) leaves the FLOOR EDGE unguarded, so a body could stand
- * half inside a wall wherever a wall was spelled as a gap between floor
- * polygons rather than as an explicit block - which is how every interior is
- * drawn. Eroding the solid mask treats both spellings the same.
+ * Step 2 is what keeps a character's body out of walls: the mask marks where
+ * FEET may be, and a body is wider than a point.
  *
  * Distances are measured in screen space (x scaled by the scene's aspect
  * ratio) so moving sideways costs the same as moving up.
  *
- *   const walk = createWalkGrid(layers, { aspect })
+ *   const walk = createWalkGrid(layers, { aspect })   layers = SCENE_LAYERS[id] (needs .walk)
  *   walk.free(x, y)             is this point walkable
  *   walk.nearestFree(x, y)      the closest walkable point
  *   walk.move(x, y, dx, dy)     slide along obstacles: { x, y, moved }
@@ -39,14 +38,23 @@ export function walkerFor(actorHeight = 0.1) {
   return { halfWidth: Math.max(1.0, h * 0.11), halfDepth: Math.max(0.6, h * 0.04) };
 }
 
-export function pointInPolygon(x, y, poly) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i, i += 1) {
-    const [xi, yi] = poly[i];
-    const [xj, yj] = poly[j];
-    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+/** The walk mask's run-length rows -> 1 = solid, 0 = floor, at cols x rows. */
+export function solidFromWalk(walk, cols, rows) {
+  const solid = new Uint8Array(cols * rows).fill(1);
+  if (!walk || !walk.rle) return solid;
+  for (let j = 0; j < rows; j += 1) {
+    // The stored grid may differ from the requested one: sample it by cell centre.
+    const sj = Math.min(walk.rows - 1, Math.floor(((j + 0.5) / rows) * walk.rows));
+    const runs = walk.rle[sj].split(',').map(Number);
+    const row = new Uint8Array(walk.cols);
+    let at = 0;
+    runs.forEach((n, k) => { if (k % 2 === 1) row.fill(1, at, at + n); at += n; });
+    for (let i = 0; i < cols; i += 1) {
+      const si = Math.min(walk.cols - 1, Math.floor(((i + 0.5) / cols) * walk.cols));
+      solid[j * cols + i] = row[si] ? 0 : 1;
+    }
   }
-  return inside;
+  return solid;
 }
 
 export function createWalkGrid(layers, { aspect = 4 / 3, cols = GRID.cols, rows = GRID.rows, walker = WALKER } = {}) {
@@ -54,32 +62,21 @@ export function createWalkGrid(layers, { aspect = 4 / 3, cols = GRID.cols, rows 
   const ch = 100 / rows;
   const padX = walker.halfWidth / aspect;   // screen-space width back to percent of scene width
   const padY = walker.halfDepth;
-  const floor = layers.floor || [];
-  const rects = [
-    ...(layers.blocks || []),
-    ...(layers.props || []).map((p) => p.foot).filter(Boolean)
-  ];
 
-  /* 1. Solid: off the floor, or standing on something. Unpadded - the walker's
-     size is applied once, in the erosion below, so a wall drawn as a gap
-     between floor polygons blocks exactly as hard as an explicit block. */
-  const solid = new Uint8Array(cols * rows);
-  for (let j = 0; j < rows; j += 1) {
-    for (let i = 0; i < cols; i += 1) {
-      const x = (i + 0.5) * cw;
-      const y = (j + 0.5) * ch;
-      const onFloor = floor.some((poly) => pointInPolygon(x, y, poly));
-      const hit = onFloor && rects.some(([x0, y0, x1, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1);
-      solid[j * cols + i] = onFloor && !hit ? 0 : 1;
-    }
-  }
+  /* 1. Solid: wherever the walk mask says no foot may stand. Unpadded - the
+     walker's size is applied once, in the erosion below. */
+  const solid = solidFromWalk(layers.walk, cols, rows);
 
   /* 2. Erode by the walker's half-size (separable, and outside the grid counts
      as solid). The feet are treated as a box rather than the ellipse they are
      drawn as: a box is the conservative superset and keeps this a two-pass
      min-filter instead of a distance transform. */
-  const rx = Math.max(1, Math.ceil(padX / cw));
-  const ry = Math.max(1, Math.ceil(padY / ch));
+  /* Nearest whole cell, not the next one up: the walk masks were drawn for a
+     body of exactly this size (tools/walkmask/check_walkmask.py erodes at the
+     pixel), and rounding up made it about 30% fatter - enough to seal
+     nyc-int's tournament hall doorway. */
+  const rx = Math.max(1, Math.round(padX / cw));
+  const ry = Math.max(1, Math.round(padY / ch));
   const wide = new Uint8Array(cols * rows);
   for (let j = 0; j < rows; j += 1) {
     for (let i = 0; i < cols; i += 1) {

@@ -31,7 +31,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'js/data/memberSpots.js');
 
 /* Hand placements: memberId -> [x, y]. */
-const PINS = {};
+const PINS = {
+  // vie-venue's walk mask (2026-09-25) leaves the close-up cafe little open
+  // floor: Can keeps the spot by the counter that the search can no longer fit.
+  'vie-can': [67.85, 48]
+};
 
 function imageAspects() {
   const files = Object.values(SCENES).map((s) => path.join(ROOT, s.image));
@@ -125,15 +129,21 @@ function main() {
              hotspots. Candidates are already open floor (see above), which is
              what keeps this from sending everyone into the corners; the
              centre only breaks near-ties. */
-          const ranked = [];
-          for (const c of pool) {
-            if (placed.some((p) => dist(p, c) < H * 0.9)) continue;
-            const near = Math.min(...placed.map((p) => dist(p, c)), ...avoid.map((a) => dist(a.p, c) - a.r + H), 60);
-            ranked.push({ c, score: near * (0.85 + 0.15 * random()) - dist(c, centre) * 0.05 });
+          /* A close-up scene with little floor (vie-venue's walk mask) may not
+             fit everyone a body apart: only then close the gap, a step at a time. */
+          let pick = null;
+          for (const gap of [0.9, 0.7, 0.55]) {
+            const ranked = [];
+            for (const c of pool) {
+              if (placed.some((p) => dist(p, c) < H * gap)) continue;
+              const near = Math.min(...placed.map((p) => dist(p, c)), ...avoid.map((a) => dist(a.p, c) - a.r + H), 60);
+              ranked.push({ c, score: near * (0.85 + 0.15 * random()) - dist(c, centre) * 0.05 });
+            }
+            ranked.sort((a, b) => b.score - a.score);
+            // Floor islands the player cannot reach (behind a counter) are skipped.
+            pick = ranked.find(({ c }) => grid.path(spawn, grid.nearestFree(c[0], Math.min(99, c[1] + standOff)) || c));
+            if (pick) break;
           }
-          ranked.sort((a, b) => b.score - a.score);
-          // Floor islands the player cannot reach (behind a counter) are skipped.
-          const pick = ranked.find(({ c }) => grid.path(spawn, grid.nearestFree(c[0], Math.min(99, c[1] + standOff)) || c));
           if (!pick) throw new Error(`${sceneId}: no room left for ${member.id}`);
           at = pick.c;
         }

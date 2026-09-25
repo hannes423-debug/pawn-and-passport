@@ -268,16 +268,15 @@ img, canvas { image-rendering: pixelated; }
   background: var(--paper); border: 2px solid var(--wood-dark); box-shadow: var(--shadow);
   font: 700 clamp(11px, 1.1vw, 16px) var(--font-body); white-space: nowrap;
 }
-.pp-pin__stem { width: 3px; height: clamp(8px, 1.3vw, 18px); background: var(--wood-dark); }
-.pp-pin__dot { width: 14px; height: 14px; border-radius: 50%; background: var(--red); border: 3px solid #fff6dc; box-shadow: 0 0 0 2px var(--wood-dark); }
-.pp-pin.is-here .pp-pin__dot { background: var(--blue); animation: pp-pulse 1.4s ease-in-out infinite; }
+.pp-pin__marker { margin-top: -2px; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.45)); }
+.pp-pin.is-here .pp-pin__marker { animation: pp-pin-bob 1.4s ease-in-out infinite; }
+.pp-pin.is-here .pp-pin__flag { border-color: var(--blue); }
+@keyframes pp-pin-bob { 50% { transform: translateY(-4px); } }
 .pp-pin.is-locked .pp-pin__flag { background: #9a8c78; color: #3a3228; }
 .pp-pin.is-finale .pp-pin__flag { background: linear-gradient(#ffd87a, #e8a93a); }
 .pp-pin:hover .pp-pin__flag, .pp-pin:focus-visible .pp-pin__flag { transform: translateY(-3px); outline: 3px solid var(--blue); }
-@keyframes pp-pulse { 50% { box-shadow: 0 0 0 2px var(--wood-dark), 0 0 0 9px rgba(61, 127, 217, 0.35); } }
 .pp-map__card { position: absolute; right: 14px; bottom: 14px; width: min(380px, calc(100vw - 28px)); z-index: 5; }
 .pp-map__legend { position: absolute; left: 14px; bottom: 14px; z-index: 5; }
-.pp-map__plane { position: absolute; line-height: 0; transform: translate(-50%, -50%); z-index: 6; transition: left 1.2s ease-in-out, top 1.2s ease-in-out; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.4)); }
 
 /* --------------------------------------------------------------- arrival -- */
 
@@ -704,10 +703,38 @@ img, canvas { image-rendering: pixelated; }
 .pp-letters span.is-got { border-style: solid; border-color: #6b4a1f; background: #fff2c4; color: #3b2716; }
 :root:not([data-reduced-motion="true"]) .pp-letters span.is-new { animation: pp-shelf-pop 900ms ease-out 400ms both; }
 /* Map card: city, club, trophy, travel first. */
-.pp-mapcard__club { font-size: 18px; }
-.pp-mapcard__trophy { font-weight: 700; margin-top: 2px; }
-.pp-mapcard__trophy.is-won { color: #1f5a12; }
-.pp-mapcard__more { margin-top: 8px; gap: 1px; }
+/* City preview (map.js): the artist's frame, assets/ui/city-popup.png, with the
+   game's content in its slots. Every box below is a percentage of that image,
+   as tools/build_city_popup.py prints them: move a slot there, move it here. */
+.pp-citypop {
+  position: relative; margin: auto; flex: none;
+  width: min(480px, calc(100vw - 36px), calc((100dvh - 36px) / 1.2496));
+  aspect-ratio: 1122 / 1402; container-type: inline-size;
+  font-family: var(--font-body); color: #3b2414;
+}
+.pp-citypop > * { position: absolute; }
+.pp-citypop__frame { inset: 0; width: 100%; height: 100%; pointer-events: none; user-select: none; }
+.pp-citypop__pic { left: 17.83%; top: 27.46%; width: 63.46%; height: 26.18%; object-fit: cover; background: #d9c7a5; }
+.pp-citypop__title { left: 22.28%; top: 15.12%; width: 55.97%; height: 7.85%; display: flex; align-items: center; justify-content: center; }
+.pp-citypop__title span { font-size: 8cqw; line-height: 1; color: #1d3f7a; text-shadow: 0 1px 0 #fff6dc; white-space: nowrap; }
+.pp-citypop__tile { top: 56.92%; width: 15.15%; height: 9.27%; display: flex; align-items: center; justify-content: center; }
+.pp-citypop__tile--1 { left: 13.19%; } .pp-citypop__tile--2 { left: 32.62%; }
+.pp-citypop__tile--3 { left: 52.23%; } .pp-citypop__tile--4 { left: 71.84%; }
+.pp-citypop__tile .pp-ico { width: 8.5cqw; height: 8.5cqw; filter: grayscale(1) sepia(0.4); opacity: 0.35; }
+.pp-citypop__tile.is-lit .pp-ico { filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35)); opacity: 1; }
+.pp-citypop__portrait { left: 17.83%; top: 69.33%; width: 9.98%; height: 11.13%; object-fit: contain; display: flex; align-items: center; justify-content: center; }
+.pp-citypop__portrait .pp-ico { width: 8cqw; height: 8cqw; }
+.pp-citypop__info { left: 36.01%; top: 69.04%; width: 50.27%; height: 11.27%; display: flex; flex-direction: column; justify-content: center; gap: 0.2cqw; overflow: hidden; }
+.pp-citypop__info > * { font-size: 3.5cqw; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-citypop__info > b { font-size: 4.2cqw; }
+.pp-citypop__fly, .pp-citypop__close { top: 83.45%; height: 9.84%; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 3cqw; display: flex; align-items: center; justify-content: center; }
+.pp-citypop__fly { left: 12.30%; width: 36.01%; }
+.pp-citypop__close { left: 51.87%; width: 36.19%; }
+.pp-citypop__fly:hover, .pp-citypop__close:hover { background: rgba(255, 255, 255, 0.14); }
+.pp-citypop__fly:focus-visible, .pp-citypop__close:focus-visible { outline: 3px solid #fff6dc; outline-offset: -4px; }
+.pp-citypop__fly:active, .pp-citypop__close:active { transform: translateY(1px); }
+.pp-citypop__fly[disabled] { cursor: not-allowed; background: rgba(40, 30, 20, 0.55); }
+.pp-citypop__fly[disabled] .pp-ico { width: 9cqw; height: 9cqw; }
 .pp-map__drag { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 6; pointer-events: none;
   padding: 4px 12px; border-radius: 999px; background: rgba(20, 12, 6, 0.8); color: #fff2dd; font-size: 15px; white-space: nowrap; }
 :root:not([data-reduced-motion="true"]) .pp-map__drag { animation: pp-drag-hint 2.4s ease-in-out 3, pp-fade-out 600ms ease 7.2s forwards; }

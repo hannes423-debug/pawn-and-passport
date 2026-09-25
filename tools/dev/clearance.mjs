@@ -74,6 +74,9 @@ function clump(lost, cols, rows, cw, ch) {
    a display case: floor nobody can reach because furniture surrounds it, which
    is how a room looks. Anything bigger is a doorway a body no longer fits. */
 const NOOK = 600;
+/* Named exceptions, the same as tests/run.js: the strip behind lon-venue's
+   telephone box is standable in the walk mask but has no way round the box. */
+const NOOK_FOR = { 'lon-venue': 1200 };
 let problems = 0;
 let failures = 0;
 for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
@@ -88,7 +91,8 @@ for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
   const lost = new Uint8Array(body.cells.length);
   for (let n = 0; n < lost.length; n += 1) lost[n] = body.cells[n] === 1 && !b.seen[n] ? 1 : 0;
   const clumps = clump(lost, body.cols, body.rows, b.cw, b.ch).filter((c) => c.area > 25);
-  const tooBig = clumps.filter((c) => c.area > NOOK);
+  const limit = NOOK_FOR[id] ?? NOOK;
+  const tooBig = clumps.filter((c) => c.area > limit);
 
   const needed = [];
   for (const [name, node] of Object.entries(scene.spawn)) needed.push([`spawn:${name}`, scene.nodes[node]]);
@@ -102,7 +106,7 @@ for (const [id, layers] of Object.entries(SCENE_LAYERS)) {
   console.log(`\n${id}  (walker pad ${(walker.halfWidth / aspect).toFixed(2)} x ${walker.halfDepth.toFixed(2)})`);
   for (const [name] of unreachable) console.log(`   UNREACHABLE  ${name}`);
   for (const c of clumps.slice(0, 6)) {
-    const mark = c.area > NOOK ? 'ISLAND' : 'nook  ';
+    const mark = c.area > limit ? 'ISLAND' : 'nook  ';
     console.log(`   ${mark} ${String(c.area).padStart(5)} cells  box [${c.box.map((v) => v.toFixed(1)).join(', ')}]`);
   }
 }

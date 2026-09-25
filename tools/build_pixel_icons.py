@@ -26,6 +26,9 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 SHEET = os.path.join(ROOT, "ui-pixel-icons.png")
+# The second sheet (2026-09-24) is painted on flat BLACK, not transparency: the
+# black is keyed out from the edges inward before it is cut like the first.
+SHEET2 = os.path.join(ROOT, "ui-pixel-icons2.png")
 OUT = os.path.join(ROOT, "assets", "ui", "icons")
 
 SIZE = 32          # native pixels. Displayed at 16/24/32/48/64 CSS px.
@@ -40,7 +43,14 @@ NAMES = [
     "side-black", "pawn",  "coin",       "club",     "back",     "hint",
 ]
 COLUMNS = 6
-
+# Row-major like NAMES. None = on the sheet but not used by the game (a train
+# ticket, a backpack...): not cut, so nothing can reference it by accident.
+NAMES2 = [
+    "medal",     None,        None,        None,      None,      None,
+    "hourglass", "handshake", None,        "pin",     None,      "crown",
+    "scroll",    "analysis",  None,        "coins",   None,      "lock",
+]
+KEY = 14           # sheet 2: max channel at or under this, touching the black, is background
 
 def runs(counts):
     """Index ranges where `counts` is non-zero."""
@@ -56,15 +66,34 @@ def runs(counts):
     return out
 
 
-def segment(sheet):
+def key_black(sheet):
+    """Sheet 2: the flat black background -> transparent, with a soft edge.
+
+    Only black CONNECTED to the sheet's border goes: the icons' own dark
+    outlines and pupils are near-black too, but they are enclosed by colour."""
+    import numpy as np
+    from scipy import ndimage
+    rgb = np.asarray(sheet.convert("RGB")).astype(int)
+    peak = rgb.max(axis=2)
+    dark = peak <= KEY
+    lab, _ = ndimage.label(dark)
+    edge = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
+    bg = np.isin(lab, edge[edge > 0])
+    alpha = np.where(bg, np.clip((peak - 3) * 255 // max(1, KEY - 3), 0, 255), 255).astype(np.uint8)
+    out = np.dstack([rgb.astype(np.uint8), alpha])
+    return Image.fromarray(out, "RGBA")
+
+
+def segment(sheet, names=None):
     """(x0, y0, x1, y1) per cell, found from the sheet's own alpha."""
     alpha = sheet.split()[3]
     width, height = sheet.size
     px = alpha.load()
     row_counts = [sum(1 for x in range(width) if px[x, y] > ALPHA) for y in range(height)]
     bands = [r for r in runs(row_counts) if r[1] - r[0] > SIZE]
-    if len(bands) * COLUMNS != len(NAMES):
-        sys.exit(f"sheet has {len(bands)} rows, expected {len(NAMES) // COLUMNS}")
+    names = names or NAMES
+    if len(bands) * COLUMNS != len(names):
+        sys.exit(f"sheet has {len(bands)} rows, expected {len(names) // COLUMNS}")
     boxes = []
     for y0, y1 in bands:
         col_counts = [sum(1 for y in range(y0, y1 + 1) if px[x, y] > ALPHA) for x in range(width)]
@@ -105,14 +134,21 @@ def main():
     sheet = Image.open(SHEET).convert("RGBA")
     boxes = segment(sheet)
     os.makedirs(OUT, exist_ok=True)
-    wanted = {f"{name}.png" for name in NAMES}
+    sheet2 = key_black(Image.open(SHEET2)) if os.path.exists(SHEET2) else None
+    pairs = list(zip(NAMES, boxes))
+    if sheet2 is not None:
+        pairs2 = [(n, b) for n, b in zip(NAMES2, segment(sheet2, NAMES2)) if n]
+    else:
+        print(f"  (no {os.path.basename(SHEET2)}: second set skipped)")
+        pairs2 = []
+    wanted = {f"{name}.png" for name, _ in pairs + pairs2}
     for stale in os.listdir(OUT):
         if stale not in wanted:
             os.remove(os.path.join(OUT, stale))
             print(f"  removed stale {stale}")
     icons = []
-    for name, box in zip(NAMES, boxes):
-        icon = cut(sheet, box)
+    for name, box, src in [(n, b, sheet) for n, b in pairs] + [(n, b, sheet2) for n, b in pairs2]:
+        icon = cut(src, box)
         icon.save(os.path.join(OUT, f"{name}.png"), optimize=True)
         icons.append(icon)
         print(f"  {name:<12} from {box} -> {SIZE}x{SIZE}")
@@ -120,7 +156,7 @@ def main():
 
     if "--preview" in sys.argv:
         scale = 4
-        rows = len(NAMES) // COLUMNS
+        rows = -(-len(icons) // COLUMNS)
         sheet_out = Image.new("RGBA", (SIZE * scale * COLUMNS, SIZE * scale * rows), (26, 17, 16, 255))
         for i, icon in enumerate(icons):
             big = icon.resize((SIZE * scale, SIZE * scale), Image.NEAREST)

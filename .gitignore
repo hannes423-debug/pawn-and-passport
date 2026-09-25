@@ -3,3 +3,5 @@ dist/
 node_modules/
 __pycache__/
 icons-preview.png
+# the artist delivers walk masks zipped with big previews: the PNGs are unpacked into the city folders
+*.zip

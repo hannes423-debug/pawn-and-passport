@@ -407,7 +407,7 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
 
 /* ======================================================== depth layers == */
 /* Cut-out objects in a layered scene: stacked with the characters by their ground line. */
-.pp-prop { position: absolute; pointer-events: none; user-select: none; -webkit-user-drag: none; image-rendering: auto; }
+.pp-prop { position: absolute; pointer-events: none; user-select: none; background-repeat: no-repeat; }
 
 /* ======================================================= label stacking == */
 /* The cut-out objects carry z-indexes up to ~1000. Give the actors layer its
