@@ -12,6 +12,10 @@ real footprint (the table and chairs, not the rectangle round them).
 
 ## Hand-edited by the artist (source of truth, never regenerate)
 
+These masks are the law: ship them exactly as delivered (a flattened export is
+the one exception: the mask is recovered from it, nothing else changes). Nothing
+else ever edits them; `tools/propose_walkmasks.py` refuses them.
+
 | scene | edited | shipped |
 |---|---|---|
 | nyc-ext | 2026-09-26 | v1.1.2 |

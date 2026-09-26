@@ -21,7 +21,8 @@ FOUNT = re.compile(r'fountain')
 heights = scene_actor_heights()
 
 def kind(pid):
-    if re.search(r'(^|-)(bed|beds|hedge|planter|wall|rail|fence|gate|pillar|shelf|banner|sign)(-|$|\d)', pid): return None
+    if re.search(r'(^|-)(sign|signboard|monument)(-|$|\d)', pid): return 'sign'
+    if re.search(r'(^|-)(bed|beds|hedge|planter|wall|rail|fence|gate|pillar|shelf|banner)(-|$|\d)', pid): return None
     if FOUNT.search(pid): return None
     if FURN.search(pid): return 'furniture'
     if POTTED.search(pid): return 'potted'
@@ -34,8 +35,8 @@ def footprint(sil, k, ah):
     top, bot = ys.min(), ys.max()
     h = bot - top + 1
     fp = np.zeros_like(sil)
-    if k in ('furniture', 'fountain'):
-        depth = int(round((0.55 if k == 'furniture' else 0.6) * h))
+    if k in ('furniture', 'fountain', 'sign'):
+        depth = int(round((0.66 if k == 'furniture' else 0.45 if k == 'sign' else 0.6) * h))
         y0 = bot - depth + 1
         x0, x1 = xs.min(), xs.max()
         w = x1 - x0 + 1
@@ -91,9 +92,19 @@ def propose(scene, src_dir, out_dir):
         lab, n = ndimage.label(sil, structure=np.ones((3, 3)))
         sil = lab == (np.argmax(np.bincount(lab.ravel())[1:]) + 1)   # the prop's own blob
         fp = footprint(sil, k, ah)
+        if k in ('post', 'potted') and fp.any():
+            fy, fx = np.nonzero(fp)
+            gy = ya + fy.max() + max(3, int(0.08 * ah))
+            gx0, gx1 = xa + fx.min(), xa + fx.max() + 1
+            if gy < H and not walk[gy, gx0:gx1].any():          # no floor under the base: it stands in a bed
+                bed = np.zeros_like(sil)
+                bed[max(0, fy.max() - int(0.45 * ah)):, :] = True
+                fp = fp | (bed & sil) | (bed & ~walk[ya:yb, xa:xb])
+                force = np.zeros_like(walk); force[ya:yb, xa:xb] = fp
+                blocks.append(force)
         ys, xs = np.nonzero(sil)
         top = ys.min()
-        if k == 'furniture':
+        if k in ('furniture', 'sign'):
             mid = ya + (ys.min() + ys.max()) // 2
             L = walk[mid, max(0, xa + xs.min() - reach):xa + xs.min()].any()
             Rr = walk[mid, xa + xs.max() + 1:xa + xs.max() + 1 + reach].any()
@@ -168,7 +179,17 @@ def propose(scene, src_dir, out_dir):
     print(f'{scene:10s} +{int((out & ~walk).sum()):6d} px   ' + '; '.join(log))
     return out
 
+def hand_edited():
+    """Scenes the artist drew by hand (docs/WALKMASKS.md): their masks are the law, never regenerated."""
+    doc = open(os.path.join(ROOT, 'docs', 'WALKMASKS.md'), encoding='utf-8').read()
+    part = doc[doc.index('## Hand-edited'):doc.index('\n## ', doc.index('## Hand-edited') + 1)]
+    return set(re.findall(r'^\| ([a-z]{3}-[a-z]+) \|', part, re.M))
+
 if __name__ == '__main__':
     out_dir = sys.argv[1]
+    law = hand_edited()
     for s in sys.argv[2:]:
+        if s in law:
+            print(f'{s:10s} hand-edited by the artist: skipped (docs/WALKMASKS.md)')
+            continue
         propose(s, os.path.join(ROOT, 'walkmasks-original'), out_dir)
