@@ -18,16 +18,45 @@ real footprint (the table and chairs, not the rectangle round them).
 | nyc-int | 2026-09-26 | v1.1.2 |
 | nyc-venue | 2026-09-26 | v1.1.2 |
 
-## Still to do (original masks, or my proposals awaiting approval)
+## Generated, approved as a first pass (not hand-edited yet)
 
-nyc-up,
-lon-ext, lon-int, lon-venue,
-vie-ext, vie-int, vie-up, vie-venue,
-ist-ext, ist-int, ist-up, ist-venue,
-che-ext, che-int, che-venue,
-wen-ext, wen-int, wen-up, wen-venue,
-mad-ext, mad-int
+`tools/propose_walkmasks.py` output, approved 2026-09-26 ("a big improvement, not
+perfect but good for now"), shipped in v1.1.3. Light grey in these files is what the
+generator added; white is the original. Still for the artist to clean by hand:
 
-Proposals (not in the game) go to `walkmask-proposals/<City>/`, untracked. A
-proposal the artist approves moves into the city folder and into the table above
-as "proposal approved".
+| scene | state | shipped |
+|---|---|---|
+| nyc-up | generated, approved | v1.1.3 |
+| lon-ext | generated, approved | v1.1.3 |
+| lon-int | generated, approved | v1.1.3 |
+| lon-venue | generated, approved | v1.1.3 |
+| vie-ext | generated, approved | v1.1.3 |
+| vie-int | generated, approved | v1.1.3 |
+| vie-up | generated, approved | v1.1.3 |
+| vie-venue | generated, approved | v1.1.3 |
+| ist-ext | generated, approved | v1.1.3 |
+| ist-int | generated, approved | v1.1.3 |
+| ist-up | generated, approved | v1.1.3 |
+| ist-venue | generated, approved | v1.1.3 |
+| che-ext | generated, approved | v1.1.3 |
+| che-int | generated, approved | v1.1.3 |
+| che-venue | generated, approved | v1.1.3 |
+| wen-ext | generated, approved | v1.1.3 |
+| wen-int | generated, approved | v1.1.3 |
+| wen-up | generated, approved | v1.1.3 |
+| wen-venue | generated, approved | v1.1.3 |
+| mad-ext | generated, approved | v1.1.3 |
+| mad-int | generated, approved | v1.1.3 |
+
+When a hand-cleaned mask arrives, move its row to the hand-edited table.
+
+## Generating proposals
+
+    python3 tools/propose_walkmasks.py walkmask-proposals <scene> ...
+
+Rules measured from the NYC hand edits (2026-09-26): furniture with floor on both
+sides keeps its front 55% blocked (chamfered octagon), the rest walkable; potted
+plants keep the pot; lamps/posts/trees/statues keep the base; floor carries on
+0.38 character heights behind a front wall, balustrade or rail. Walls, shelves,
+banners, gates, hedges, beds and fountains are untouched. Scored against the hand
+edits: 75% (nyc-int) and 82% (nyc-venue) of what it opens matches.
