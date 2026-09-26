@@ -17,6 +17,8 @@ real footprint (the table and chairs, not the rectangle round them).
 | nyc-ext | 2026-09-26 | v1.1.2 |
 | nyc-int | 2026-09-26 | v1.1.2 |
 | nyc-venue | 2026-09-26 | v1.1.2 |
+| che-ext | 2026-09-26 | v1.1.4 |
+| che-venue | 2026-09-26 (delivered flattened over the art; mask recovered by comparing against the art) | v1.1.4 |
 
 ## Generated, approved as a first pass (not hand-edited yet)
 
@@ -38,9 +40,7 @@ generator added; white is the original. Still for the artist to clean by hand:
 | ist-int | generated, approved | v1.1.3 |
 | ist-up | generated, approved | v1.1.3 |
 | ist-venue | generated, approved | v1.1.3 |
-| che-ext | generated, approved | v1.1.3 |
 | che-int | generated, approved | v1.1.3 |
-| che-venue | generated, approved | v1.1.3 |
 | wen-ext | generated, approved | v1.1.3 |
 | wen-int | generated, approved | v1.1.3 |
 | wen-up | generated, approved | v1.1.3 |
