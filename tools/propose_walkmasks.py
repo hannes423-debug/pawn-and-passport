@@ -20,6 +20,9 @@ POST = re.compile(r'(^|-)(lamps?|streetlamps?|lanterns?|posts?|lamppost|pole|bol
 FOUNT = re.compile(r'fountain')
 heights = scene_actor_heights()
 
+# Rule constants, fitted to the artist's hand edits (tools/propose_walkmasks.py --fit).
+P = dict(furn=0.55, chamfer=True, wall=0.38, veg=True)
+
 def kind(pid):
     if re.search(r'(^|-)(sign|signboard|monument)(-|$|\d)', pid): return 'sign'
     if re.search(r'(^|-)(bed|beds|hedge|planter|wall|rail|fence|gate|pillar|shelf|banner)(-|$|\d)', pid): return None
@@ -36,13 +39,13 @@ def footprint(sil, k, ah):
     h = bot - top + 1
     fp = np.zeros_like(sil)
     if k in ('furniture', 'fountain', 'sign'):
-        depth = int(round((0.66 if k == 'furniture' else 0.45 if k == 'sign' else 0.6) * h))
+        depth = int(round((P['furn'] if k == 'furniture' else 0.45 if k == 'sign' else 0.6) * h))
         y0 = bot - depth + 1
         x0, x1 = xs.min(), xs.max()
         w = x1 - x0 + 1
         ch = max(1, int(0.45 * depth))              # chamfer the top corners (octagon)
         for y in range(y0, bot + 1):
-            cut = int(round(0.25 * w * max(0, ch - (y - y0)) / ch))
+            cut = int(round(0.25 * w * max(0, ch - (y - y0)) / ch)) if (P['chamfer'] and k != 'sign') else 0
             fp[y, x0 + cut:x1 - cut + 1] = True
         return fp
     if k == 'potted':
@@ -146,7 +149,10 @@ def propose(scene, src_dir, out_dir):
     # (a front wall, a balustrade, a rail), the floor carries on DEPTH down behind it, the
     # wall hiding the feet. Only where the occluder is deep enough that the extension stays
     # inside it, and not under a prop (those have their own footprint rule).
-    depth = int(round(0.38 * ah)); margin = int(round(0.25 * ah))
+    depth = int(round(P['wall'] * ah)); margin = int(round(0.25 * ah))
+    # vegetation (hedges, flowerbeds, tree rows) is never walked behind: green-dominant art
+    rgb = np.asarray(Image.open(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')).convert('RGB').resize((W, H))).astype(int)
+    green = (rgb[..., 1] > rgb[..., 0] * 1.08) & (rgb[..., 1] > rgb[..., 2] * 1.08)
     ext = np.zeros_like(walk)
     edge = walk[:-1] & ~walk[1:]
     ys, xs = np.nonzero(edge)
@@ -154,6 +160,8 @@ def propose(scene, src_dir, out_dir):
         if props[y + 1, x]:
             continue
         seg = opaque[y + 1:y + 1 + depth + margin, x]
+        if P['veg'] and green[y + 1:y + 1 + depth, x].mean() > 0.4:
+            continue
         if seg.size == depth + margin and seg.all() and not walk[y + 1:y + 1 + depth + margin, x].any():
             ext[y + 1:y + 1 + depth, x] = True
     # tidy: drop slivers narrower than a body
