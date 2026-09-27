@@ -26,7 +26,11 @@ else ever edits them; `tools/propose_walkmasks.py` refuses them.
 | che-int | 2026-09-27 | v1.1.5 |
 | lon-ext | 2026-09-27 | v1.1.5 |
 | lon-venue | 2026-09-27 | v1.1.5 |
-| nyc-up | 2026-09-27 | HELD: trophy-hall doorway narrower than a body, trophies unreachable; back to the artist |
+| nyc-up | 2026-09-27 (one fix with the artist's OK: a 4 px blocked line at x 912-916, y 454-482 px pinched the trophy-hall doorway to 15 px; opened, 133 px) | v1.1.6 |
+| vie-ext | 2026-09-28 | v1.1.6 |
+| vie-int | 2026-09-28 | v1.1.6 |
+| vie-up | 2026-09-28 | v1.1.6 |
+| vie-venue | 2026-09-28 | v1.1.6 |
 
 ## Generated, approved as a first pass (not hand-edited yet)
 
@@ -37,10 +41,6 @@ generator added; white is the original. Still for the artist to clean by hand:
 | scene | state | shipped |
 |---|---|---|
 | lon-int | generated, approved | v1.1.3 |
-| vie-ext | generated, approved | v1.1.3 |
-| vie-int | generated, approved | v1.1.3 |
-| vie-up | generated, approved | v1.1.3 |
-| vie-venue | generated, approved | v1.1.3 |
 | ist-ext | generated, approved | v1.1.3 |
 | ist-int | generated, approved | v1.1.3 |
 | ist-up | generated, approved | v1.1.3 |
