@@ -23,6 +23,10 @@ else ever edits them; `tools/propose_walkmasks.py` refuses them.
 | nyc-venue | 2026-09-26 | v1.1.2 |
 | che-ext | 2026-09-26 | v1.1.4 |
 | che-venue | 2026-09-26 (delivered flattened over the art; mask recovered by comparing against the art) | v1.1.4 |
+| che-int | 2026-09-27 | v1.1.5 |
+| lon-ext | 2026-09-27 | v1.1.5 |
+| lon-venue | 2026-09-27 | v1.1.5 |
+| nyc-up | 2026-09-27 | HELD: trophy-hall doorway narrower than a body, trophies unreachable; back to the artist |
 
 ## Generated, approved as a first pass (not hand-edited yet)
 
@@ -32,10 +36,7 @@ generator added; white is the original. Still for the artist to clean by hand:
 
 | scene | state | shipped |
 |---|---|---|
-| nyc-up | generated, approved | v1.1.3 |
-| lon-ext | generated, approved | v1.1.3 |
 | lon-int | generated, approved | v1.1.3 |
-| lon-venue | generated, approved | v1.1.3 |
 | vie-ext | generated, approved | v1.1.3 |
 | vie-int | generated, approved | v1.1.3 |
 | vie-up | generated, approved | v1.1.3 |
@@ -44,7 +45,6 @@ generator added; white is the original. Still for the artist to clean by hand:
 | ist-int | generated, approved | v1.1.3 |
 | ist-up | generated, approved | v1.1.3 |
 | ist-venue | generated, approved | v1.1.3 |
-| che-int | generated, approved | v1.1.3 |
 | wen-ext | generated, approved | v1.1.3 |
 | wen-int | generated, approved | v1.1.3 |
 | wen-up | generated, approved | v1.1.3 |
