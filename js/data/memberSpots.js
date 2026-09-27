@@ -162,12 +162,12 @@ export const MEMBER_SPOTS = {
   },
   "lon-tom": {
    "at": [
-    82.81,
-    29
+    82.06,
+    35
    ],
    "stand": [
-    82.81,
-    31.8
+    82.06,
+    37.8
    ],
    "dir": "left"
   },
@@ -490,14 +490,14 @@ export const MEMBER_SPOTS = {
   },
   "che-hiro": {
    "at": [
-    8.75,
-    70.75
+    62.61,
+    73.75
    ],
    "stand": [
-    8.75,
-    73.2
+    62.61,
+    76.2
    ],
-   "dir": "right"
+   "dir": "down"
   },
   "che-liu": {
    "at": [
