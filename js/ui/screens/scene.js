@@ -281,6 +281,17 @@ export async function sceneScreen(app, params) {
     const npc = spot.npc;
     if (!npc) continue;
     if (npc.kind === 'rivals') {
+      // A scene crowd (the finale hall) puts the rivals in its left line; the
+      // rest of it is spectators, one of each member sprite, facing the aisle.
+      if (scene.crowd) {
+        const stars = STAR_PLAYERS.slice(0, 6).map((s) => s.look);
+        const taken = new Set(stars.map((l) => l.sprite));
+        const extras = [...new Map(Object.values(MEMBERS).flat().map((m) => [m.look.sprite, m.look])).values()].filter((l) => !taken.has(l.sprite));
+        const looks = [...stars, ...extras];
+        scene.crowd.left.forEach((at, i) => makeActor(looks[i % looks.length], at, { dir: 'right' }));
+        scene.crowd.right.forEach((at, i) => makeActor(looks[(scene.crowd.left.length + i) % looks.length], at, { dir: 'left' }));
+        continue;
+      }
       STAR_PLAYERS.slice(0, 6).forEach((star, i) => {
         const at = npc.spread ? [npc.at[0] + i * npc.spread[0], npc.at[1] + i * npc.spread[1]] : [npc.at[0] + (i % 3) * 5, npc.at[1] + Math.floor(i / 3) * 9];
         makeActor(star.look, at, { dir: i % 2 ? 'right' : 'left' });

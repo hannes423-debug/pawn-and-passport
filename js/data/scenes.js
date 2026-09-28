@@ -261,9 +261,20 @@ add({
 });
 
 /* Madrid: the Grand Finale */
+
+/** Two staggered rows of standing people along x = front (feet on the edge of
+ *  the walkable floor), the back row `back` percent further out, y0..y1 down. */
+function crowdLine(front, back, y0, y1) {
+  const out = [];
+  for (let y = y0, i = 0; y <= y1; y += 3.5, i++) {
+    out.push([front, y]);
+    if (y + 1.75 <= y1) out.push([front + back + (i % 2 ? 0.4 : -0.4), y + 1.75]);
+  }
+  return out;
+}
 add({
   id: 'mad-ext', image: 'assets/scenes/mad-ext.webp', actorHeight: 0.088, kind: 'exterior', spawn: { default: 'gate', door: 'door' },
-  nodes: { gate: [50, 95.5], path: [50, 72], left: [38, 52], porch: [50, 40], door: [50, 34] },
+  nodes: { gate: [50, 84], path: [50, 72], left: [38, 52], porch: [50, 40], door: [50, 34] },
   links: [['gate', 'path'], ['path', 'left'], ['left', 'porch'], ['porch', 'door']],
   hotspots: [
     { id: 'door', node: 'door', label: 'Palacio del Ajedrez', verb: 'Enter', action: { type: 'scene', to: 'mad-int', spawn: 'entrance' } },
@@ -272,11 +283,17 @@ add({
 });
 add({
   id: 'mad-int', image: 'assets/scenes/mad-int.webp', actorHeight: 0.06, kind: 'finale', spawn: { default: 'entrance', entrance: 'entrance' },
-  nodes: { entrance: [50, 92], lobby: [50, 68], leftStair: [40, 50], stage: [50, 26], lounge: [22, 56.5] },
-  links: [['entrance', 'lobby'], ['lobby', 'leftStair'], ['leftStair', 'stage'], ['lobby', 'lounge']],
+  nodes: { entrance: [50, 92], lobby: [50, 68], stage: [50, 26], lounge: [40, 60] },
+  links: [['entrance', 'lobby'], ['lobby', 'stage'], ['lobby', 'lounge']],
+  // The walk mask only opens the aisle to the stage: the other finalists stand
+  // shoulder to shoulder across both side openings of the central plaza, so the
+  // way into the side halls reads as closed rather than as an invisible wall.
+  // The six rivals line the left side (their hotspot), spectators the right.
+  crowd: { left: crowdLine(36.4, -2, 49, 77), right: crowdLine(63.6, 2, 49.5, 77) },
+
   hotspots: [
     { id: 'finale', node: 'stage', label: 'Championship stage', verb: 'Compete', action: { type: 'finale' } },
-    { id: 'rivals', node: 'lounge', label: 'Players\' lounge', verb: 'Talk', action: { type: 'rivals' }, npc: { kind: 'rivals', at: [9, 54], spread: [5, 0] } },
+    { id: 'rivals', node: 'lounge', label: 'The other finalists', verb: 'Talk', action: { type: 'rivals' }, npc: { kind: 'rivals' } },
     { id: 'exit', node: 'entrance', label: 'Courtyard', verb: 'Exit', action: { type: 'scene', to: 'mad-ext', spawn: 'door' } }
   ]
 });

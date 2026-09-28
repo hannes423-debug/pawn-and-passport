@@ -74,6 +74,9 @@ BIN = 0.5                  # ground lines are floored to this many percent: one 
 SPECK = 12                 # opaque specks smaller than this (px) are dropped
 FOOT = 12                  # px: a run is walked under when most of its lowest FOOT px are walkable
 LINTEL = 0.9               # a hanging run with no hint: its line is this many character heights below it
+UNIFY_R = 0.5              # character heights: how far along an object its front line carries (unify)
+UNIFY_D = 0.35             # character heights: lines further apart than this are different objects
+UNIFY_FAR = 1.5            # ...or this far, when no foot can stand between the two lines (unify)
 PAD = 4                    # atlas padding (px): a scaled slice must not sample its neighbour
 ATLAS_W = 2048
 
@@ -263,8 +266,97 @@ def depth(scene, opaque, walk, actor_h):
         if lines:
             rows = kinds[a:b + 1, x] == 4
             base[a:b + 1, x][rows] = max(max(lines), b / H * 100)
+    unify(opaque, base, kinds, actor_h, walk)
     return base, kinds
 
+
+def unify(opaque, base, kinds, actor_h, walk):
+    """One ground line across an object, not one per column.
+
+    Each column's line is where THAT column's pixels end, and an object's bottom
+    edge is ragged (legs, chair feet, a shadow, a canopy wider than its table),
+    so an umbrella table came out as vertical stripes of different depth. A
+    character near it was hidden by some columns and drawn over by others: the
+    "player clips through the occlusion" glitch, worst in the exteriors.
+
+    Row by row, within one connected part of the layer, a pixel takes the
+    lower line of a pixel up to UNIFY_R character heights beside it when
+      - the two lines are at most UNIFY_D character heights apart (a ragged
+        edge), or
+      - no character whose sprite could cover it can stand between the two
+        lines (the floor a sprite's width either side is blocked): the same
+        object's footprint, a canopy over its table; up to UNIFY_FAR character
+        heights, or
+      - it hangs over walkable floor (a sign, a canopy, kinds 2 and 4): its own
+        line was a guess, and what holds it up is the better one (UNIFY_FAR).
+    Repeated until nothing moves, so a whole object settles on its front."""
+    H, W = opaque.shape
+    live = opaque & ~np.isnan(base) & (base < 99) & ((kinds == 1) | (kinds == 2) | (kinds == 4))
+    lab, n = ndimage.label(live, structure=np.ones((3, 3)))
+    if not n:
+        return
+    r = max(2, int(UNIFY_R * actor_h * H))
+    near = UNIFY_D * actor_h * 100
+    far = UNIFY_FAR * actor_h * 100
+    ys, xs = np.nonzero(live)
+    lb = lab[ys, xs]
+    hang = (kinds[ys, xs] == 2) | (kinds[ys, xs] == 4)
+    C = np.zeros((H + 1, W + 1), np.int32)             # walkable px above-left of each point
+    C[1:, 1:] = np.cumsum(np.cumsum(walk, axis=0), axis=1)
+    half = max(2, int(actor_h * H * 72 / 108 / 2))      # a sprite's half width (scene.js CELL 72x108)
+    L = base[ys, xs].astype(np.float32)
+    idx = np.full((H, W), -1, np.int64)
+    idx[ys, xs] = np.arange(ys.size)
+
+    def beside(dx, dy=0):
+        """per live pixel: index of the live pixel (dx, dy) away in the same part, else -1"""
+        xq, yq = xs + dx, ys + dy
+        inb = (xq >= 0) & (xq < W) & (yq >= 0) & (yq < H)
+        j = np.full(ys.size, -1, np.int64)
+        j[inb] = idx[yq[inb], xq[inb]]
+        has = j >= 0
+        has[has] = lab[yq[has], xq[has]] == lb[has]
+        return np.where(has, j, -1)
+
+    # A hanging pixel beside a standing part of the same object (a pole under
+    # its canopy, a sign between its posts) takes that part's line, up OR down:
+    # its own was a guess (the LINTEL fallback put umbrella poles 15% low).
+    if hang.any():
+        G = np.full(ys.size, -1.0, np.float32)
+        for dx in range(-r, r + 1):
+            if dx == 0:
+                continue
+            j = beside(dx)
+            g = (j >= 0) & hang
+            g[g] = ~hang[j[g]]
+            G[g] = np.maximum(G[g], L[j[g]])
+        L = np.where(hang & (G >= 0), G, L)
+    for _ in range(8):
+        M = L.copy()
+        # beside in the same row, and below in the same column (a canopy over its table)
+        for dx, dy in [(d, 0) for d in range(-r, r + 1) if d] + [(0, d) for d in range(1, r + 1)]:
+            j = beside(dx, dy)
+            has = j >= 0
+            q = np.where(has, L[np.maximum(j, 0)], -1.0)
+            up = has & (q > M)
+            if not up.any():
+                continue
+            gap = q - L
+            ok = up & (gap <= near)
+            cand = up & ~ok & (gap <= far)
+            if cand.any():
+                k = np.where(cand)[0]
+                y0 = np.clip((L[k] / 100 * H).astype(np.int64) + 1, 0, H)
+                y1 = np.clip((q[k] / 100 * H).astype(np.int64), 0, H)
+                y1 = np.maximum(y1, y0)
+                xa = np.clip(xs[k] - half, 0, W); xb = np.clip(xs[k] + half + 1, 0, W)
+                free = C[y1, xb] - C[y0, xb] - C[y1, xa] + C[y0, xa]
+                ok[k] = hang[k] | (free <= 2)
+            M[ok] = q[ok]
+        if np.array_equal(M, L):
+            break
+        L = M
+    base[ys, xs] = L
 
 def slices(base, walk, actor_h):
     """[(z, bbox, mask)]: the opaque pixels grouped into as few depth slices as
@@ -363,7 +455,7 @@ def sources(scene):
     """What a scene's data is made from: both guides, its hints and this file's tunables."""
     folder = os.path.join(ROOT, CITY_DIR[scene[:3]])
     md5 = lambda path: hashlib.md5(open(path, 'rb').read()).hexdigest()[:12]
-    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
+    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_D, UNIFY_FAR, PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
             'occlusion': md5(os.path.join(folder, f'{scene}-occlusion.png')),
             'art': md5(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')),
@@ -467,6 +559,19 @@ def check():
     sys.exit(1 if bad else 0)
 
 
+def build_one(job):
+    scene, actor_h, want_preview = job
+    data, debug = build(scene, actor_h)
+    kinds = debug[4]
+    tot = max(1, (kinds > 0).sum())
+    line = (f'{scene:10s} slices {len(data["slices"]):4d}  walkable {debug[2].mean():5.1%}  '
+            f'grounded {(kinds == 1).sum() / tot:5.1%} hint {(kinds == 2).sum() / tot:5.1%} '
+            f'floor {(kinds == 3).sum() / tot:5.1%} lintel {(kinds == 4).sum() / tot:5.1%}')
+    if want_preview:
+        line += '\n    ' + os.path.relpath(preview(scene, data, debug, actor_h), ROOT)
+    return scene, data, line
+
+
 def main():
     if '--check' in sys.argv:
         check()
@@ -478,17 +583,13 @@ def main():
     if args and os.path.exists(out_js):
         txt = open(out_js, encoding='utf-8').read()
         all_data = json.loads(txt[txt.index('{', txt.index('SCENE_LAYERS')):txt.rindex('};') + 1])
-    for scene in want:
-        actor_h = heights.get(scene, 0.1)
-        data, debug = build(scene, actor_h)
-        all_data[scene] = data
-        kinds = debug[4]
-        tot = max(1, (kinds > 0).sum())
-        print(f'{scene:10s} slices {len(data["slices"]):4d}  walkable {debug[2].mean():5.1%}  '
-              f'grounded {(kinds == 1).sum() / tot:5.1%} hint {(kinds == 2).sum() / tot:5.1%} '
-              f'floor {(kinds == 3).sum() / tot:5.1%} lintel {(kinds == 4).sum() / tot:5.1%}')
-        if '--preview' in sys.argv:
-            print('   ', os.path.relpath(preview(scene, data, debug, actor_h), ROOT))
+    # one process per scene: unify() makes a scene take a minute or more
+    from multiprocessing import Pool
+    jobs = [(scene, heights.get(scene, 0.1), '--preview' in sys.argv) for scene in want]
+    with Pool(min(len(jobs), os.cpu_count() or 1)) as pool:
+        for scene, data, line in pool.imap(build_one, jobs):
+            all_data[scene] = data
+            print(line, flush=True)
     ordered = {s: all_data[s] for s in SCENES if s in all_data}
     open(out_js, 'w', encoding='utf-8').write(emit(ordered))
     print(f'wrote js/data/sceneLayers.js ({len(ordered)} scenes)')

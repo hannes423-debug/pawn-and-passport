@@ -40,19 +40,12 @@ else ever edits them; `tools/propose_walkmasks.py` refuses them.
 | wen-up | 2026-09-28 | v1.1.7 |
 | wen-venue | 2026-09-28 | v1.1.7 |
 | wen-int | 2026-09-28 (delivered flattened over the art; mask read from the overlay, the flattened file kept beside it) | v1.1.7 |
+| mad-ext | 2026-09-29 (walking ends at the gate: the Leave spot moved up to it, y 84%) | v1.1.8 |
+| mad-int | 2026-09-29 (only the aisle to the stage; scenes.js `crowd` puts the other finalists across both side openings) | v1.1.8 |
 
 ## Generated, approved as a first pass (not hand-edited yet)
 
-`tools/propose_walkmasks.py` output, approved 2026-09-26 ("a big improvement, not
-perfect but good for now"), shipped in v1.1.3. Light grey in these files is what the
-generator added; white is the original. Still for the artist to clean by hand:
-
-| scene | state | shipped |
-|---|---|---|
-| mad-ext | generated, approved | v1.1.3 |
-| mad-int | generated, approved | v1.1.3 |
-
-When a hand-cleaned mask arrives, move its row to the hand-edited table.
+None: every scene's mask is hand-edited since v1.1.8.
 
 ## Generating proposals
 
