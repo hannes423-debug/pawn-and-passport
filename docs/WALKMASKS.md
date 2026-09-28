@@ -31,6 +31,15 @@ else ever edits them; `tools/propose_walkmasks.py` refuses them.
 | vie-int | 2026-09-28 | v1.1.6 |
 | vie-up | 2026-09-28 | v1.1.6 |
 | vie-venue | 2026-09-28 | v1.1.6 |
+| ist-ext | 2026-09-28 | v1.1.7 |
+| ist-int | 2026-09-28 | v1.1.7 |
+| ist-up | 2026-09-28 | v1.1.7 |
+| ist-venue | 2026-09-28 | v1.1.7 |
+| lon-int | 2026-09-28 | v1.1.7 |
+| wen-ext | 2026-09-28 | v1.1.7 |
+| wen-up | 2026-09-28 | v1.1.7 |
+| wen-venue | 2026-09-28 | v1.1.7 |
+| wen-int | 2026-09-28 (delivered flattened over the art; mask read from the overlay, the flattened file kept beside it) | v1.1.7 |
 
 ## Generated, approved as a first pass (not hand-edited yet)
 
@@ -40,15 +49,6 @@ generator added; white is the original. Still for the artist to clean by hand:
 
 | scene | state | shipped |
 |---|---|---|
-| lon-int | generated, approved | v1.1.3 |
-| ist-ext | generated, approved | v1.1.3 |
-| ist-int | generated, approved | v1.1.3 |
-| ist-up | generated, approved | v1.1.3 |
-| ist-venue | generated, approved | v1.1.3 |
-| wen-ext | generated, approved | v1.1.3 |
-| wen-int | generated, approved | v1.1.3 |
-| wen-up | generated, approved | v1.1.3 |
-| wen-venue | generated, approved | v1.1.3 |
 | mad-ext | generated, approved | v1.1.3 |
 | mad-int | generated, approved | v1.1.3 |
 
