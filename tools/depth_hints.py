@@ -718,3 +718,20 @@ HINTS = {
         ('gatepost-e', (59, 76, 66, 95.5), 94, (60, 90, 65, 94.5)),
     ],
 }
+
+
+# CUT-OUT OBJECTS (2026-09-29): a freestanding object drawn OVER something further
+# back in the occlusion layer (a street tree whose canopy covers the club fence).
+# The layer is one flat alpha, so a column of it runs from the canopy down into
+# the fence and takes the FENCE's ground line: a character between the fence
+# and the tree was drawn over the canopy. build_occlusion.py cuts the object out
+# of the art (its foliage inside the ellipse, joined to the trunk rect) once, keeps
+# the cut in tools/object-masks/<scene>-<id>.png (committed: delete it to
+# re-cut), and gives every layer pixel in it this ground line.
+#
+# scene -> [(id, ellipse (cx, cy, rx, ry) percent, seed rect (x0, y0, x1, y1) percent, base percent)]
+OBJECTS = {
+    'nyc-ext': [
+        ('street-tree-w', (8.0, 79.4, 5.2, 6.4), (7.46, 82.8, 8.29, 86.6), 87.0),
+    ],
+}

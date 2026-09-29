@@ -27,24 +27,41 @@ test (see its header) for the layers not cleaned yet:
 ## Pruned by the tool (the artist may clean these by hand later)
 
 Shipped in v1.1.8 without review (artist: "fix and push, I wont have time to
-review"). When a hand-cleaned layer arrives, move its row up to the table above.
+review"); re-pruned from the artist's originals for v1.1.9 (reviewed in a
+before/after preview) with the sliver rule: a column erased on its own left thin
+strips of canopy standing between erased neighbours, drawn over characters as
+stripes. `slivers()` + `trim_slivers()` in the tool take them off the top of
+their column. When a hand-cleaned layer arrives, move its row up to the table above.
 
 | scene | pruned | shipped |
 |---|---|---|
-| nyc-ext | 2026-09-29 (tool) | v1.1.8 |
-| nyc-venue | 2026-09-29 (tool) | v1.1.8 |
-| lon-ext | 2026-09-29 (tool) | v1.1.8 |
-| lon-int | 2026-09-29 (tool) | v1.1.8 |
-| lon-venue | 2026-09-29 (tool) | v1.1.8 |
-| vie-ext | 2026-09-29 (tool) | v1.1.8 |
-| vie-int | 2026-09-29 (tool) | v1.1.8 |
-| vie-up | 2026-09-29 (tool) | v1.1.8 |
-| vie-venue | 2026-09-29 (tool) | v1.1.8 |
-| ist-up | 2026-09-29 (tool) | v1.1.8 |
-| ist-venue | 2026-09-29 (tool) | v1.1.8 |
-| wen-ext | 2026-09-29 (tool) | v1.1.8 |
-| wen-int | 2026-09-29 (tool) | v1.1.8 |
-| wen-up | 2026-09-29 (tool) | v1.1.8 |
-| wen-venue | 2026-09-29 (tool) | v1.1.8 |
-| mad-ext | 2026-09-29 (tool) | v1.1.8 |
-| mad-int | 2026-09-29 (tool) | v1.1.8 |
+| nyc-ext | 2026-09-29 (tool) | v1.1.9 |
+| nyc-venue | 2026-09-29 (tool) | v1.1.9 |
+| lon-ext | 2026-09-29 (tool) | v1.1.9 |
+| lon-int | 2026-09-29 (tool) | v1.1.9 |
+| lon-venue | 2026-09-29 (tool) | v1.1.9 |
+| vie-ext | 2026-09-29 (tool) | v1.1.9 |
+| vie-int | 2026-09-29 (tool) | v1.1.9 |
+| vie-up | 2026-09-29 (tool) | v1.1.9 |
+| vie-venue | 2026-09-29 (tool) | v1.1.9 |
+| ist-up | 2026-09-29 (tool) | v1.1.9 |
+| ist-venue | 2026-09-29 (tool) | v1.1.9 |
+| wen-ext | 2026-09-29 (tool) | v1.1.9 |
+| wen-int | 2026-09-29 (tool) | v1.1.9 |
+| wen-up | 2026-09-29 (tool) | v1.1.9 |
+| wen-venue | 2026-09-29 (tool) | v1.1.9 |
+| mad-ext | 2026-09-29 (tool) | v1.1.9 |
+| mad-int | 2026-09-29 (tool) | v1.1.9 |
+
+## Cut-out objects
+
+A freestanding object drawn over something further back in the same layer (a
+street tree in front of the fence) takes the BACK thing's ground line, column by
+column, so a character between the two is drawn over it. `OBJECTS` in
+`tools/depth_hints.py` names such objects; `tools/build_occlusion.py` cuts
+each from the art once into `tools/object-masks/<scene>-<id>.png` (committed;
+delete one to re-cut) and gives all of it the object's ground line.
+
+| scene | object | since |
+|---|---|---|
+| nyc-ext | street-tree-w (by the taxi) | v1.1.9 |

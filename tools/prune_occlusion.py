@@ -42,6 +42,7 @@ import build_occlusion as bo  # noqa: E402
 TOL = float(os.environ.get("PRUNE_TOL", 0.15))          # character heights: feet no further behind a line than this count as in front
 MIN_STAGE = 340     # px: the smallest stage height the game lays out (landscape phone)
 DECAL_BAND = 6      # px above and below a floor decal that must be walkable too
+SLIVER = 12         # px: a kept strip narrower than this between erased pixels goes too (slivers)
 
 
 def hand_cleaned():
@@ -85,9 +86,10 @@ def load(scene):
     return art, opaque, walk, feet
 
 
-def never_in_front(scene, opaque, walk, actor_h, tol=TOL, feet=None):
+def never_in_front(scene, opaque, walk, actor_h, tol=TOL, feet=None, base=None):
     H, W = opaque.shape
-    base, _kinds = bo.depth(scene, opaque, walk, actor_h)
+    if base is None:
+        base, _kinds = bo.depth(scene, opaque, walk, actor_h)
     walk_open, _ = bo.plant_walk(scene, opaque, walk)
     if feet is not None:
         walk_open = walk_open | feet
@@ -149,11 +151,62 @@ def whole_runs(opaque, walk, erase):
     return out
 
 
+def slivers(opaque, erase, base, actor_h):
+    """Kept pixels in a thin horizontal strip (under SLIVER px) with erased
+    pixels either side, more than a character height above their own ground
+    line. Columns are erased one by one, so a column that runs down into
+    something low in the picture keeps a thin strip of canopy or wall while its
+    neighbours go: drawn over a character as a stripe. The artist's own layers
+    have none. Near its ground line a thin strip is a real thing (a pole)."""
+    H, W = opaque.shape
+    keep = opaque & ~erase
+    A = int(max(actor_h, 40 / MIN_STAGE) * H)
+    line = np.where(np.isnan(base), H, base / 100 * H)
+    out = np.zeros_like(opaque)
+    for y in range(H):
+        r = keep[y]
+        if not r.any():
+            continue
+        d = np.diff(np.concatenate(([0], r.astype(np.int8), [0])))
+        for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+            if b - a < SLIVER and a > 0 and b < W and erase[y, a - 1] and erase[y, b]:
+                far = line[y, a:b] - y > A
+                out[y, a:b] = far
+    return out
+
+
+def trim_slivers(opaque, erase, more):
+    """Erase slivers as a TOP trim of their column run (rows from the run's top
+    down to its lowest sliver pixel, when those rows are mostly sliver or
+    already erased): the rest of the run keeps its bottom, so its ground line
+    and whether it is walked under stay what they were."""
+    out = erase.copy()
+    H, W = opaque.shape
+    for x in np.where(more.any(axis=0))[0]:
+        col = opaque[:, x]
+        d = np.diff(np.concatenate(([0], col.astype(np.int8), [0])))
+        for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+            m = more[a:b, x]
+            if not m.any():
+                continue
+            k = a + int(np.where(m)[0][-1]) + 1
+            if k < b and (m[:k - a] | erase[a:k, x]).mean() >= 0.8:
+                out[a:k, x] = True
+    return out
+
+
 def prune(scene, actor_h):
     """(pruned RGBA layer at its own size, erase mask at art size, share of the layer erased)"""
     _art, opaque, walk, feet = load(scene)
     H, W = opaque.shape
-    erase = whole_runs(opaque, walk, never_in_front(scene, opaque, walk, actor_h, feet=feet)) | floor_decals(opaque, feet)
+    base, _kinds = bo.depth(scene, opaque, walk, actor_h)
+    erase = whole_runs(opaque, walk, never_in_front(scene, opaque, walk, actor_h, feet=feet, base=base))
+    for _ in range(3):              # a sliver erased can leave a thinner one beside it
+        more = slivers(opaque, erase, base, actor_h)
+        if not more.any():
+            break
+        erase = trim_slivers(opaque, erase, more)
+    erase |= floor_decals(opaque, feet)
     src = os.path.join(ROOT, bo.CITY_DIR[scene[:3]], f'{scene}-occlusion.png')
     layer = np.asarray(Image.open(src).convert('RGBA')).copy()
     lh, lw = layer.shape[:2]

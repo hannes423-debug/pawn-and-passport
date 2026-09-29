@@ -61,7 +61,7 @@ from scipy import ndimage
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-from depth_hints import HINTS  # noqa: E402
+from depth_hints import HINTS, OBJECTS  # noqa: E402
 
 CITY_DIR = {'nyc': 'NYC', 'lon': 'London', 'vie': 'Vienna', 'ist': 'Istanbul', 'che': 'Chennai', 'wen': 'Wenzhou', 'mad': 'Spain Madrid'}
 SCENES = ['nyc-ext', 'nyc-int', 'nyc-up', 'nyc-venue', 'lon-ext', 'lon-int', 'lon-venue',
@@ -75,7 +75,7 @@ SPECK = 12                 # opaque specks smaller than this (px) are dropped
 FOOT = 12                  # px: a run is walked under when most of its lowest FOOT px are walkable
 LINTEL = 0.9               # a hanging run with no hint: its line is this many character heights below it
 UNIFY_R = 0.5              # character heights: how far along an object its front line carries (unify)
-UNIFY_D = 0.35             # character heights: lines further apart than this are different objects
+UNIFY_HOLD = 0.5           # character heights: a hinted canopy/sign trusts a holder this close to its hint (unify)
 UNIFY_FAR = 1.5            # ...or this far, when no foot can stand between the two lines (unify)
 PAD = 4                    # atlas padding (px): a scaled slice must not sample its neighbour
 ATLAS_W = 2048
@@ -205,7 +205,7 @@ def depth(scene, opaque, walk, actor_h):
     hints = hint_map(scene, W, H)
     base = np.full((H, W), np.nan, np.float32)
     lintel = LINTEL * actor_h * H
-    kinds = np.zeros((H, W), np.uint8)       # 1 grounded, 2 hint, 3 decal, 4 lintel (for the preview)
+    kinds = np.zeros((H, W), np.uint8)       # 1 grounded, 2 hint, 3 decal, 4 lintel, 5 cut-out object (for the preview)
     hung = []
     for x in range(W):
         col = opaque[:, x]
@@ -266,45 +266,132 @@ def depth(scene, opaque, walk, actor_h):
         if lines:
             rows = kinds[a:b + 1, x] == 4
             base[a:b + 1, x][rows] = max(max(lines), b / H * 100)
-    unify(opaque, base, kinds, actor_h, walk)
+    unify(opaque, base, kinds, actor_h, standable(scene, opaque, walk, actor_h))
+    for _oid, m, line in objects(scene, opaque):       # after unify: nothing may pull a cut-out's line
+        m = m & opaque
+        base[m] = line
+        kinds[m] = 5
     return base, kinds
 
 
-def unify(opaque, base, kinds, actor_h, walk):
-    """One ground line across an object, not one per column.
+def object_mask(scene, oid, ell, seed, opaque):
+    """The cut of one OBJECTS entry (bool, art size): tools/object-masks/<scene>-<oid>.png,
+    made on first use. Foliage: the sunlit leaves in the ellipse (yellow-green,
+    bright), closed into one crown, holes filled, plus the shaded green leaves
+    within a few px of it, the part joined to the seed rect (the trunk), and
+    the seed itself. GrabCut was tried and took the hedge behind the fence too."""
+    path = os.path.join(HERE, 'object-masks', f'{scene}-{oid}.png')
+    if os.path.exists(path):
+        return np.asarray(Image.open(path).convert('L')) > 127
+    art = np.asarray(Image.open(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')).convert('RGB'))
+    H, W = art.shape[:2]
+    cx, cy, rx, ry = ell[0] / 100 * W, ell[1] / 100 * H, ell[2] / 100 * W, ell[3] / 100 * H
+    sx0, sy0, sx1, sy1 = (int(seed[0] / 100 * W), int(seed[1] / 100 * H), int(seed[2] / 100 * W), int(seed[3] / 100 * H))
+    x0, x1 = max(0, min(int(cx - rx), sx0) - 2), min(W, max(int(cx + rx), sx1) + 3)
+    y0, y1 = max(0, min(int(cy - ry), sy0) - 2), min(H, max(int(cy + ry), sy1) + 3)
+    yy, xx = np.mgrid[y0:y1, x0:x1]
+    inside = ((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2 < 1
+    trunk = (xx >= sx0) & (xx <= sx1) & (yy >= sy0) & (yy <= sy1)
+    hsv = cv2.cvtColor(np.ascontiguousarray(art[y0:y1, x0:x1]), cv2.COLOR_RGB2HSV).astype(int)
+    hue, sat, val = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    lit = (hue >= 25) & (hue <= 45) & (sat >= 80) & (val >= 90) & inside
+    crown = cv2.morphologyEx(lit.astype(np.uint8), cv2.MORPH_CLOSE,
+                             cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))) > 0
+    crown = ndimage.binary_fill_holes(crown)
+    shade = (hue >= 25) & (hue <= 60) & (sat >= 60) & inside
+    crown |= shade & ndimage.binary_dilation(crown, iterations=6)
+    lab, _ = ndimage.label(crown | trunk)
+    cut = np.isin(lab, np.unique(lab[trunk])) & opaque[y0:y1, x0:x1]
+    out = np.zeros((H, W), bool)
+    out[y0:y1, x0:x1] = cut
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    Image.fromarray(out.astype(np.uint8) * 255).save(path)
+    return out
 
-    Each column's line is where THAT column's pixels end, and an object's bottom
-    edge is ragged (legs, chair feet, a shadow, a canopy wider than its table),
-    so an umbrella table came out as vertical stripes of different depth. A
-    character near it was hidden by some columns and drawn over by others: the
-    "player clips through the occlusion" glitch, worst in the exteriors.
 
-    Row by row, within one connected part of the layer, a pixel takes the
-    lower line of a pixel up to UNIFY_R character heights beside it when
-      - the two lines are at most UNIFY_D character heights apart (a ragged
-        edge), or
-      - no character whose sprite could cover it can stand between the two
-        lines (the floor a sprite's width either side is blocked): the same
-        object's footprint, a canopy over its table; up to UNIFY_FAR character
-        heights, or
-      - it hangs over walkable floor (a sign, a canopy, kinds 2 and 4): its own
-        line was a guess, and what holds it up is the better one (UNIFY_FAR).
-    Repeated until nothing moves, so a whole object settles on its front."""
+def objects(scene, opaque):
+    """[(id, mask, ground line percent)] for the scene's cut-out OBJECTS."""
+    return [(oid, object_mask(scene, oid, ell, seed, opaque), line) for oid, ell, seed, line in OBJECTS.get(scene, [])]
+
+
+def standable(scene, opaque, walk, actor_h):
+    """Where a character's FEET can be: the walk mask as the game uses it (the
+    floor behind potted plants opened, then eroded by the walker's feet like
+    freeWalk.js), plus every spot an NPC is placed (they may stand off it)."""
+    H, W = walk.shape
+    wo, _ = plant_walk(scene, opaque, walk)
+    h = actor_h * 100
+    hw = max(1, int(max(1.0, h * 0.11) / 100 * H))       # walkerFor: percent of the scene HEIGHT
+    hd = max(1, int(max(0.6, h * 0.04) / 100 * H))
+    feet = ndimage.binary_erosion(wo, structure=np.ones((2 * hd + 1, 2 * hw + 1)))
+    for x, y in npc_feet().get(scene, []):
+        fx, fy = int(x / 100 * W), int(y / 100 * H)
+        feet[max(0, fy - 4):fy + 5, max(0, fx - 6):fx + 7] = True
+    return feet
+
+
+_NPC = None
+
+
+def npc_feet():
+    """scene -> [(x, y) percent]: hotspot NPCs, a scene's crowd, club members."""
+    global _NPC
+    if _NPC is None:
+        import subprocess
+        js = ("Promise.all([import('./js/data/scenes.js'), import('./js/data/memberSpots.js')]).then(([S, M]) => {"
+              " const out = {};"
+              " for (const s of Object.values(S.SCENES)) {"
+              "  const f = out[s.id] = [];"
+              "  for (const h of s.hotspots) if (h.npc?.at) f.push(h.npc.at);"
+              "  if (s.crowd) f.push(...s.crowd.left, ...s.crowd.right);"
+              "  for (const m of Object.values(M.MEMBER_SPOTS[s.id] || {})) f.push(m.at);"
+              " }"
+              " console.log(JSON.stringify(out)); })")
+        _NPC = json.loads(subprocess.check_output(['node', '--input-type=module', '-e', js], cwd=ROOT, text=True))
+    return _NPC
+
+
+def unify(opaque, base, kinds, actor_h, feet):
+    """One ground line across an object, where nobody can tell the difference.
+
+    Each column's line is where THAT column's pixels end, so an object with a
+    ragged bottom (legs, a canopy wider than its table) came out as stripes of
+    different depth, and a character near it was hidden by some columns and
+    drawn over by others.
+
+    A pixel may take the lower line of a pixel of the same connected part
+    beside it (same row, up to UNIFY_R character heights) or below it (same
+    column) ONLY when no character can stand between the two lines anywhere
+    its sprite would cover the pixel: no standable feet (`feet`) in the rows
+    between, a sprite's width either side. Then the change is invisible to
+    anyone who can be there, and the stripes go. Measured from the pixel's
+    ORIGINAL line every time, so lines never creep forward in chains: an
+    object never claims floor a character can stand on in front of it (a tree
+    stays walk-around, both ways).
+
+    A pixel hung over walkable floor (a tree canopy, a sign, kinds 2 and 4)
+    takes the line of the NEAREST standing pixel of its part in its row, the
+    thing holding it up: a street tree's canopy used an old hand-set hint a
+    little in front of its trunk, so a player in front of the trunk was covered
+    by the canopy; umbrella poles on the LINTEL fallback sat 15% low. With no
+    standing pixel within UNIFY_R it keeps its own line."""
     H, W = opaque.shape
     live = opaque & ~np.isnan(base) & (base < 99) & ((kinds == 1) | (kinds == 2) | (kinds == 4))
     lab, n = ndimage.label(live, structure=np.ones((3, 3)))
     if not n:
         return
     r = max(2, int(UNIFY_R * actor_h * H))
-    near = UNIFY_D * actor_h * 100
     far = UNIFY_FAR * actor_h * 100
     ys, xs = np.nonzero(live)
     lb = lab[ys, xs]
-    hang = (kinds[ys, xs] == 2) | (kinds[ys, xs] == 4)
-    C = np.zeros((H + 1, W + 1), np.int32)             # walkable px above-left of each point
-    C[1:, 1:] = np.cumsum(np.cumsum(walk, axis=0), axis=1)
-    half = max(2, int(actor_h * H * 72 / 108 / 2))      # a sprite's half width (scene.js CELL 72x108)
-    L = base[ys, xs].astype(np.float32)
+    hanging = (kinds[ys, xs] == 4) | (kinds[ys, xs] == 2)
+    standing = kinds[ys, xs] == 1
+    C = np.zeros((H + 1, W + 1), np.int32)             # standable feet above-left of each point
+    C[1:, 1:] = np.cumsum(np.cumsum(feet, axis=0), axis=1)
+    ah = max(actor_h, 40 / 340)                         # scene.js: max(40 px, stage * actorHeight), smallest stage
+    A = int(ah * H) + 2
+    half = int(ah * H * 72 / 108 / 2) + 2               # a sprite's half width (CELL 72x108)
+    L0 = base[ys, xs].astype(np.float32)
     idx = np.full((H, W), -1, np.int64)
     idx[ys, xs] = np.arange(ys.size)
 
@@ -318,45 +405,54 @@ def unify(opaque, base, kinds, actor_h, walk):
         has[has] = lab[yq[has], xq[has]] == lb[has]
         return np.where(has, j, -1)
 
-    # A hanging pixel beside a standing part of the same object (a pole under
-    # its canopy, a sign between its posts) takes that part's line, up OR down:
-    # its own was a guess (the LINTEL fallback put umbrella poles 15% low).
-    if hang.any():
-        G = np.full(ys.size, -1.0, np.float32)
+    # hanging parts: of the standing pixels of the part within UNIFY_R in the
+    # row, the one whose line agrees best with the hanging pixel's own (the
+    # trunk under a canopy, not a hedge the canopy overlaps), within
+    # UNIFY_HOLD character heights (UNIFY_FAR for a guessed lintel)
+    if hanging.any():
+        best = np.full(ys.size, np.inf, np.float32)
+        pick = L0.copy()
+        bound = np.where(kinds[ys, xs] == 4, UNIFY_FAR, UNIFY_HOLD) * actor_h * 100
         for dx in range(-r, r + 1):
             if dx == 0:
                 continue
             j = beside(dx)
-            g = (j >= 0) & hang
-            g[g] = ~hang[j[g]]
-            G[g] = np.maximum(G[g], L[j[g]])
-        L = np.where(hang & (G >= 0), G, L)
-    for _ in range(8):
+            g = (j >= 0) & hanging
+            g[g] = standing[j[g]]
+            k = np.where(g)[0]
+            dev = np.abs(L0[j[k]] - L0[k])
+            better = (dev < best[k]) & (dev <= bound[k])
+            kk = k[better]
+            best[kk] = dev[better]
+            pick[kk] = L0[j[kk]]
+        L0 = pick
+    y_of = lambda v: np.clip((v / 100 * H).astype(np.int64), 0, H)
+    L = L0.copy()
+    offsets = [(d, 0) for d in range(-r, r + 1) if d] + [(0, d) for d in range(1, r + 1)]
+    for _ in range(6):
         M = L.copy()
-        # beside in the same row, and below in the same column (a canopy over its table)
-        for dx, dy in [(d, 0) for d in range(-r, r + 1) if d] + [(0, d) for d in range(1, r + 1)]:
+        for dx, dy in offsets:
             j = beside(dx, dy)
             has = j >= 0
             q = np.where(has, L[np.maximum(j, 0)], -1.0)
-            up = has & (q > M)
-            if not up.any():
+            k = np.where(has & (q > M) & (q - L0 <= far))[0]
+            if not k.size:
                 continue
-            gap = q - L
-            ok = up & (gap <= near)
-            cand = up & ~ok & (gap <= far)
-            if cand.any():
-                k = np.where(cand)[0]
-                y0 = np.clip((L[k] / 100 * H).astype(np.int64) + 1, 0, H)
-                y1 = np.clip((q[k] / 100 * H).astype(np.int64), 0, H)
-                y1 = np.maximum(y1, y0)
-                xa = np.clip(xs[k] - half, 0, W); xb = np.clip(xs[k] + half + 1, 0, W)
-                free = C[y1, xb] - C[y0, xb] - C[y1, xa] + C[y0, xa]
-                ok[k] = hang[k] | (free <= 2)
+            # feet rows between the two lines whose sprite (92% above the feet, 8%
+            # below) could reach this pixel at all
+            y0 = np.maximum(y_of(L0[k]) + 1, ys[k] - int(0.08 * A))
+            y1 = np.minimum(y_of(q[k]) + 1, ys[k] + A + 1)
+            y0 = np.clip(y0, 0, H)
+            y1 = np.clip(np.maximum(y1, y0), 0, H)
+            xa = np.clip(xs[k] - half, 0, W); xb = np.clip(xs[k] + half + 1, 0, W)
+            free = C[y1, xb] - C[y0, xb] - C[y1, xa] + C[y0, xa]
+            ok = k[free == 0]
             M[ok] = q[ok]
         if np.array_equal(M, L):
             break
         L = M
     base[ys, xs] = L
+
 
 def slices(base, walk, actor_h):
     """[(z, bbox, mask)]: the opaque pixels grouped into as few depth slices as
@@ -455,7 +551,10 @@ def sources(scene):
     """What a scene's data is made from: both guides, its hints and this file's tunables."""
     folder = os.path.join(ROOT, CITY_DIR[scene[:3]])
     md5 = lambda path: hashlib.md5(open(path, 'rb').read()).hexdigest()[:12]
-    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_D, UNIFY_FAR, PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
+    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_HOLD, UNIFY_FAR, 'unify6', PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
+    cuts = [md5(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png')) for o in OBJECTS.get(scene, [])
+            if os.path.exists(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png'))]
+    tun += repr((OBJECTS.get(scene), cuts))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
             'occlusion': md5(os.path.join(folder, f'{scene}-occlusion.png')),
             'art': md5(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')),
@@ -502,6 +601,7 @@ def preview(scene, data, debug, actor_h):
     tint[kinds == 2] = (60, 120, 255, 70)
     tint[kinds == 4] = (255, 150, 0, 90)
     tint[kinds == 3] = (0, 255, 90, 70)
+    tint[kinds == 5] = (170, 60, 255, 70)      # cut-out object
     canvas.alpha_composite(Image.fromarray(tint, 'RGBA'))
     sy, sx = max(24, int(ah * 0.8)), max(30, aw * 3)
     feet = [(x + (sx // 2 if (y // sy) % 2 else 0), y) for y in range(sy // 2, H, sy) for x in range(sx // 2, W - sx // 2, sx)]
@@ -512,7 +612,9 @@ def preview(scene, data, debug, actor_h):
         if kind == 'slice':
             x0 = round(item[1] / 100 * W); y0 = round(item[2] / 100 * H)
             w, h = item[7:9]
-            m = base[y0:y0 + h, x0:x0 + w] == round(item[0] * 10)
+            # slices() caps a line at 99.0 (990) but keeps the snapped 991-999
+            # in `base`: compare capped, or every front-most slice is never drawn
+            m = np.minimum(base[y0:y0 + h, x0:x0 + w], 990) == round(item[0] * 10)
             rgba = np.zeros((h, w, 4), np.uint8)
             rgba[..., :3] = art[y0:y0 + h, x0:x0 + w]
             rgba[..., 3] = np.where(m, 255, 0)
