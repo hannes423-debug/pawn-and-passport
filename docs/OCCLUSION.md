@@ -75,6 +75,20 @@ a wall stands on its OWN blocked section (a passage through a wall no longer
 gives the wall behind the front wall's line), a narrow side wall or pillar is
 at the depth of each of its rows, and two footprints in one column split it.
 
+v1.1.13 (2026-09-30): "player drawn over tables/stairs, walls glitch" in
+lon-int, vie-int, ist-int. Three causes. (1) The v1.1.11 doorway rule floored
+ANY narrow walkable run, including where feet overlap a wall top or a table
+back; those px stopped hiding anybody and the prune then erased them (holes
+along the lon-int dividing wall). A doorway is now a passage walled on both
+sides (DOOR_SIDE) with open floor along it. (2) `rests_on()`: a layer px on
+walkable floor can't stand further forward than the blocked thing right below
+it in its run (ist-int wall edge had taken the entry pillar's line: stripes).
+(3) The atlas URL never changed, so a browser holding the previous build's
+atlas for 10 min drew every slice from the wrong place; the URL now carries
+`?v=<hash>` and scene.js checks the atlas size against the data. Audit sheet
+per scene: `tools/dev/audit_depth.py` (bodies between objects, real render).
+vie-ext: the two umbrella tables are separate objects (back 44.3, front 47.6).
+
 v1.1.11 (2026-09-29): interior doorways (a passage <= 1 actor height wide) are
 floor; new kind `fill` (a polygon the layer lacks, drawn whole) for the nyc-ext
 terrace umbrella tables; che-venue statue and che-ext palms given lines; nyc-ext

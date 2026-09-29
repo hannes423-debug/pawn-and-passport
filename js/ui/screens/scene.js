@@ -100,10 +100,42 @@ const ordinal = (n) => {
   return `${n}${teen ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')}`;
 };
 
+/* The depth slices only line up with THEIR atlas. Right after a deploy a
+   browser can hold a cached sceneLayers.js from the build before (GitHub Pages
+   caches 10 minutes): its atlas URL then fetches the new, repacked image and
+   every table and wall is drawn in the wrong pieces. The atlas's real size
+   gives that away; then the data is fetched fresh, and if it still does not
+   match, the scene runs without depth slices rather than with wrong ones. */
+const atlasSize = (url) => new Promise((resolve) => {
+  const img = new Image();
+  img.onload = () => resolve([img.naturalWidth, img.naturalHeight]);
+  img.onerror = () => resolve(null);
+  img.src = url;
+});
+const fits = (size, d) => !size || (size[0] === d.atlasSize[0] && size[1] === d.atlasSize[1]);
+const checkedLayerCache = new Map();
+async function checkedLayers(id) {
+  const cur = SCENE_LAYERS[id];
+  if (!cur) return null;
+  if (checkedLayerCache.has(id)) return checkedLayerCache.get(id);
+  const timeout = () => wait(4000).then(() => null);    // unknown: trust the data
+  let good = cur;
+  if (!fits(await Promise.race([atlasSize(cur.atlas), timeout()]), cur)) {
+    good = null;
+    try {
+      const fresh = (await import(`../../data/sceneLayers.js?fresh=${Date.now()}`)).SCENE_LAYERS[id];
+      if (fresh && fits(await Promise.race([atlasSize(fresh.atlas), timeout()]), fresh)) good = fresh;
+    } catch { /* offline: fall through */ }
+    if (!good) good = { ...cur, slices: [] };            // walk the floor, draw no wrong depth
+  }
+  checkedLayerCache.set(id, good);
+  return good;
+}
+
 /* A walk grid takes a moment to bake on a phone: build each scene's once. */
 const walkGrids = new Map();
 function walkGridFor(id, layers, aspect, actorHeight) {
-  const key = `${id}:${aspect.toFixed(4)}:${actorHeight}`;
+  const key = `${id}:${layers.atlas}:${aspect.toFixed(4)}:${actorHeight}`;
   if (!walkGrids.has(key)) walkGrids.set(key, createWalkGrid(layers, { aspect, walker: walkerFor(actorHeight) }));
   return walkGrids.get(key);
 }
@@ -340,7 +372,7 @@ export async function sceneScreen(app, params) {
      (tools/build_occlusion.py). Each slice sits in the actors layer at its own
      z, so a character is drawn behind every slice whose ground line is lower
      down the picture than its feet. One atlas image per scene. */
-  const layers = SCENE_LAYERS[scene.id] || null;
+  const layers = await checkedLayers(scene.id);
   const freeMode = !!layers;
   const grid = freeMode ? walkGridFor(scene.id, layers, aspect, ACTOR_H) : null;
   if (freeMode) {

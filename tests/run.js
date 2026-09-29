@@ -1306,7 +1306,7 @@ test('layered scenes: every hotspot reachable from the spawn, and every slice in
     assert(scene, `${id}: scene exists`);
     const [w, h] = sizes[id];
     const grid = createWalkGrid(layers, { aspect: w / h, walker: walkerFor(scene.actorHeight ?? 0.1) });
-    assert(existsSync(path.join(ROOT, layers.atlas)), `${id}: occlusion atlas`);
+    assert(existsSync(path.join(ROOT, layers.atlas.split('?')[0])), `${id}: occlusion atlas`);
     const [AW, AH] = layers.atlasSize;
     layers.slices.forEach(([base, , , , , ax, ay, aw, ah], k) => {
       assert(ax >= 0 && ay >= 0 && ax + aw <= AW && ay + ah <= AH, `${id}/slice ${k}: inside the atlas`);

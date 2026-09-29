@@ -795,7 +795,11 @@ OBJECTS = {
         # top right: the hedge wall behind the terrace is only as deep as its base;
         # the umbrellas overlap it, so the tables are cut round it
         ('hedge-ne', 'poly', (72, 28.5, 94, 33.5), 33.3),
-        ('tables-ne', 'poly', [(80, 32), (88.5, 32), (88.5, 35.5), (93.5, 35.5), (93.5, 46), (80, 46)], 45),
+        # two umbrella tables, one behind the other: a player on the floor between
+        # them (left of the front table) is in front of the back set and behind the
+        # front one. The front umbrella overlaps the back table, so it comes second.
+        ('table-ne-back', 'poly', (81.3, 32, 88.8, 44.8), 44.3),
+        ('table-ne-front', 'poly', [(86.8, 35.4), (93.5, 35.4), (93.5, 48), (85.8, 48), (85.8, 40.2), (86.8, 40.2)], 47.6),
     ],
     'vie-int': [
         # the grand staircase: the handrails run down beside the steps (each row

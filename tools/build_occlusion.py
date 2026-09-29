@@ -84,6 +84,7 @@ SIDE_R = 0.3               # character heights: how far beside a side-wall row t
 DOOR_W = 1.0               # character heights: a walkable passage no wider than this through a wall is a doorway (interiors)
 SIDE_W = 0.6               # character heights: a side wall is no wider than this
 ADD_DIFF = 90              # colour distance (sum over RGB) from the floor that counts as part of an added object
+DOOR_SIDE = 1.6            # character heights: each half of a wall beside a doorway is at least this long (a table is shorter)
 STACK_GAP = 0.08           # character heights: floor this deep between two footprints in one column splits it (stacked things)
 PAD = 4                    # atlas padding (px): a scaled slice must not sample its neighbour
 ATLAS_W = 2048
@@ -341,6 +342,7 @@ def depth(scene, opaque, walk, actor_h):
     if scene.endswith(('-int', '-up')):
         doorways(opaque, walk, base, kinds, actor_h)
     unify(opaque, base, kinds, actor_h, standable(scene, opaque, walk, actor_h))
+    rests_on(opaque, walk, base, kinds)
     for _oid, m, line in objects(scene, opaque):       # after unify: nothing may pull an object's line
         m = m & opaque
         if line is None:                                 # floor: never in front of anybody
@@ -434,27 +436,92 @@ def objects(scene, opaque):
     return out
 
 
+def rests_on(opaque, walk, base, kinds):
+    """Layer px on WALKABLE floor (a wall edge, a table back the feet may overlap)
+    belong to the blocked thing drawn right below them in their run, or to
+    something behind it; never to something further forward. Joining can give
+    them a line from far down the picture (ist-int: a wall edge took the entry
+    pillar's 83.5 over a table at 67.7), which cut a player standing there into
+    stripes. Cap each at the line of the first blocked px below it in its run."""
+    H, W = opaque.shape
+    for x in range(W):
+        col = opaque[:, x]
+        if not col.any():
+            continue
+        d = np.diff(np.concatenate(([0], col.astype(np.int8), [0])))
+        for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+            wk = walk[a:b, x]
+            if not wk.any() or wk.all():
+                continue
+            cap = np.nan
+            for y in range(b - 1, a - 1, -1):
+                if not wk[y - a]:
+                    if kinds[y, x] == 1 and not np.isnan(base[y, x]):
+                        cap = base[y, x]
+                elif not np.isnan(cap) and kinds[y, x] == 1 and base[y, x] > cap:
+                    base[y, x] = cap
+
+
 def doorways(opaque, walk, base, kinds, actor_h):
     """Interiors are cutaway plans with the floor in the layer too. In a doorway
     the floor strip's column runs on into the wall in front of it and took that
-    wall's ground line, so a player in the doorway was hidden by the FLOOR. A
-    layer pixel on walkable floor in a narrow passage (the walkable run through
-    it, across or down, no wider than DOOR_W character heights, blocked at both
-    ends) is floor: nothing in a doorway stands in front of anybody. Wide floor
-    is left alone (the floor behind a potted plant is walk-behind on purpose)."""
+    wall's ground line, so a player in the doorway was hidden by the FLOOR (or,
+    where only some rows were caught, cut into stripes).
+
+    A doorway is a passage through a WALL: floor narrower than DOOR_W character
+    heights ACROSS, whose two sides are walls (blocked runs, along the passage
+    edge, longer than DOOR_SIDE character heights: the two halves of the wall),
+    with open floor (walkable, not layer) on both sides of it ALONG the passage.
+    Layer px in it are floor. Not doors: the gap between two tables (their
+    footprints are short), the strip where feet overlap the top of a wall (not
+    narrow), the pocket behind a chair (no open floor beyond it)."""
     H, W = opaque.shape
-    lim = DOOR_W * actor_h * H
-    narrow = np.zeros((H, W), bool)
-    for axis in (0, 1):
-        m = walk if axis == 1 else walk.T
-        out = np.zeros(m.shape, bool)
+    A = actor_h * H
+    lim = DOOR_W * A
+    need = DOOR_SIDE * A
+    free = walk & ~opaque
+    blocked = ~walk
+
+    def runlen(m):
+        """Length of the True run (along axis 1) each px is in."""
+        out = np.zeros(m.shape, np.int32)
         for i in range(m.shape[0]):
             d = np.diff(np.concatenate(([0], m[i].astype(np.int8), [0])))
             for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
-                if b - a <= lim and a > 0 and b < m.shape[1]:
+                out[i, a:b] = b - a
+        return out
+
+    def passages(wk, bl_along, fr):
+        """Axis 1 of wk runs ACROSS the passage; bl_along: length of the blocked run
+        each px is in, measured along the passage edge (axis 0 of wk). Returns
+        px of narrow walkable runs walled on both sides."""
+        out = np.zeros(wk.shape, bool)
+        n = wk.shape[1]
+        for i in range(wk.shape[0]):
+            d = np.diff(np.concatenate(([0], wk[i].astype(np.int8), [0])))
+            for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+                if b - a <= lim and a > 0 and b < n and bl_along[i, a - 1] >= need and bl_along[i, b] >= need:
                     out[i, a:b] = True
-        narrow |= out if axis == 1 else out.T
-    cond = opaque & walk & narrow & (kinds == 1)
+        return out
+
+    def through(wk, fr):
+        """Walkable px (runs along axis 1) with open floor both before and after in their run."""
+        out = np.zeros(wk.shape, bool)
+        for i in range(wk.shape[0]):
+            d = np.diff(np.concatenate(([0], wk[i].astype(np.int8), [0])))
+            for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+                f = np.concatenate(([0], np.cumsum(fr[i, a:b])))
+                out[i, a:b] = (f[:-1] > 0) & ((f[-1] - f[1:]) > 0)
+        return out
+
+    vlen = runlen(blocked.T).T        # blocked run length up/down the picture
+    hlen = runlen(blocked)            # blocked run length across the picture
+    # passage going UP/DOWN through a wall running ACROSS: narrow in rows, its
+    # sides are that wall's two halves (long across), open floor above and below
+    updown = passages(walk, hlen, free) & through(walk.T, free.T).T
+    # passage going ACROSS through a wall running UP/DOWN
+    across = passages(walk.T, vlen.T, free.T).T & through(walk, free)
+    cond = opaque & (updown | across) & (kinds == 1)
     base[cond] = np.nan
     kinds[cond] = 3
 
@@ -746,7 +813,7 @@ def sources(scene):
     """What a scene's data is made from: both guides, its hints and this file's tunables."""
     folder = os.path.join(ROOT, CITY_DIR[scene[:3]])
     md5 = lambda path: hashlib.md5(open(path, 'rb').read()).hexdigest()[:12]
-    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_HOLD, UNIFY_FAR, 'unify6', OVER, SIDE_LEN, SIDE_D, SIDE_R, SIDE_W, 'rows2', STACK_GAP, DOOR_W, PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
+    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_HOLD, UNIFY_FAR, 'unify6', OVER, SIDE_LEN, SIDE_D, SIDE_R, SIDE_W, 'rows2', STACK_GAP, DOOR_W, 'door4', DOOR_SIDE, 'rests1', PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
     cuts = [md5(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png')) for o in OBJECTS.get(scene, [])
             if o[1] == 'foliage' and os.path.exists(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png'))]
     tun += repr((OBJECTS.get(scene), cuts))
@@ -776,6 +843,10 @@ def build(scene, actor_h, write=True):
     if write:
         os.makedirs(os.path.join(ROOT, 'assets', 'layers'), exist_ok=True)
         Image.fromarray(atlas, 'RGBA').save(os.path.join(ROOT, src), 'WEBP', quality=92, alpha_quality=100, method=6)
+    # The URL carries the atlas's own hash: every build repacks it, and a cached
+    # atlas read against new slice data draws furniture and walls in pieces.
+    if os.path.exists(os.path.join(ROOT, src)):
+        src += '?v=' + hashlib.md5(open(os.path.join(ROOT, src), 'rb').read()).hexdigest()[:10]
     walk_open, opened = plant_walk(scene, opaque, walk)
     data = {'source': sources(scene), 'atlas': src, 'atlasSize': [aw, ah], 'size': [W, H], 'slices': props, 'walk': {'cols': GRID[0], 'rows': GRID[1], 'rle': walk_rows(walk_open)}}
     print(f'    {scene}: floor behind {opened} plants opened (+{(walk_open & ~walk).sum()} px)')
@@ -861,8 +932,11 @@ def check():
         _art, op, walk = load(scene)
         if d['walk']['rle'] != walk_rows(plant_walk(scene, op, walk)[0]):
             bad.append(f'{scene}: walk grid edited by hand')
-        if not os.path.exists(os.path.join(ROOT, d['atlas'])):
-            bad.append(f'{scene}: {d["atlas"]} missing')
+        path, _, ver = d['atlas'].partition('?v=')
+        if not os.path.exists(os.path.join(ROOT, path)):
+            bad.append(f'{scene}: {path} missing')
+        elif ver != hashlib.md5(open(os.path.join(ROOT, path), 'rb').read()).hexdigest()[:10]:
+            bad.append(f'{scene}: {path} does not match its ?v= hash')
     for b in bad:
         print(b)
     print('sceneLayers.js is ' + ('up to date' if not bad else 'STALE: run tools/build_occlusion.py'))
