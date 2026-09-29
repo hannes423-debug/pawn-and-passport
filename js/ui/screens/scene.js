@@ -186,7 +186,9 @@ export async function sceneScreen(app, params) {
   let stageW = 0;
   const fit = () => {
     // The HUD is shorter on phones and wraps to two rows in portrait.
-    if (hudBar?.offsetHeight) { viewport.style.top = `${hudBar.offsetHeight}px`; el.style.setProperty('--hud-h', `${hudBar.offsetHeight}px`); }
+    const hudH = hudBar?.offsetHeight || 0;
+    if (hudH) el.style.setProperty('--hud-h', `${hudH}px`);
+    reserveDock(hudH);
     const vw = viewport.clientWidth || window.innerWidth;
     const vh = viewport.clientHeight || (window.innerHeight - 56);
     camera = vh * aspect > vw * 1.3;
@@ -202,6 +204,32 @@ export async function sceneScreen(app, params) {
   };
 
   refit = () => fit();
+
+  /* Room for the open actions panel: a column beside the stage when the side
+     gutter is wide enough for it (landscape phone, wide desktop), otherwise a
+     band above or below the stage (portrait phone, top dock; desktop, bottom). */
+  function reserveDock(hudH) {
+    const box = viewport.style;
+    box.top = `${hudH}px`; box.left = ''; box.right = ''; box.bottom = '';
+    dock.classList.remove('is-side');
+    if (!dockOpen() || !dock.firstChild) return;
+    const W = el.clientWidth || window.innerWidth;
+    const H = (el.clientHeight || window.innerHeight) - hudH;
+    dock.classList.add('is-side');                       // measure it as a column first
+    const side = dock.getBoundingClientRect();
+    const gutter = W - H * aspect;
+    if (side.width + 16 <= gutter && side.bottom <= window.innerHeight) {
+      // Only as far right as the column needs: centred otherwise (the touch stick lives in that gutter too).
+      const x0 = Math.ceil(Math.max(side.right + 8, gutter / 2));
+      box.left = `${x0}px`;
+      box.right = `${Math.max(0, Math.floor(gutter - x0))}px`;
+      return;
+    }
+    dock.classList.remove('is-side');
+    const r = dock.getBoundingClientRect();
+    if (r.top < (window.innerHeight + hudH) / 2) box.top = `${Math.ceil(r.bottom + 6)}px`;
+    else box.bottom = `${Math.ceil(window.innerHeight - r.top + 6)}px`;
+  }
 
   function follow() {
     if (!camera) { stage.style.transform = ''; return; }
@@ -230,15 +258,18 @@ export async function sceneScreen(app, params) {
       spot.style.setProperty('--nudge', `${Math.round(dx)}px`);
       // A label near the top edge of the art would tuck under the HUD.
       if (r.top < top + pad) spot.style.setProperty('--nudge-y', `${Math.round(top + pad - r.top)}px`);
-      // Never under the joystick or the A button: lift the label above them.
+      // Never under the joystick or the A button: lift the label above them
+      // (above the HIGHER of the two when a wide label spans both).
+      let lift = 0;
       for (const control of viewport.querySelectorAll('.pp-pad__stick, .pp-pad__action')) {
         const c = control.getBoundingClientRect();
         if (!c.width || getComputedStyle(control.parentElement).display === 'none') continue;
         const moved = r.left + dx;
         if (moved < c.right && moved + r.width > c.left && r.bottom > c.top && r.top < c.bottom) {
-          spot.style.setProperty('--nudge-y', `${Math.round(c.top - 6 - r.bottom)}px`);
+          lift = Math.min(lift, c.top - 6 - r.bottom);
         }
       }
+      if (lift) spot.style.setProperty('--nudge-y', `${Math.round(lift)}px`);
     }
   }
 
@@ -528,8 +559,32 @@ export async function sceneScreen(app, params) {
       if (spot.member) people.append(button(spot.label.split(' ')[0], () => use(spot), { cls: 'pp-btn--small', title: `Talk to ${spot.label}` }));
       else list.append(button(`${i + 1}. ${spot.verb}`, () => use(spot), { cls: 'pp-btn--small', title: spot.label }));
     });
-    dock.replaceChildren(h('div.pp-panel', null, h('div.pp-scene__title', { text: app.locationName() }), list,
+    const toggle = h('button.pp-btn.pp-btn--small.pp-scene__toggle', { type: 'button', onclick: (e) => { e.stopPropagation(); setDock(!dockOpen()); } });
+    dock.replaceChildren(toggle, h('div.pp-panel', null, h('div.pp-scene__title', { text: app.locationName() }), list,
       people.children.length ? h('div.pp-row.pp-scene__people', null, h('span.pp-small.pp-muted', { text: 'People:' }), ...people.children) : null));
+    paintDock();
+    refit();
+  }
+
+  /* The actions panel can be hidden (button or H, remembered in settings), and
+     while it is open it takes its own room beside or above the stage instead
+     of covering the top of the map. */
+  const dockOpen = () => app.settings.actionsPanel !== false;
+  function paintDock() {
+    const open = dockOpen();
+    dock.classList.toggle('is-collapsed', !open);
+    const toggle = dock.querySelector('.pp-scene__toggle');
+    if (toggle) {
+      toggle.textContent = open ? '\u2715 Hide' : '\u2630 Actions';
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.title = open ? 'Hide the actions panel (H)' : 'Show the actions panel (H)';
+    }
+  }
+  function setDock(open) {
+    app.settings.actionsPanel = open;
+    app.applySettings();
+    paintDock();
+    refit();
   }
 
   // Clicking empty floor walks there (free mode) or to the nearest waypoint.
@@ -577,6 +632,7 @@ export async function sceneScreen(app, params) {
     const n = Number(e.key);
     if (n >= 1 && n <= scene.hotspots.length) use(scene.hotspots[n - 1]);
     if (e.key === 'm' || e.key === 'M') app.go('map');
+    if (e.key === 'h' || e.key === 'H') setDock(!dockOpen());
     if (e.key === 'j' || e.key === 'J') app.go('journal', { back: app.backParams() });
   };
   document.addEventListener('keydown', onKey);
@@ -1017,6 +1073,10 @@ export async function sceneScreen(app, params) {
 
   /* ---------------------------------------------------------- arrival -- */
   window.addEventListener('resize', fit);
+  // The dock and HUD settle after the first fit (fonts, wrapping): re-fit so the
+  // stage and the label nudges match the room they really leave.
+  const settle = typeof ResizeObserver === 'function' ? new ResizeObserver(() => fit()) : null;
+  if (settle) { settle.observe(dock); if (hudBar) settle.observe(hudBar); }
   const viewportObserver = new ResizeObserver(() => fit());
   viewportObserver.observe(viewport);
   if (hudBar) viewportObserver.observe(hudBar);
@@ -1069,6 +1129,7 @@ export async function sceneScreen(app, params) {
       pad.destroy();
       viewportObserver.disconnect();
       window.removeEventListener('resize', fit);
+      settle?.disconnect();
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('keyup', onKeyUp);
     }

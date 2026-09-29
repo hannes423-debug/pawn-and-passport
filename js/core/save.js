@@ -26,7 +26,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   openingNotes: true,            // the opening card on suggested squares (match screen: Notes)
   reducedMotion: false,
   textSpeed: 'normal',           // slow | normal | fast
-  touchControls: 'auto'          // auto | on | off: joystick, phone layout, tap wording
+  touchControls: 'auto',         // auto | on | off: joystick, phone layout, tap wording
+  actionsPanel: true             // the scene's actions panel (H or its Hide button)
 });
 
 function memoryStorage() {

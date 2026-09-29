@@ -31,27 +31,29 @@ review"); re-pruned from the artist's originals for v1.1.9 (reviewed in a
 before/after preview) with the sliver rule: a column erased on its own left thin
 strips of canopy standing between erased neighbours, drawn over characters as
 stripes. `slivers()` + `trim_slivers()` in the tool take them off the top of
-their column. When a hand-cleaned layer arrives, move its row up to the table above.
+their column. Re-pruned again from the originals for v1.1.11 (doorway floor,
+the new `fill` objects and the Club Principles sign change what can stand in
+front). When a hand-cleaned layer arrives, move its row up to the table above.
 
 | scene | pruned | shipped |
 |---|---|---|
-| nyc-ext | 2026-09-29 (tool) | v1.1.10 |
-| nyc-venue | 2026-09-29 (tool) | v1.1.10 |
-| lon-ext | 2026-09-29 (tool) | v1.1.10 |
-| lon-int | 2026-09-29 (tool) | v1.1.10 |
-| lon-venue | 2026-09-29 (tool) | v1.1.10 |
-| vie-ext | 2026-09-29 (tool) | v1.1.10 |
-| vie-int | 2026-09-29 (tool) | v1.1.10 |
-| vie-up | 2026-09-29 (tool) | v1.1.10 |
-| vie-venue | 2026-09-29 (tool) | v1.1.10 |
-| ist-up | 2026-09-29 (tool) | v1.1.10 |
-| ist-venue | 2026-09-29 (tool) | v1.1.10 |
-| wen-ext | 2026-09-29 (tool) | v1.1.10 |
-| wen-int | 2026-09-29 (tool) | v1.1.10 |
-| wen-up | 2026-09-29 (tool) | v1.1.10 |
-| wen-venue | 2026-09-29 (tool) | v1.1.10 |
-| mad-ext | 2026-09-29 (tool) | v1.1.10 |
-| mad-int | 2026-09-29 (tool) | v1.1.10 |
+| nyc-ext | 2026-09-29 (tool) | v1.1.11 |
+| nyc-venue | 2026-09-29 (tool) | v1.1.11 |
+| lon-ext | 2026-09-29 (tool) | v1.1.11 |
+| lon-int | 2026-09-29 (tool) | v1.1.11 |
+| lon-venue | 2026-09-29 (tool) | v1.1.11 |
+| vie-ext | 2026-09-29 (tool) | v1.1.11 |
+| vie-int | 2026-09-29 (tool) | v1.1.11 |
+| vie-up | 2026-09-29 (tool) | v1.1.11 |
+| vie-venue | 2026-09-29 (tool) | v1.1.11 |
+| ist-up | 2026-09-29 (tool) | v1.1.11 |
+| ist-venue | 2026-09-29 (tool) | v1.1.11 |
+| wen-ext | 2026-09-29 (tool) | v1.1.11 |
+| wen-int | 2026-09-29 (tool) | v1.1.11 |
+| wen-up | 2026-09-29 (tool) | v1.1.11 |
+| wen-venue | 2026-09-29 (tool) | v1.1.11 |
+| mad-ext | 2026-09-29 (tool) | v1.1.11 |
+| mad-int | 2026-09-29 (tool) | v1.1.11 |
 
 ## Objects: depth set by hand (`OBJECTS` in tools/depth_hints.py)
 
@@ -72,3 +74,9 @@ wen-int, wen-up, mad-ext, mad-int. Also general rules in build_occlusion.py:
 a wall stands on its OWN blocked section (a passage through a wall no longer
 gives the wall behind the front wall's line), a narrow side wall or pillar is
 at the depth of each of its rows, and two footprints in one column split it.
+
+v1.1.11 (2026-09-29): interior doorways (a passage <= 1 actor height wide) are
+floor; new kind `fill` (a polygon the layer lacks, drawn whole) for the nyc-ext
+terrace umbrella tables; che-venue statue and che-ext palms given lines; nyc-ext
+Club Principles sign is a signpost (line at its posts' foot, 57), not floor:
+the strip between it and the bench + knight statue behind is walkable.

@@ -317,6 +317,12 @@ img, canvas { image-rendering: pixelated; }
 .pp-scene__dock { position: absolute; left: 12px; bottom: 12px; z-index: 10; max-width: calc(100vw - 24px); }
 .pp-scene__dock .pp-panel { padding: 10px 12px; }
 .pp-scene__title { font-family: var(--font-pixel); font-size: 11px; margin-bottom: 6px; }
+.pp-scene__dock { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.pp-scene__toggle { padding: 2px 8px; opacity: 0.9; }
+.pp-scene__dock.is-collapsed .pp-panel { display: none; }
+/* Open, with a side gutter wide enough: a column beside the stage (scene.js reserveDock). */
+.pp-scene__dock.is-side { top: calc(var(--hud-h, 56px) + 8px); bottom: auto; max-width: 200px; }
+.pp-scene__dock.is-side .pp-row { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 4px; }
 .pp-scene__placeholder { position: absolute; right: 12px; bottom: 12px; z-index: 10; max-width: 300px; font-size: 14px; }
 
 /* -------------------------------------------------------------- overlays -- */

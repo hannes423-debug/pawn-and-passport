@@ -733,6 +733,7 @@ HINTS = {
 #                   cut from the art by leaf colour, joined to the seed (a trunk);
 #                   kept in tools/object-masks/<scene>-<id>.png (delete to re-cut)
 #   kind 'poly':    shape = [(x, y), ...] polygon, or a rect (x0, y0, x1, y1); the layer's pixels inside it
+#   kind 'fill':    shape = polygon the layer leaves out (half an umbrella), drawn whole
 #   kind 'add':     shape = rect: an object the layer leaves out (a lamp on open floor),
 #                   cut from the art inside the rect by its difference from the floor round it
 #   base: ground line (percent of the scene height); 99 = always in front
@@ -748,6 +749,15 @@ HINTS = {
 OBJECTS = {
     'nyc-ext': [
         ('street-tree-w', 'foliage', ((8.0, 79.4, 5.2, 6.4), (7.46, 82.8, 8.29, 86.6)), 87.0),
+        # the terrace umbrella tables: umbrella, table and chairs at the chairs' foot
+        # (column by column the umbrellas came out striped)
+        ('terrace-1', 'poly', [(79.5, 35.8), (88, 35.8), (88, 41), (83.4, 41), (83.4, 47), (79.5, 47)], 46.6),
+        ('terrace-1-umbrella', 'fill', [(80.6, 38.0), (83.9, 35.8), (87.4, 38.0), (86.6, 39.5), (81.3, 39.5)], 46.6),
+        ('terrace-2', 'poly', (83.4, 41, 91, 56.2), 55.8),
+        ('terrace-3', 'poly', (82.2, 58, 92, 70), 69.4),
+        # Club Principles: a sign on posts, not floor; the strip between it and the
+        # bench + knight statue behind is walkable, so it stands at its posts' foot
+        ('sign-principles', 'poly', (10.2, 44.8, 17.9, 57), 57),
     ],
     'lon-ext': [
         # flower beds, their flat grass borders and the side hedges: plan view
@@ -806,6 +816,9 @@ OBJECTS = {
         # the brass oil lamps on the forecourt (not in the layer)
         ('lamp-w', 'add', (40.3, 49.5, 42.7, 58.2), 57.9),
         ('lamp-e', 'add', (56.3, 49.5, 58.7, 58.2), 57.9),
+        # the upper palms stand in the beds; their crowns hang over the floor behind the beds
+        ('palm-nw', 'poly', [(15.5, 19.8), (26.2, 19.8), (26.2, 33.5), (21.2, 33.5), (21.2, 45), (19.4, 45), (19.4, 33.5), (15.5, 33.5)], 44.6),
+        ('palm-ne', 'poly', [(84.5, 19.8), (73.8, 19.8), (73.8, 33.5), (78.8, 33.5), (78.8, 45), (80.6, 45), (80.6, 33.5), (84.5, 33.5)], 44.6),
     ],
     'wen-ext': [
         # the lantern posts: the lantern hangs over the path, the post stands at its foot
@@ -849,6 +862,11 @@ OBJECTS = {
         ('carpet-entry', 'poly', (36, 76.5, 63.5, 83.5), None),
         ('text-fast-games', 'poly', (74.3, 52.8, 83.7, 56.8), None),
         ('trophy-shelf', 'poly', (70.3, 15.5, 88, 37.3), 37.2),
+    ],
+    'che-venue': [
+        # Thiruvalluvar: the walk mask runs a band behind the pedestal, under
+        # the statue's upper body; the whole statue stands on the pedestal's front
+        ('statue', 'poly', (4.8, 10.5, 14.4, 38.2), 48.4),
     ],
     'ist-int': [
         # the director's desk corner: armchairs and the coffee table stand on their front edge

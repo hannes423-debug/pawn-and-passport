@@ -81,6 +81,7 @@ OVER = 0.35                # character heights: a drawing may overlap the floor 
 SIDE_LEN = 1.0             # character heights: a blocked strip taller than this with floor beside it is a side wall
 SIDE_D = 0.2               # character heights: a side wall's row is in front of feet this far above it
 SIDE_R = 0.3               # character heights: how far beside a side-wall row the floor is looked for
+DOOR_W = 1.0               # character heights: a walkable passage no wider than this through a wall is a doorway (interiors)
 SIDE_W = 0.6               # character heights: a side wall is no wider than this
 ADD_DIFF = 90              # colour distance (sum over RGB) from the floor that counts as part of an added object
 STACK_GAP = 0.08           # character heights: floor this deep between two footprints in one column splits it (stacked things)
@@ -136,6 +137,10 @@ def load(scene):
     alpha = warp(np.asarray(layer)[..., 3].copy(), scene, (W, H), cv2.INTER_LINEAR)
     walk = Image.open(os.path.join(folder, f'{scene}-walkmask.png')).convert('L').resize((W, H), Image.NEAREST)
     walk = np.asarray(walk).copy()
+    # Walkable is "light", but a mask saved flat on black (vie-ext, 2026-09-29)
+    # paints its floor dark grey (~90) with nothing over 127: then split at half
+    # its brightest level. Every other mask keeps the 127 cut.
+    thr = 127 if walk.max() > 127 else int(walk.max()) // 2
     if scene not in MASK_IN_ART_FRAME:
         walk = warp(walk, scene, (W, H), cv2.INTER_NEAREST)
     opaque = alpha >= ALPHA
@@ -143,7 +148,9 @@ def load(scene):
     for oid, kind, shape, _line in OBJECTS.get(scene, []):
         if kind == 'add':
             opaque = opaque | add_mask(art, shape)
-    return art, opaque, walk > 127
+        elif kind == 'fill':
+            opaque = opaque | poly_mask(shape, W, H)
+    return art, opaque, walk > thr
 
 
 def add_mask(art, rect):
@@ -331,6 +338,8 @@ def depth(scene, opaque, walk, actor_h):
             rows = kinds[a:b + 1, x] == 4
             base[a:b + 1, x][rows] = max(max(lines), b / H * 100)
     side_walls(opaque, walk, base, kinds, actor_h)
+    if scene.endswith(('-int', '-up')):
+        doorways(opaque, walk, base, kinds, actor_h)
     unify(opaque, base, kinds, actor_h, standable(scene, opaque, walk, actor_h))
     for _oid, m, line in objects(scene, opaque):       # after unify: nothing may pull an object's line
         m = m & opaque
@@ -412,6 +421,8 @@ def objects(scene, opaque):
             m = add_mask(np.asarray(Image.open(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')).convert('RGB')), shape)
             x0, y0, x1, y1 = shape
             m |= poly_mask([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], W, H)
+        elif kind == 'fill':     # a shape the layer leaves out, drawn whole
+            m = poly_mask(shape, W, H)
         elif kind == 'poly':
             if len(shape) == 4 and not isinstance(shape[0], (tuple, list)):     # a rect (x0, y0, x1, y1)
                 x0, y0, x1, y1 = shape
@@ -421,6 +432,31 @@ def objects(scene, opaque):
             raise ValueError(f'{scene} {oid}: unknown object kind {kind}')
         out.append((oid, m, line))
     return out
+
+
+def doorways(opaque, walk, base, kinds, actor_h):
+    """Interiors are cutaway plans with the floor in the layer too. In a doorway
+    the floor strip's column runs on into the wall in front of it and took that
+    wall's ground line, so a player in the doorway was hidden by the FLOOR. A
+    layer pixel on walkable floor in a narrow passage (the walkable run through
+    it, across or down, no wider than DOOR_W character heights, blocked at both
+    ends) is floor: nothing in a doorway stands in front of anybody. Wide floor
+    is left alone (the floor behind a potted plant is walk-behind on purpose)."""
+    H, W = opaque.shape
+    lim = DOOR_W * actor_h * H
+    narrow = np.zeros((H, W), bool)
+    for axis in (0, 1):
+        m = walk if axis == 1 else walk.T
+        out = np.zeros(m.shape, bool)
+        for i in range(m.shape[0]):
+            d = np.diff(np.concatenate(([0], m[i].astype(np.int8), [0])))
+            for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+                if b - a <= lim and a > 0 and b < m.shape[1]:
+                    out[i, a:b] = True
+        narrow |= out if axis == 1 else out.T
+    cond = opaque & walk & narrow & (kinds == 1)
+    base[cond] = np.nan
+    kinds[cond] = 3
 
 
 def side_walls(opaque, walk, base, kinds, actor_h):
@@ -710,7 +746,7 @@ def sources(scene):
     """What a scene's data is made from: both guides, its hints and this file's tunables."""
     folder = os.path.join(ROOT, CITY_DIR[scene[:3]])
     md5 = lambda path: hashlib.md5(open(path, 'rb').read()).hexdigest()[:12]
-    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_HOLD, UNIFY_FAR, 'unify6', OVER, SIDE_LEN, SIDE_D, SIDE_R, SIDE_W, 'rows2', STACK_GAP, PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
+    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_HOLD, UNIFY_FAR, 'unify6', OVER, SIDE_LEN, SIDE_D, SIDE_R, SIDE_W, 'rows2', STACK_GAP, DOOR_W, PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
     cuts = [md5(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png')) for o in OBJECTS.get(scene, [])
             if o[1] == 'foliage' and os.path.exists(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png'))]
     tun += repr((OBJECTS.get(scene), cuts))
