@@ -720,18 +720,143 @@ HINTS = {
 }
 
 
-# CUT-OUT OBJECTS (2026-09-29): a freestanding object drawn OVER something further
-# back in the occlusion layer (a street tree whose canopy covers the club fence).
-# The layer is one flat alpha, so a column of it runs from the canopy down into
-# the fence and takes the FENCE's ground line: a character between the fence
-# and the tree was drawn over the canopy. build_occlusion.py cuts the object out
-# of the art (its foliage inside the ellipse, joined to the trunk rect) once, keeps
-# the cut in tools/object-masks/<scene>-<id>.png (committed: delete it to
-# re-cut), and gives every layer pixel in it this ground line.
+# OBJECTS (2026-09-29): regions of the occlusion layer whose depth is SET, not
+# read column by column. The layer is one flat alpha, so wherever two things
+# overlap on screen (a street tree over the fence, a plant behind a plant, a
+# back wall over a side wall) a column of it runs through both and takes ONE
+# ground line; and flat things (short grass, floor logos, stairs) read as
+# standing ones. build_occlusion.py applies these after everything else, in
+# list order (a later entry wins where two overlap: put the FRONT thing last).
 #
-# scene -> [(id, ellipse (cx, cy, rx, ry) percent, seed rect (x0, y0, x1, y1) percent, base percent)]
+# scene -> [(id, kind, shape, base), ...]
+#   kind 'foliage': shape = (ellipse (cx, cy, rx, ry), seed rect (x0, y0, x1, y1)),
+#                   cut from the art by leaf colour, joined to the seed (a trunk);
+#                   kept in tools/object-masks/<scene>-<id>.png (delete to re-cut)
+#   kind 'poly':    shape = [(x, y), ...] polygon, or a rect (x0, y0, x1, y1); the layer's pixels inside it
+#   kind 'add':     shape = rect: an object the layer leaves out (a lamp on open floor),
+#                   cut from the art inside the rect by its difference from the floor round it
+#   base: ground line (percent of the scene height); 99 = always in front
+#         (a sign hung over the player); None = FLOOR, never in front of anybody;
+#         'rows' = a wall or hedge running UP the picture, a handrail down a
+#         staircase, seen from above: each row of it is at its own depth
+#         (build_occlusion.SIDE_D below the row), covering only what stands
+#         behind that row;
+#         'bed' = a flower bed: the same over its blocked footprint (its flat
+#         grass border and low hedges), while anything rising above the
+#         footprint (a bush) stands at the footprint's back edge
+# All coordinates are percent of the scene.
 OBJECTS = {
     'nyc-ext': [
-        ('street-tree-w', (8.0, 79.4, 5.2, 6.4), (7.46, 82.8, 8.29, 86.6), 87.0),
+        ('street-tree-w', 'foliage', ((8.0, 79.4, 5.2, 6.4), (7.46, 82.8, 8.29, 86.6)), 87.0),
+    ],
+    'lon-ext': [
+        # flower beds, their flat grass borders and the side hedges: plan view
+        ('bed-top-w', 'poly', (12, 14.5, 33, 21.2), 'bed'),
+        ('bed-top-e', 'poly', (70.8, 14.5, 89.4, 21.2), 'bed'),
+        ('hedge-side-w', 'poly', (9.8, 14, 13.5, 40.5), 'rows'),
+        ('hedge-side-e', 'poly', (85.4, 14, 89.6, 47), 'rows'),
+        ('bed-nw', 'poly', (10.3, 39.8, 24.4, 49.6), 'bed'),
+        ('bed-n1', 'poly', (29.5, 41, 42, 50.3), 'bed'),
+        ('bed-n2', 'poly', (58, 41, 71, 50.3), 'bed'),
+        ('bed-sw', 'poly', (24.8, 51, 35, 67), 'bed'),
+        ('bed-w', 'poly', (37.4, 51, 42.2, 67), 'bed'),
+        ('bed-e', 'poly', (57.9, 51, 62.8, 67), 'bed'),
+        ('bed-se', 'poly', (65, 51, 75.1, 67), 'bed'),
+        ('bed-bench-sw', 'poly', (11.5, 65, 20.2, 72), 'bed'),
+        ('bed-bench-se', 'poly', (80, 65, 89.2, 72), 'bed'),
+        # top-right terrace: two potted cones and a planter behind the umbrella
+        # table; the umbrella overlaps the right cone, so they shared one line
+        ('planter-ne', 'poly', (77, 25.8, 81.2, 28.8), 28.7),
+        ('cone-ne-l', 'poly', (74.6, 23.2, 77.2, 30.9), 30.7),
+        ('cone-ne-r', 'poly', (80.8, 23.2, 83.4, 28.5), 30.7),
+        ('table-ne', 'poly', [(79, 27.6), (83.5, 27.6), (83.5, 31.5), (85.2, 31.5), (85.2, 39.6),
+                              (77.3, 39.6), (77.3, 31.5), (79, 31.5)], 38.8),
+    ],
+    'lon-venue': [
+        # the Covent Garden gateway hangs over the player: sign and inner pillars always in front
+        ('gate-sign', 'poly', (39.5, 1.8, 60.3, 12.5), 99),
+        ('gate-pillar-w', 'poly', (41, 12, 45.2, 33), 99),
+        ('gate-pillar-e', 'poly', (54.8, 12, 59, 33), 99),
+    ],
+    'vie-ext': [
+        # the gazebo stands on its platform's front edge; the statue inside on its pedestal
+        ('gazebo', 'poly', (10.5, 17.5, 25, 46.5), 45.5),
+        ('gazebo-statue', 'poly', (15.8, 31.5, 19.6, 42.3), 41.9),
+        # top right: the hedge wall behind the terrace is only as deep as its base;
+        # the umbrellas overlap it, so the tables are cut round it
+        ('hedge-ne', 'poly', (72, 28.5, 94, 33.5), 33.3),
+        ('tables-ne', 'poly', [(80, 32), (88.5, 32), (88.5, 35.5), (93.5, 35.5), (93.5, 46), (80, 46)], 45),
+    ],
+    'vie-int': [
+        # the grand staircase: the handrails run down beside the steps (each row
+        # where it is), the newel posts at the foot stand on their pedestals
+        ('balustrade-w', 'poly', (41.8, 12.5, 45.3, 30.4), 'rows'),
+        ('balustrade-e', 'poly', (54.7, 12.5, 58.2, 30.4), 'rows'),
+        ('newel-w', 'poly', (41.9, 22, 44.3, 34), 33.6),
+        ('newel-e', 'poly', (55.7, 22, 58.1, 34), 33.6),
+    ],
+    'ist-ext': [
+        # the olive trees' crowns overlap the cypresses and beds behind them
+        ('olive-w', 'poly', [(13.8, 38), (15, 34), (18, 32.8), (22, 33), (25, 35), (25.6, 39), (24, 43.5), (20.7, 44.5), (20.7, 48), (18.3, 48), (18.3, 44.5), (15, 44)], 48),
+        ('olive-e', 'poly', [(86.2, 38), (85, 34), (82, 32.8), (78, 33), (75, 35), (74.4, 39), (76, 43.5), (79.3, 44.5), (79.3, 48), (81.7, 48), (81.7, 44.5), (85, 44)], 48),
+    ],
+    'che-ext': [
+        # the club sign on the porch lintel: in front of anyone under the porch
+        ('porch-sign', 'poly', (42, 31.5, 58, 37.8), 47.5),
+        # the brass oil lamps on the forecourt (not in the layer)
+        ('lamp-w', 'add', (40.3, 49.5, 42.7, 58.2), 57.9),
+        ('lamp-e', 'add', (56.3, 49.5, 58.7, 58.2), 57.9),
+    ],
+    'wen-ext': [
+        # the lantern posts: the lantern hangs over the path, the post stands at its foot
+        ('lantern-nw', 'poly', (22.2, 38.3, 26.8, 53.8), 53.5),
+        ('lantern-ne', 'poly', (73.2, 38.3, 77.8, 53.8), 53.5),
+        ('lantern-w', 'poly', (29.8, 49, 34.2, 66), 65.6),
+        ('lantern-e', 'poly', (65.8, 49, 70.2, 66), 65.6),
+    ],
+    'mad-ext': [
+        # the low clipped hedges along the lanes are short grass: never in front
+        ('low-hedge-sw', 'poly', (13, 72.6, 40, 76.6), None),
+        ('low-hedge-se', 'poly', (60, 72.6, 87, 76.6), None),
+        ('low-hedge-nw', 'poly', (21.5, 36.4, 30.4, 39.6), None),
+        ('low-hedge-ne', 'poly', (69.6, 36.4, 78.5, 39.6), None),
+        # the banner pillars and the urn pedestals: one line each, at their foot
+        ('pillar-w', 'poly', (32.4, 57.6, 37.4, 75.6), 75.2),
+        ('pillar-e', 'poly', (62.6, 57.6, 67.6, 75.6), 75.2),
+        ('pedestal-w', 'poly', (32.6, 36.5, 36.6, 59), 58.6),
+        ('pedestal-e', 'poly', (63.4, 36.5, 67.4, 59), 58.6),
+        # the cypresses standing in the lower lanes overlap the garden behind them
+        ('cypress-lane-w', 'poly', (28, 56.5, 31.8, 75.5), 75.2),
+        ('cypress-lane-e', 'poly', (68.2, 56.5, 72, 75.5), 75.2),
+    ],
+    'mad-int': [
+        # the entrance steps at the very bottom: floor
+        ('steps-entry', 'poly', (45.2, 80.5, 54.8, 97), None),
+    ],
+    'wen-int': [
+        # stairs and floor lettering never hide anybody
+        ('stairs-top', 'poly', (44.6, 1, 55.4, 31), None),
+        ('stairs-entry', 'poly', (44.8, 82.5, 55.2, 96), None),
+        ('text-tournament-hall', 'poly', (72.5, 31.3, 93.5, 35.7), None),
+        ('carpet-emblem', 'poly', (42, 44.8, 58, 66.6), None),
+        ('carpet-entry', 'poly', (45.2, 74.5, 54.8, 82.5), None),
+        ('lantern-nw', 'add', (3.6, 23, 5.8, 34.6), 34.2),
+    ],
+    'wen-up': [
+        ('stairs-down', 'poly', (43.2, 12.5, 55, 37.4), None),
+        ('text-stairs-down', 'poly', (42.3, 37.6, 56.7, 41.4), None),
+        ('carpet-emblem', 'poly', (44, 41.4, 55, 72.5), None),
+        ('carpet-entry', 'poly', (36, 76.5, 63.5, 83.5), None),
+        ('text-fast-games', 'poly', (74.3, 52.8, 83.7, 56.8), None),
+        ('trophy-shelf', 'poly', (70.3, 15.5, 88, 37.3), 37.2),
+    ],
+    'ist-int': [
+        # the director's desk corner: armchairs and the coffee table stand on their front edge
+        ('office-set', 'poly', (12.5, 34, 26.5, 40.2), 38.6),
+    ],
+    'ist-up': [
+        ('lounge-game-table', 'poly', (15.3, 50, 24.8, 58.6), 58),
+        # the sign hangs over the stair head: always in front
+        ('sign-stairs-down', 'poly', (42.8, 16.8, 57.4, 20.6), 99),
     ],
 }

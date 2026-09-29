@@ -77,6 +77,13 @@ LINTEL = 0.9               # a hanging run with no hint: its line is this many c
 UNIFY_R = 0.5              # character heights: how far along an object its front line carries (unify)
 UNIFY_HOLD = 0.5           # character heights: a hinted canopy/sign trusts a holder this close to its hint (unify)
 UNIFY_FAR = 1.5            # ...or this far, when no foot can stand between the two lines (unify)
+OVER = 0.35                # character heights: a drawing may overlap the floor in front of its walk-mask edge by this much
+SIDE_LEN = 1.0             # character heights: a blocked strip taller than this with floor beside it is a side wall
+SIDE_D = 0.2               # character heights: a side wall's row is in front of feet this far above it
+SIDE_R = 0.3               # character heights: how far beside a side-wall row the floor is looked for
+SIDE_W = 0.6               # character heights: a side wall is no wider than this
+ADD_DIFF = 90              # colour distance (sum over RGB) from the floor that counts as part of an added object
+STACK_GAP = 0.08           # character heights: floor this deep between two footprints in one column splits it (stacked things)
 PAD = 4                    # atlas padding (px): a scaled slice must not sample its neighbour
 ATLAS_W = 2048
 
@@ -131,7 +138,34 @@ def load(scene):
     walk = np.asarray(walk).copy()
     if scene not in MASK_IN_ART_FRAME:
         walk = warp(walk, scene, (W, H), cv2.INTER_NEAREST)
-    return np.asarray(art), alpha >= ALPHA, walk > 127
+    opaque = alpha >= ALPHA
+    art = np.asarray(art)
+    for oid, kind, shape, _line in OBJECTS.get(scene, []):
+        if kind == 'add':
+            opaque = opaque | add_mask(art, shape)
+    return art, opaque, walk > 127
+
+
+def add_mask(art, rect):
+    """An object the artist's layer leaves out (a lamp on open floor): the
+    pixels inside rect (percent) that differ from the floor round it (the
+    median colour of a ring just outside the rect) by more than ADD_DIFF."""
+    H, W = art.shape[:2]
+    x0, y0, x1, y1 = (int(rect[0] / 100 * W), int(rect[1] / 100 * H), int(round(rect[2] / 100 * W)), int(round(rect[3] / 100 * H)))
+    ring = np.zeros((H, W), bool)
+    ring[max(0, y0 - 4):y1 + 4, max(0, x0 - 4):x1 + 4] = True
+    ring[y0:y1, x0:x1] = False
+    floor = np.median(art[ring].reshape(-1, 3).astype(np.float32), axis=0)
+    diff = np.abs(art[y0:y1, x0:x1].astype(np.float32) - floor).sum(axis=2)
+    cut = ndimage.binary_opening(diff > ADD_DIFF, iterations=1)
+    lab, n = ndimage.label(cut)
+    if n:
+        sz = np.bincount(lab.ravel()); sz[0] = 0
+        cut = lab == int(np.argmax(sz))          # the object, not specks of the floor pattern
+        cut = ndimage.binary_fill_holes(cut)
+    out = np.zeros((H, W), bool)
+    out[y0:y1, x0:x1] = cut
+    return out
 
 
 def plant_walk(scene, opaque, walk):
@@ -205,6 +239,8 @@ def depth(scene, opaque, walk, actor_h):
     hints = hint_map(scene, W, H)
     base = np.full((H, W), np.nan, np.float32)
     lintel = LINTEL * actor_h * H
+    over = OVER * actor_h * H
+    gap = max(3, int(STACK_GAP * actor_h * H))
     kinds = np.zeros((H, W), np.uint8)       # 1 grounded, 2 hint, 3 decal, 4 lintel, 5 cut-out object (for the preview)
     hung = []
     for x in range(W):
@@ -216,9 +252,37 @@ def depth(scene, opaque, walk, actor_h):
         ends = np.where(d == -1)[0] - 1
         for a, b in zip(starts, ends):
             band = walk[max(a, b - FOOT + 1):b + 1, x]
-            if band.mean() < 0.5:
-                base[a:b + 1, x] = b / H * 100             # stands on the floor here
+            # where the walk mask says this thing meets the floor: the last
+            # blocked row of the run, when the drawing only overlaps the floor
+            # in front of it by a little (a wall's baseboard, a pot's shadow)
+            blocked = np.where(~walk[a:b + 1, x])[0]
+            meet = a + int(blocked[-1]) + 1 if blocked.size and b - (a + blocked[-1]) <= over else None
+            if band.mean() < 0.5 or (meet is not None and np.isnan(hints[b, x]) and blocked.size >= 0.5 * (meet - a)):
+                base[a:b + 1, x] = min(b, meet if meet is not None else b) / H * 100   # stands on the floor here
                 kinds[a:b + 1, x] = 1
+                # Two things stacked in one column of the drawing (a plant in
+                # front of another plant, a chair before a sideboard): the walk
+                # mask has two footprints in the run with floor between them.
+                # Each part meets the floor at the end of ITS footprint (the
+                # first one at or below it), not at the run's lowest pixel.
+                wb = ~walk[a:b + 1, x]
+                dd = np.diff(np.concatenate(([0], wb.astype(np.int8), [0])))
+                s0, s1 = np.where(dd == 1)[0], np.where(dd == -1)[0]
+                if len(s0) >= 2 and np.max(s0[1:] - s1[:-1]) >= gap:
+                    keep = np.concatenate(([True], (s0[1:] - s1[:-1]) >= gap))
+                    ends = []                  # merge sections split by a gap too small to stand in
+                    for k in range(len(s0)):
+                        if keep[k] or not ends:
+                            ends.append(s1[k])
+                        else:
+                            ends[-1] = s1[k]
+                    ends = np.array(ends)
+                    ys = np.arange(b - a + 1)
+                    j = np.searchsorted(ends, ys, side='left')
+                    j = np.minimum(j, len(ends) - 1)
+                    seg = a + ends[j]
+                    cur = base[a:b + 1, x]
+                    base[a:b + 1, x] = np.minimum(cur, seg / H * 100)
                 continue
             h = hints[a:b + 1, x]
             has = ~np.isnan(h)
@@ -266,11 +330,33 @@ def depth(scene, opaque, walk, actor_h):
         if lines:
             rows = kinds[a:b + 1, x] == 4
             base[a:b + 1, x][rows] = max(max(lines), b / H * 100)
+    side_walls(opaque, walk, base, kinds, actor_h)
     unify(opaque, base, kinds, actor_h, standable(scene, opaque, walk, actor_h))
-    for _oid, m, line in objects(scene, opaque):       # after unify: nothing may pull a cut-out's line
+    for _oid, m, line in objects(scene, opaque):       # after unify: nothing may pull an object's line
         m = m & opaque
-        base[m] = line
-        kinds[m] = 5
+        if line is None:                                 # floor: never in front of anybody
+            base[m] = np.nan
+            kinds[m] = 3
+        elif line in ('rows', 'bed'):
+            # seen from above: each row of it is where it is ('rows': a side
+            # wall or hedge, a handrail down a staircase). 'bed': a flower bed,
+            # whose rows are those of its blocked footprint; what rises above the
+            # footprint (a bush over the floor behind the bed) stands at the
+            # footprint's back edge, in front of anyone behind it
+            ys, xs = np.nonzero(m)
+            row = ys
+            if line == 'bed':
+                top = np.full((H, W), H, np.int32)      # first blocked row at or below each px
+                nxt = np.full(W, H, np.int32)
+                for y in range(H - 1, -1, -1):
+                    nxt = np.where(walk[y], nxt, y)
+                    top[y] = nxt
+                row = np.maximum(ys, np.minimum(top[ys, xs], H - 1))
+            base[ys, xs] = np.minimum(99.0, (row + SIDE_D * actor_h * H) / H * 100)
+            kinds[m] = 5
+        else:
+            base[m] = line
+            kinds[m] = 5
     return base, kinds
 
 
@@ -309,9 +395,82 @@ def object_mask(scene, oid, ell, seed, opaque):
     return out
 
 
+def poly_mask(pts, W, H):
+    img = Image.new('L', (W, H), 0)
+    ImageDraw.Draw(img).polygon([(x / 100 * W, y / 100 * H) for x, y in pts], fill=255)
+    return np.asarray(img) > 127
+
+
 def objects(scene, opaque):
-    """[(id, mask, ground line percent)] for the scene's cut-out OBJECTS."""
-    return [(oid, object_mask(scene, oid, ell, seed, opaque), line) for oid, ell, seed, line in OBJECTS.get(scene, [])]
+    """[(id, mask, ground line percent | None)] for the scene's OBJECTS (depth_hints.py)."""
+    H, W = opaque.shape
+    out = []
+    for oid, kind, shape, line in OBJECTS.get(scene, []):
+        if kind == 'foliage':
+            m = object_mask(scene, oid, shape[0], shape[1], opaque)
+        elif kind == 'add':      # the cut from the art, and whatever of the layer is in the rect
+            m = add_mask(np.asarray(Image.open(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')).convert('RGB')), shape)
+            x0, y0, x1, y1 = shape
+            m |= poly_mask([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], W, H)
+        elif kind == 'poly':
+            if len(shape) == 4 and not isinstance(shape[0], (tuple, list)):     # a rect (x0, y0, x1, y1)
+                x0, y0, x1, y1 = shape
+                shape = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+            m = poly_mask(shape, W, H)
+        else:
+            raise ValueError(f'{scene} {oid}: unknown object kind {kind}')
+        out.append((oid, m, line))
+    return out
+
+
+def side_walls(opaque, walk, base, kinds, actor_h):
+    """A wall that runs UP the picture (between two rooms, a pillar at a room's
+    corner) is drawn as a tall blocked strip with floor beside it. Its column
+    reaches down to its far end, so the whole strip took the ground line of its
+    bottom end and cut through anyone standing beside it. Each row of it is
+    where it is: line = the row + SIDE_D character heights, where the strip is
+    taller than SIDE_LEN and walkable floor lies within SIDE_R in that row."""
+    H, W = opaque.shape
+    A = actor_h * H
+    blocked = ~walk
+    seg = np.zeros((H, W), np.int32)                 # length of the blocked vertical run each px is in
+    for x in range(W):
+        col = blocked[:, x]
+        d = np.diff(np.concatenate(([0], col.astype(np.int8), [0])))
+        for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+            seg[a:b, x] = b - a
+    r = max(1, int(SIDE_R * A))
+    beside = ndimage.maximum_filter1d(walk.astype(np.uint8), 2 * r + 1, axis=1) > 0
+    # only a NARROW strip is a wall seen edge-on (a wall between rooms, a
+    # pillar); a wide blocked block (a garden, a bed) is a thing seen from
+    # above, and each of its rows being "where it is" would let a player stand
+    # in front of its back row: the cypress at the top of a garden
+    wid = np.zeros((H, W), np.int32)                 # width of the blocked horizontal run each px is in
+    for y in range(H):
+        row = blocked[y]
+        d = np.diff(np.concatenate(([0], row.astype(np.int8), [0])))
+        for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+            wid[y, a:b] = b - a
+    cond = opaque & (kinds == 1) & blocked & (seg > SIDE_LEN * A) & beside & (wid <= SIDE_W * A)
+    ys, xs = np.nonzero(cond)
+    line = np.minimum(base[ys, xs], (ys + SIDE_D * A) / H * 100)
+    base[ys, xs] = line
+    # A wall stands on ITS OWN blocked section. Where the walk mask runs a
+    # passage through a drawn wall (into a hall, under an arch), the column of
+    # the drawing carries on through the passage into the wall in front, and
+    # the wall BEHIND the passage took the front wall's ground line: a player
+    # walking through was hidden by the wall further back. A pixel on a
+    # blocked section taller than a character meets the floor where that
+    # section ends; only what is drawn over the passage hangs in front.
+    bot = np.zeros((H, W), np.int32)                 # last row of the blocked vertical run each px is in
+    for x in range(W):
+        col = blocked[:, x]
+        d = np.diff(np.concatenate(([0], col.astype(np.int8), [0])))
+        for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+            bot[a:b, x] = b - 1
+    wall = opaque & (kinds == 1) & blocked & (seg > SIDE_LEN * A)
+    ys, xs = np.nonzero(wall)
+    base[ys, xs] = np.minimum(base[ys, xs], (bot[ys, xs] + 1) / H * 100)
 
 
 def standable(scene, opaque, walk, actor_h):
@@ -551,9 +710,9 @@ def sources(scene):
     """What a scene's data is made from: both guides, its hints and this file's tunables."""
     folder = os.path.join(ROOT, CITY_DIR[scene[:3]])
     md5 = lambda path: hashlib.md5(open(path, 'rb').read()).hexdigest()[:12]
-    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_HOLD, UNIFY_FAR, 'unify6', PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
+    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_HOLD, UNIFY_FAR, 'unify6', OVER, SIDE_LEN, SIDE_D, SIDE_R, SIDE_W, 'rows2', STACK_GAP, PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
     cuts = [md5(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png')) for o in OBJECTS.get(scene, [])
-            if os.path.exists(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png'))]
+            if o[1] == 'foliage' and os.path.exists(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png'))]
     tun += repr((OBJECTS.get(scene), cuts))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
             'occlusion': md5(os.path.join(folder, f'{scene}-occlusion.png')),
@@ -594,7 +753,12 @@ def preview(scene, data, debug, actor_h):
     H, W = opaque.shape
     ah = int(actor_h * H)
     aw = max(6, int(ah * 0.42))
-    er = ndimage.binary_erosion(walk, structure=np.ones((max(1, ah // 12), max(1, aw // 2))))
+    # feet only where the GAME lets a player stand (freeWalk.js walkerFor), or
+    # the preview shows bodies in places nobody can reach
+    h = actor_h * 100
+    hw = max(1, int(max(1.0, h * 0.11) / 100 * H))
+    hd = max(1, int(max(0.6, h * 0.04) / 100 * H))
+    er = ndimage.binary_erosion(walk, structure=np.ones((2 * hd + 1, 2 * hw + 1)))
     canvas = Image.fromarray(art).convert('RGBA')
     # tint by kind: hint = blue, lintel = orange, decal = green
     tint = np.zeros((H, W, 4), np.uint8)
@@ -604,8 +768,16 @@ def preview(scene, data, debug, actor_h):
     tint[kinds == 5] = (170, 60, 255, 70)      # cut-out object
     canvas.alpha_composite(Image.fromarray(tint, 'RGBA'))
     sy, sx = max(24, int(ah * 0.8)), max(30, aw * 3)
-    feet = [(x + (sx // 2 if (y // sy) % 2 else 0), y) for y in range(sy // 2, H, sy) for x in range(sx // 2, W - sx // 2, sx)]
-    feet = [(x, y) for x, y in feet if er[y, x]]
+    # PREVIEW_SHIFT="fx,fy": move the whole grid by that share of a cell (fresh spots each review)
+    fx, fy = (float(v) for v in os.environ.get('PREVIEW_SHIFT', '0,0').split(','))
+    ox, oy = int(fx * sx), int(fy * sy)
+    feet = [(x + ox + (sx // 2 if (y // sy) % 2 else 0), y + oy) for y in range(sy // 2, H - oy, sy)
+            for x in range(sx // 2, W - sx // 2 - ox, sx)]
+    feet = [(x, y) for x, y in feet if x < W and y < H]
+    if os.environ.get('PREVIEW_FEET'):      # "x,y;x,y" percent: bodies exactly there (probing one spot)
+        feet = [(int(float(a) / 100 * W), int(float(b) / 100 * H))
+                for a, b in (q.split(',') for q in os.environ['PREVIEW_FEET'].split(';'))]
+    feet = [(x, y) for x, y in feet if er[y, x]] if not os.environ.get('PREVIEW_FEET') else feet
     layers = [(p[0], 'slice', p) for p in data['slices']] + [(y / H * 100, 'actor', (x, y)) for x, y in feet]
     layers.sort(key=lambda t: (round(t[0] * 10), 0 if t[1] == 'slice' else 1))
     for _z, kind, item in layers:
