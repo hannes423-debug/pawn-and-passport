@@ -27,7 +27,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   reducedMotion: false,
   textSpeed: 'normal',           // slow | normal | fast
   touchControls: 'auto',         // auto | on | off: joystick, phone layout, tap wording
-  actionsPanel: true             // the scene's actions panel (H or its Hide button)
+  actionsPanel: true,            // the scene's actions panel (H or its Hide button)
+  padLayout: 'auto'              // auto | xbox | playstation | nintendo: which pad button accepts (js/ui/controls.js)
 });
 
 function memoryStorage() {

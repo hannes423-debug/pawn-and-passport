@@ -46,10 +46,15 @@ export const frames = () => new Promise((resolve) => requestAnimationFrame(() =>
  * `icon` is normally a pixelIcon() element (js/ui/icons.js). A string still
  * works and is drawn as text, which is what the keyboard hints and the plain
  * arrows in the lesson player use - those are typography, not artwork.
+ *
+ * `back: true` marks the button that leaves the screen or panel: Esc and the
+ * pad's B press it (js/ui/controls.js). `autofocus: true` is where keys and
+ * pads start when nothing has focus yet.
  */
-export function button(label, onClick, { cls = '', disabled = false, title = null, icon = null } = {}) {
+export function button(label, onClick, { cls = '', disabled = false, title = null, icon = null, back = false, autofocus = false } = {}) {
   return h(`button.pp-btn${cls ? `.${cls.split(' ').join('.')}` : ''}`, {
-    type: 'button', disabled, title, onclick: (e) => { if (!disabled) onClick?.(e); }
+    type: 'button', disabled, title, onclick: (e) => { if (!disabled) onClick?.(e); },
+    'data-back': back ? '' : null, 'data-autofocus': autofocus ? '' : null
   }, icon ? h('span.pp-btn__icon', { 'aria-hidden': 'true' }, icon instanceof Node ? icon : String(icon)) : null,
     h('span', { text: label }));
 }

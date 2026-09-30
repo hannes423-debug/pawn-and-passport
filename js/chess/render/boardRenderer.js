@@ -17,6 +17,7 @@
  *   clearHighlights()
  *   setOrientation(colour)
  *   setInteractive(enabled)
+ *   setCursor(square, opts)   the keyboard/gamepad cursor
  *   onSquareSelected(fn)
  *   destroy()
  */
@@ -84,9 +85,22 @@ export class ChessBoardRenderer {
   flip() { this.setOrientation(this.orientation === 'w' ? 'b' : 'w'); return this.orientation; }
   setInteractive(enabled) { this.interactive = !!enabled; }
 
+  /**
+   * The keyboard/gamepad cursor: where it is, and whether it carries a piece
+   * (the renderer shows it only while keys or a pad are in use).
+   */
+  setCursor(/* square, { carrying } */) {}
+
   /** @param {(square:string, event:Object) => void} fn */
   onSquareSelected(fn) { this._selectListeners.add(fn); return () => this._selectListeners.delete(fn); }
   _emitSelect(square, event = {}) { for (const fn of [...this._selectListeners]) fn(square, event); }
+
+  /** A click on a square from something that is not a pointer (the cursor): press, then release. */
+  pressSquare(square) {
+    if (!this.interactive) return;
+    this._emitSelect(square, { phase: 'down', source: 'cursor' });
+    this._emitSelect(square, { phase: 'up', from: square, source: 'cursor' });
+  }
 
   destroy() { this._selectListeners.clear(); }
 }

@@ -219,8 +219,15 @@ export function classifyMove({
      sound exchange sacrifice and every fork where the material comes straight
      back, which is to say several times a game. The real test is a list of
      ways a candidate FAILS, and it needs the position after the move and the
-     opponent's replies to run. */
-  if (isEngineMove || winProbLoss <= band.best) {
+     opponent's replies to run.
+
+     Pawn & Passport: a sacrifice is looked at up to the EXCELLENT band, not
+     only when it is the engine's own move. js/core/grading.js makes a
+     brilliant move that is also the engine's (or within 10 cp of it) EPIC,
+     and only a near-best one stays BRILLIANT - so with the old gate at
+     band.best every brilliant move became Epic and the Brilliant grade the
+     design promises ("a sound sacrifice") could never be shown. */
+  if (isEngineMove || winProbLoss <= band.excellent) {
     brilliance = evaluateBrilliance({
       fenBefore, fenAfter: fenAfterMove(fenBefore, move), move,
       playedScore, beforeScore: bestScore,

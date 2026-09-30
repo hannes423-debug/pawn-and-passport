@@ -10,6 +10,8 @@ import { h, clear, wait } from './dom.js';
 import { sfx, unlockAudio, configureAudio } from './audio.js';
 import * as music from './music.js';
 import { configureTouch, installTouchDetection, tapWord, canFullscreen, toggleFullscreen } from './touch.js';
+import { pushHandler, onDevice, onPadConnected, setPadLayout } from './controls.js';
+import { prompt } from './prompts.js';
 import { portraitUrl, PLAYER_LOOKS, setPlayerAvatar } from './sprites.js';
 import { pixelIcon } from './icons.js';
 import * as Save from '../core/save.js';
@@ -94,6 +96,7 @@ export function createApp(root, screens) {
       music.configure(app.settings);
       document.documentElement.dataset.reducedMotion = String(!!app.settings.reducedMotion);
       configureTouch(app.settings);
+      setPadLayout(app.settings.padLayout || 'auto');
     },
 
     toast(text, { ms = 2600 } = {}) {
@@ -102,17 +105,38 @@ export function createApp(root, screens) {
       setTimeout(() => el.remove(), ms);
     },
 
-    /** A modal. Resolves with whatever `close(value)` is called with. */
+    /**
+     * A modal. Resolves with whatever `close(value)` is called with.
+     *
+     * Keys and pads (js/ui/controls.js) move between its buttons and press
+     * them; Back closes a dismissable one, and otherwise presses the button
+     * marked [data-back], if it has one. The layer's handler goes on BEFORE
+     * build() runs, so a panel that adds its own (the opening study steps
+     * through moves with left and right) is asked first.
+     */
     overlay(build, { dismissable = true } = {}) {
       return new Promise((resolve) => {
         const layer = h('div.pp-overlay');
-        const close = (value) => { layer.remove(); document.removeEventListener('keydown', onKey); resolve(value); };
-        const onKey = (e) => { if (e.key === 'Escape' && dismissable) close(null); };
+        let done = false;
+        const release = pushHandler({
+          name: 'overlay', modal: true, scope: () => layer,
+          onAction: (a) => {
+            if (a.type !== 'cancel' || !dismissable) return false;
+            close(null);
+            return true;
+          }
+        });
+        const close = (value) => {
+          if (done) return;
+          done = true;
+          layer.remove();
+          release();
+          resolve(value);
+        };
         layer.addEventListener('click', (e) => { if (e.target === layer && dismissable) close(null); });
         layer.append(build(close));
         document.body.append(layer);
-        document.addEventListener('keydown', onKey);
-        layer.querySelector('button:not([disabled])')?.focus({ preventScroll: true });
+        layer.querySelector('[data-autofocus]:not([disabled]), button:not([disabled])')?.focus({ preventScroll: true });
       });
     },
 
@@ -125,7 +149,9 @@ export function createApp(root, screens) {
         let index = 0;
         let typing = null;
         const text = h('div.pp-dialogue__text');
-        const next = h('div.pp-dialogue__next', { text: `${tapWord()} to continue` });
+        const next = h('div.pp-dialogue__next', null,
+          h('span.pp-when-pointer', { text: `${tapWord()} to continue` }),
+          h('span.pp-when-keys', null, prompt('accept'), ' Continue'));
         const actionRow = h('div.pp-dialogue__actions');
         const img = h('img', { alt: '', src: portrait || (look ? portraitUrl(look) : portraitUrl(PLAYER_LOOKS.boy)) });
         const box = h('div.pp-dialogue', { role: 'dialog', 'aria-live': 'polite' },
@@ -133,10 +159,13 @@ export function createApp(root, screens) {
             h('div', null,
               h('div.pp-dialogue__name', null, name, role ? h('span.pp-dialogue__role', { text: role }) : null),
               text, next, actionRow)));
+        let done = false;
         const finish = (value) => {
+          if (done) return;
+          done = true;
           clearInterval(typing);
           box.remove();
-          document.removeEventListener('keydown', onKey);
+          release();
           resolve(value);
         };
         const show = () => {
@@ -177,12 +206,21 @@ export function createApp(root, screens) {
           index += 1;
           show();
         };
-        const onKey = (e) => {
-          if (e.key === 'Enter' || e.key === ' ') { if (!actionRow.children.length) { e.preventDefault(); advance(); } }
-          if (e.key === 'Escape') finish(null);
-        };
+        /* Accept (E, Space, Enter, the pad's A) advances; with choices on
+           the last line it presses the focused one. Back skips the rest. */
+        const release = pushHandler({
+          name: 'dialogue', modal: true, scope: () => box,
+          onAction: (a) => {
+            if (a.type === 'accept') {
+              if (actionRow.children.length) return false;
+              advance();
+              return true;
+            }
+            if (a.type === 'cancel') { finish(null); return true; }
+            return false;
+          }
+        });
         box.addEventListener('click', advance);
-        document.addEventListener('keydown', onKey);
         document.body.append(box);
         show();
       });
@@ -290,7 +328,7 @@ export function createApp(root, screens) {
     coachEl = h(`div.pp-coach${host ? '.pp-coach--inline' : ''}`, { role: 'note', dataset: { key: tip.key, shownAt: String(Date.now()) } },
       tip.title ? h('b.pp-coach__title', { text: tip.title }) : null,
       h('div', { text: tip.text }),
-      h('button.pp-btn.pp-btn--small', { type: 'button', text: 'Got it', onclick: (e) => { e.stopPropagation(); sfx.click(); close(); } }));
+      h('button.pp-btn.pp-btn--small', { type: 'button', onclick: (e) => { e.stopPropagation(); sfx.click(); close(); } }, prompt('cancel'), h('span', { text: 'Got it' })));
     if (host) host.prepend(coachEl); else document.body.append(coachEl);
   }
 
@@ -330,6 +368,14 @@ export function createApp(root, screens) {
   const unlock = () => { unlockAudio(); configureAudio(app.settings); music.configure(app.settings); music.unlock(); };
   window.addEventListener('pointerdown', unlock, { once: false, passive: true });
   window.addEventListener('keydown', unlock, { once: false });
+  /* A pad press is not a "user gesture" to most browsers, so this may be
+     refused until a key or a click; trying costs nothing. */
+  onDevice((device) => { if (device === 'gamepad') unlock(); });
+  onPadConnected((pad, brand) => {
+    const layout = { xbox: 'Xbox', nintendo: 'Nintendo', playstation: 'PlayStation' }[brand];
+    const [ok, back] = { xbox: ['A', 'B'], nintendo: ['A', 'B'], playstation: ['Cross', 'Circle'] }[brand];
+    app.toast(`Controller connected (${layout} layout): ${ok} to accept, ${back} to go back. Settings > Controls shows every button.`, { ms: 5200 });
+  });
   installTouchDetection();
   app.applySettings();
   return app;

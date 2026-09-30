@@ -424,7 +424,7 @@ XP for `counts.GREAT`, which the classifier never produces: a dead term there.)
 - A real music track; more SFX variation.
 - Hand-drawn portraits for the six Star Players.
 - Show the actual won trophies inside each upstairs Trophy Hall scene.
-- Gamepad input.
+- ~~Gamepad input.~~ Done in v1.1.18: `js/ui/controls.js` (keyboard and pads, one set of actions), see README "Keyboard and gamepad".
 - Strip `explain/` out of `GameReview.annotate` to save CPU.
 
 ## 22. Bugs and regressions found while building
@@ -445,8 +445,9 @@ Nothing player-visible. Code that is inert or unused:
 - `BotProfile` still defines Master/Grandmaster/Engine presets and
   `analysisLevels` the stronger levels; nothing selects them (Elo is capped at 1500).
 - The Chessnut SVG piece set ships as an unused fallback.
-- `inputController` keyboard play (arrow keys + Enter on a focused board) is
-  kept on purpose.
+- `inputController`'s own keyboard handler is gone (v1.1.18): the board
+  cursor is driven by `js/ui/controls.js` through `js/ui/board.js`, for keys
+  and pads alike.
 
 ## 24. Characters
 

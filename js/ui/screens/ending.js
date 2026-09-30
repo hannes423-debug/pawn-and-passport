@@ -54,7 +54,7 @@ export function endingScreen(app, params) {
 
   // The buttons sit outside the rolling text so they are always on screen.
   const bar = h('div.pp-row.pp-ending__bar', null,
-    button(creditsOnly ? 'Back' : 'Back to the title', () => app.go('title'), { cls: 'pp-btn--gold' }),
+    button(creditsOnly ? 'Back' : 'Back to the title', () => app.go('title'), { cls: 'pp-btn--gold', back: true }),
     !creditsOnly ? button(hasAllPostcards(career) ? 'Read Beyond the Tour' : 'Open the journal', () => app.go('journal', { tab: hasAllPostcards(career) ? 'beyond' : 'passport', back: { screen: 'ending', params: {} } })) : null,
     !creditsOnly ? button('Back to the world', () => app.go('map'), { cls: 'pp-btn--small' }) : null);
 

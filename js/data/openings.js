@@ -135,30 +135,30 @@ export const OPENINGS = Object.freeze([
       "Black fianchettoes the queen's bishop; White keeps the setup and castles.",
       'The Jobava: the knight to c3 keeps the c-pawn free and prepares Nb5.',
       'White jumps to b5 at once, eyeing c7.',
-      'Against ...g6 the Jobava goes h4 and aims for an attack on the fianchetto.',
-      'Black grabs the b2 pawn early. White gets fast development and play against the queen.'
+      'Against ...g6 the Jobava goes h4 at the fianchetto. Black stops the pawn with ...h5, so White takes e5 with the knight and plays Qd2 and f3, with g4 to come.',
+      'Black grabs the b2 pawn early. White chases the queen with a rook, and if nobody deviates the game is drawn by repetition.'
     ],
     lines: [
       ['d4', 'd5', 'Nf3', 'Nf6', 'Bf4', 'c5', 'e3', 'Nc6', 'Nbd2', 'e6', 'c3', 'Bd6', 'Bg3', 'O-O', 'Bd3', 'b6', 'Ne5', 'Bb7', 'f4'],
-      ['d4', 'd5', 'Bf4', 'Nf6', 'e3', 'c5', 'c3', 'Nc6', 'Nd2', 'Qb6', 'Qb3', 'c4', 'Qc2', 'Bf5', 'Qc1', 'e6', 'Ngf3', 'Be7'],
+      ['d4', 'd5', 'Bf4', 'Nf6', 'e3', 'c5', 'c3', 'Nc6', 'Nd2', 'Qb6', 'Qb3', 'c4', 'Qc2', 'g6', 'e4', 'Nxe4', 'Nxe4', 'dxe4', 'Bxc4', 'Bf5', 'Be3', 'Qc7', 'Ne2'],
       ['d4', 'd5', 'Nf3', 'Nf6', 'Bf4', 'e6', 'e3', 'Bd6', 'Ne5', 'O-O', 'Nd2', 'c5', 'c3', 'Nc6', 'Bd3'],
       ['d4', 'Nf6', 'Bf4', 'g6', 'e3', 'Bg7', 'Nf3', 'O-O', 'Be2', 'd6', 'h3', 'Nbd7', 'O-O', 'c5', 'c3', 'b6', 'a4', 'Bb7'],
       ['d4', 'Nf6', 'Nf3', 'e6', 'Bf4', 'b6', 'e3', 'Bb7', 'h3', 'Be7', 'Bd3', 'O-O', 'O-O', 'c5', 'c3', 'd6'],
       ['d4', 'Nf6', 'Nc3', 'd5', 'Bf4', 'c5', 'e3', 'cxd4', 'exd4', 'a6', 'Nf3', 'Nc6', 'Bd3', 'Bg4', 'O-O', 'e6'],
       ['d4', 'Nf6', 'Nc3', 'd5', 'Bf4', 'e6', 'Nb5', 'Na6', 'e3', 'c6', 'Nc3', 'Nc7', 'Nf3', 'Bd6'],
-      ['d4', 'Nf6', 'Bf4', 'g6', 'Nc3', 'd5', 'e3', 'Bg7', 'h4', 'c5', 'h5', 'Nc6'],
-      ['d4', 'Nf6', 'Bf4', 'c5', 'e3', 'Qb6', 'Nc3', 'Qxb2', 'Nb5', 'Na6', 'Rb1', 'Qxa2']
+      ['d4', 'Nf6', 'Bf4', 'g6', 'Nc3', 'd5', 'e3', 'Bg7', 'h4', 'h5', 'Nf3', 'O-O', 'Ne5', 'c5', 'Qd2', 'cxd4', 'exd4', 'Nc6', 'f3'],
+      ['d4', 'Nf6', 'Bf4', 'c5', 'e3', 'Qb6', 'Nc3', 'Qxb2', 'Nb5', 'Nd5', 'Rb1', 'Qxa2', 'Ra1', 'Qb2', 'Rb1', 'Qa2']
     ],
     lineNotes: [
       { 2: 'The knight comes first here; the bishop follows next move.', 4: 'The London bishop, out before e3.', 5: '...c5: the most common way to challenge the centre.', 6: 'e3 completes the pyramid base.', 8: 'The knight goes to d2, not c3, so the c-pawn can support d4.', 10: 'c3: now d4 is rock solid.', 11: '...Bd6 offers to swap the London bishop.', 12: 'Bg3 keeps the bishop: if Black takes, the h-file opens for White\'s rook.', 14: 'Bd3 aims at h7, the target of every London attack.', 16: 'The knight jumps to e5, a big outpost.', 18: 'f4 builds a Stonewall: e5 is supported and a kingside attack can follow.' },
-      { 5: '...c5 before the knight comes out.', 9: '...Qb6 hits b2, which the c1 bishop used to defend.', 10: 'Qb3 offers a queen swap that would ruin Black\'s pawns.', 11: '...c4 kicks the queen and gains queenside space.', 13: 'Black develops with tempo on the queen.', 16: 'White finishes development. Black has space, White a solid centre.' },
+      { 5: '...c5 before the knight comes out.', 9: '...Qb6 hits b2, which the c1 bishop used to defend.', 10: 'Qb3 offers a queen swap that would ruin Black\'s pawns.', 11: '...c4 kicks the queen and gains queenside space.', 13: '...g6 first, so a bishop on f5 will be guarded by the pawn. At once, 7...Bf5?? just loses it to Qxf5.', 14: 'e4! breaks in the centre before Black castles: the c4 pawn is loose.', 15: 'Black gives the centre back with trades rather than let e5 come.', 18: 'Bxc4: the pawn is won back and White\'s pieces are the freer.', 19: '...Bf5 guards e4, and g6 guards the bishop.', 22: 'Ne2 and castling next. White has the easier game.' },
       { 5: '...e6: calm and solid.', 7: '...Bd6 challenges f4.', 8: 'Ne5 at once: the knight takes its outpost before Black can stop it. If ...Bxf4 exf4, White gets a grip on e5.', 10: 'Nd2 backs up the knight and can go to f3 later.', 12: 'c3: the pyramid is complete.', 14: 'Bd3 aims at h7: a typical London attacking setup.' },
       { 3: 'The King\'s Indian fianchetto.', 8: 'A modest Be2: against ...g6 the bishop is less useful on d3.', 10: 'h3 gives the f4 bishop an escape square on h2.', 16: 'a4 gains queenside space and stops ...b5.' },
       { 5: 'The Queen\'s Indian setup: the bishop goes to b7.', 8: 'h3 again: the bishop can retreat to h2 if Black plays ...Nh5.', 15: 'Both sides are solid; White usually plays for Nbd2 and e4.' },
       { 2: 'The Jobava London: Nc3 before Bf4.', 5: '...c5 hits the centre at once.', 8: 'exd4 opens the e-file and frees the f1 bishop.', 9: '...a6 stops the Nb5 jump.', 13: 'Black pins the knight. White castles and plays for piece activity.' },
       { 5: '...e6 leaves c7 thin.', 6: 'Nb5 at once, hitting c7.', 7: '...Na6 defends c7.', 11: 'The knight has made its point: Black\'s pieces are a little passive.' },
-      { 4: 'The Jobava against the fianchetto.', 8: 'h4: the plan is h5 and opening the h-file.', 10: 'h5 at once: the attack is on.' },
-      { 3: 'The early ...c5.', 5: '...Qb6 hits b2.', 6: 'Nc3 lets the pawn go.', 7: 'Black takes: the queen is now far from home.', 8: 'Nb5 threatens Nc7+.', 10: 'Rb1 attacks the queen again. White has strong compensation.' }
+      { 4: 'The Jobava against the fianchetto.', 8: 'h4: the plan is h5 and opening the h-file.', 9: '...h5 stops the pawn where it is: by far the most common answer.', 12: 'Ne5: the knight takes the outpost in front of Black\'s pawns.', 13: '...c5 hits back in the centre, the usual counter.', 14: 'Qd2 eyes h6: Bh6 would trade off Black\'s best defender.', 16: 'exd4 keeps a pawn on d4 and opens the e-file.', 18: 'f3 prepares g4: the h-file will open after all.' },
+      { 3: 'The early ...c5.', 5: '...Qb6 hits b2.', 6: 'Nc3 lets the pawn go.', 7: 'Black takes: the queen is now far from home.', 8: 'Nb5 threatens Nc7+.', 9: '...Nd5! guards c7 and hits the bishop and c3: strong players answer this way almost every time.', 10: 'Rb1 chases the queen, and it takes a second pawn.', 12: 'Ra1 and Rb1 keep hunting the queen: it has only a2 and b2.', 15: 'The same position again: a draw by repetition, unless one side dares to deviate.' }
     ]
   },
 
@@ -398,7 +398,7 @@ export const OPENINGS = Object.freeze([
       ['e4', 'c6', 'd4', 'd5', 'exd5', 'cxd5', 'c4', 'Nf6', 'Nc3', 'Nc6', 'Nf3', 'Bg4', 'cxd5', 'Nxd5', 'Qb3', 'Bxf3', 'gxf3', 'e6', 'Qxb7', 'Nxd4', 'Bb5+', 'Nxb5', 'Qc6+', 'Ke7', 'Qxb5'],
       ['e4', 'c6', 'Nf3', 'd5', 'Nc3', 'Bg4', 'h3', 'Bxf3', 'Qxf3', 'e6', 'd4', 'Nf6', 'Bd3', 'dxe4', 'Nxe4', 'Qxd4', 'c3', 'Qd8'],
       ['e4', 'c6', 'Nf3', 'd5', 'd3', 'dxe4', 'dxe4', 'Qxd1+', 'Kxd1', 'Nf6', 'Nbd2', 'g6', 'Ne5'],
-      ['e4', 'c6', 'd4', 'd5', 'f3', 'e6', 'Nc3', 'Bb4', 'a3', 'Bxc3+', 'bxc3', 'dxe4', 'fxe4', 'e5', 'Nf3', 'exd4']
+      ['e4', 'c6', 'd4', 'd5', 'f3', 'e6', 'Nc3', 'Bb4', 'Bd2', 'Ne7', 'a3', 'Ba5', 'Bd3', 'Nd7', 'f4', 'c5']
     ],
     lineNotes: [
       { 1: 'The Caro-Kann: c6 prepares ...d5 with support.', 3: '...d5: the centre is challenged on a protected pawn.', 4: 'The Advance: White gains space and blocks the centre.', 5: 'The key Caro-Kann move: the bishop comes out BEFORE ...e6.', 6: 'h4! White threatens g4 and h5 to trap the bishop.', 7: '...h5 stops g4 but leaves g5 for White\'s pieces.', 8: 'Bd3 offers to swap Black\'s good bishop.', 11: '...Qa5+: a clever check that stops an early Bg5.', 12: 'Nd2 blocks and keeps the queenside intact.', 15: 'The knight heads for f5, a great square now that the bishop has gone.', 17: 'On f5 the knight eyes d4 and cannot be kicked by a pawn.', 19: '...Qa6 offers a queen trade: Black is happy in the endgame.', 20: 'White avoids the swap. Black plays ...c5 next with a solid game.' },
@@ -414,7 +414,7 @@ export const OPENINGS = Object.freeze([
       { 6: 'c4: the Panov-Botvinnik, an isolated pawn position.', 11: '...Bg4 hits d4.', 14: 'Qb3 hits d5 and b7.', 18: 'Qxb7: White grabs a pawn.', 19: '...Nxd4 counterattacks.', 22: 'Qc6+ forks king and knight.', 24: 'White wins the piece back. A sharp, forcing line where Black has play for the pawn.' },
       { 2: 'The Two Knights: 2.Nf3 without d4.', 5: '...Bg4 pins the knight.', 7: 'Black gives the bishop to double nothing but gain time.', 13: '...dxe4 opens the centre.', 15: '...Qxd4 grabs a pawn.', 17: 'White has development for the pawn.' },
       { 4: '3.d3: a slow King\'s Indian Attack setup.', 7: 'Black trades queens: the game is equal and calm.', 11: '...g6: the bishop goes to g7.', 12: 'Ne5 eyes f7 and c6. The endgame is equal.' },
-      { 4: 'The Fantasy: f3 supports e4.', 5: '...e6 and ...Bb4 put pressure on e4.', 11: 'Black takes on e4.', 13: '...e5! hits d4 while White\'s king is uncastled.' }
+      { 4: 'The Fantasy: f3 supports e4.', 5: '...e6 and ...Bb4 put pressure on e4.', 8: 'Bd2, White\'s most common move: the pin on the knight is broken.', 9: '...Ne7, not ...Nf6: here the knight cannot be kicked by e5.', 11: '...Ba5 keeps the pin in reserve; the bishop can drop back to c7 or b6.', 14: 'f4 grabs space and gets ready for e5.', 15: '...c5! hits d4 at once: the key break in the Fantasy.' }
     ]
   },
 

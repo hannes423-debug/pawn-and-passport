@@ -16,8 +16,8 @@ import * as Save from '../../core/save.js';
 
 export function titleScreen(app) {
   const career = app.career;
-  const item = (icon, label, onClick, { disabled = false } = {}) => h('button.pp-title__item', {
-    type: 'button', disabled,
+  const item = (icon, label, onClick, { disabled = false, autofocus = false } = {}) => h('button.pp-title__item', {
+    type: 'button', disabled, 'data-autofocus': autofocus ? '' : null,
     onclick: () => { sfx.click(); onClick(); },
     onmouseenter: () => sfx.hover()
   }, h('span', { 'aria-hidden': 'true' }, pixelIcon(icon, { size: 'lg' })), h('span', { text: label }));
@@ -49,8 +49,9 @@ export function titleScreen(app) {
     h('img.pp-title__logo', { src: 'assets/ui/logo.webp', alt: '' }),
     h('img.pp-title__logo-sub', { src: 'assets/ui/logo-sub.webp', alt: '' }),
     h('nav.pp-title__menu', { 'aria-label': 'Main menu' },
-      item('play', career ? 'New Career' : 'New Game', newGame),
-      item('journal', 'Continue', cont, { disabled: !career }),
+      // Keys and pads start on Continue when there is a career to continue.
+      item('play', career ? 'New Career' : 'New Game', newGame, { autofocus: !career }),
+      item('journal', 'Continue', cont, { disabled: !career, autofocus: !!career }),
       item('settings', 'Settings', () => app.go('settings', { back: { screen: 'title', params: {} } })),
       item('passport', career ? 'Journal' : 'Credits', () => (career
         ? app.go('journal', { back: { screen: 'title', params: {} } })

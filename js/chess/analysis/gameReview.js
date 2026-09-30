@@ -125,6 +125,13 @@ export class GameReview {
       cp: playedScore.cp ?? null, mate: playedScore.mate ?? null,
       depth: before.depth, nodes: before.nodes
     };
+    /* The MultiPV lines this verdict was made from, for whoever grades the
+       move next (js/game/match.js). Asking the service again is NOT free: a
+       search the time cap stopped short of the wanted depth is not a cache
+       hit, so a second one ran - and could come back with other lines than
+       the ones the classification above used. Not enumerable: a record is
+       saved and summarised, and the lines are only needed right now. */
+    Object.defineProperty(move, 'reviewLines', { value: before.lines, enumerable: false, configurable: true, writable: true });
     move.bestMove = bestLine.move;
     move.bestMoveSan = bestLine.san;
     move.evaluationDelta = verdict.cpLoss;

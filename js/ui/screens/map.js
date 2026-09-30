@@ -17,6 +17,7 @@
 
 import { h, button, wait } from '../dom.js';
 import { pixelIcon } from '../icons.js';
+import { pushHandler } from '../controls.js';
 import { portraitUrl } from '../sprites.js';
 import { sfx } from '../audio.js';
 import { CLUBS, FINALE, clubById } from '../../data/clubs.js';
@@ -56,6 +57,9 @@ export function mapScreen(app) {
     const label = entry.finale ? 'Madrid' : entry.club.city;
     const b = h('button.pp-pin', {
       type: 'button',
+      'data-autofocus': here === entry.id ? '' : null,
+      // Keys and pads step from pin to pin: a narrow map glides to the one in focus.
+      onfocus: () => centreOn(entry.pin),
       class: [here === entry.id ? 'is-here' : '', locked ? 'is-locked' : '', entry.finale ? 'is-finale' : ''].join(' '),
       style: { left: `${entry.pin.x}%`, top: `${entry.pin.y}%` },
       'aria-label': entry.finale ? `Madrid Grand Finale${locked ? ', locked' : ''}` : `${entry.club.city}${trophy ? ', trophy won' : ''}${postcard ? ', postcard collected' : ''}`,
@@ -219,6 +223,15 @@ export function mapScreen(app) {
 
   const card = h('div.pp-map__card', null, defaultPanel);
   const el = h('div.pp-screen.pp-map', null, app.hud({ where: 'World map' }), area, card, legend);
+  const releaseControls = pushHandler({
+    name: 'map',
+    scope: () => el,
+    onAction: (a) => {
+      if (a.type !== 'journal') return false;
+      app.go('journal', { back: app.backParams() });
+      return true;
+    }
+  });
   const start = pins.find((p) => p.id === here) || pins[pins.length - 1];
   requestAnimationFrame(() => {
     layout();
@@ -246,7 +259,7 @@ export function mapScreen(app) {
     }
     app.coach('map', 'Pick a city to see what waits there, then fly. Every city has its own club, Star Player and opening, in any order you like.', { title: 'World map' });
   }
-  return { el, destroy() { ro.disconnect(); } };
+  return { el, destroy() { ro.disconnect(); releaseControls(); } };
 }
 
 export default mapScreen;

@@ -12,6 +12,7 @@ import { pixelIcon } from '../icons.js';
 import { sfx } from '../audio.js';
 import { portraitUrl } from '../sprites.js';
 import { createBoard } from '../board.js';
+import { usingKeysOrPad, focusEl } from '../controls.js';
 import { createRules } from '../../chess/core/rules.js';
 import { HIGHLIGHT } from '../../chess/render/boardRenderer.js';
 import { missionById } from '../../data/missions.js';
@@ -58,7 +59,13 @@ export function puzzleScreen(app, params) {
   const dots = h('div.pp-dots');
   const hintText = h('p.pp-small.pp-muted');
   const source = h('p.pp-small.pp-muted');
-  const nextBtn = button('Next puzzle', () => load(index + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) });
+  const nextBtn = button('Next puzzle', () => load(index + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }), autofocus: true });
+  // Solved with keys or a pad: the way on is one press away.
+  const showNext = (last) => {
+    nextBtn.hidden = false;
+    nextBtn.querySelector('span:last-child').textContent = last ? 'Finish' : 'Next puzzle';
+    if (usingKeysOrPad()) focusEl(nextBtn);
+  };
   const panel = h('aside.pp-match__left', null,
     h('div.pp-panel.pp-player.pp-match__opp', null,
       h('img', { alt: '', src: portraitUrl(host.look) }),
@@ -72,7 +79,7 @@ export function puzzleScreen(app, params) {
         nextBtn,
         button('Hint', () => giveHint(), { cls: 'pp-btn--small pp-btn--blue', icon: pixelIcon('hint', { size: 'sm' }) }),
         button('Retry', () => load(index), { cls: 'pp-btn--small' }),
-        button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small' }))));
+        button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small', back: true }))));
   if (practice) dots.classList.add('pp-dots--many');
   const el = h('div.pp-screen.pp-match.pp-match--puzzle', null, panel, h('main.pp-match__board', null, board.frame), h('aside.pp-match__right'));
 
@@ -152,8 +159,7 @@ export function puzzleScreen(app, params) {
       app.save();
       paintDots();
       status.textContent = r.firstSolve ? `Solved! +${r.xp.xp} XP` : 'Solved again!';
-      nextBtn.hidden = false;
-      nextBtn.querySelector('span:last-child').textContent = index >= puzzles.length - 1 ? 'Finish' : 'Next puzzle';
+      showNext(index >= puzzles.length - 1);
       return;
     }
     const result = recordPuzzleSolved(career, p.id);
@@ -166,8 +172,7 @@ export function puzzleScreen(app, params) {
       if (!navigated) finishMission(true);
       return;
     }
-    nextBtn.hidden = false;
-    nextBtn.querySelector('span:last-child').textContent = index >= puzzles.length - 1 ? 'Finish' : 'Next puzzle';
+    showNext(index >= puzzles.length - 1);
   }
 
   function giveHint() {

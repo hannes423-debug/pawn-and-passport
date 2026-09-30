@@ -43,6 +43,8 @@ import { SCENE_LAYERS } from '../../data/sceneLayers.js';
 import { SCENE_LAYERS_FLOOR } from '../../data/sceneLayersFloor.js';
 import { createWalkGrid, walkerFor } from '../../core/freeWalk.js';
 import { pixelIcon, sideIcon } from '../icons.js';
+import { pushHandler, DIRECTIONS, firstFocus, focusEl, stickVector } from '../controls.js';
+import { prompt } from '../prompts.js';
 
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
 const WALK_SPEED = 33.6;         // percent of the stage height per second (42 until 2026-09-25: too brisk)
@@ -328,7 +330,7 @@ export async function sceneScreen(app, params) {
   const actorList = [];
   function makeActor(look, [x, y], { dir = 'down', player = false } = {}) {
     const canvas = document.createElement('canvas');
-    canvas.className = 'pp-actor';
+    canvas.className = player ? 'pp-actor is-player' : 'pp-actor';
     const shadow = h('div.pp-actor__shadow');
     actors.append(shadow, canvas);
     const actor = {
@@ -624,7 +626,10 @@ export async function sceneScreen(app, params) {
     });
     const toggle = h('button.pp-btn.pp-btn--small.pp-scene__toggle', { type: 'button', onclick: (e) => { e.stopPropagation(); setDock(!dockOpen()); } });
     dock.replaceChildren(toggle, h('div.pp-panel', null, h('div.pp-scene__title', { text: app.locationName() }), list,
-      people.children.length ? h('div.pp-row.pp-scene__people', null, h('span.pp-small.pp-muted', { text: 'People:' }), ...people.children) : null));
+      people.children.length ? h('div.pp-row.pp-scene__people', null, h('span.pp-small.pp-muted', { text: 'People:' }), ...people.children) : null,
+      // Keys and pads only (css/pap.css): what the buttons the pad has no picture of do here.
+      h('div.pp-scene__keys.pp-when-keys.pp-small', null,
+        h('span', null, prompt('cancel'), ' Menu'), h('span', null, prompt('map'), ' Map'), h('span', null, prompt('journal'), ' Journal'))));
     paintDock();
     refit();
   }
@@ -667,41 +672,83 @@ export async function sceneScreen(app, params) {
     if (best) walkTo(best.id);
   });
 
-  /* Arrow keys and WASD walk freely in a layered scene. */
-  const held = new Set();
-  const KEY_VEC = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0] };
-  const keyVector = () => {
-    let x = 0; let y = 0;
-    for (const k of held) { x += KEY_VEC[k][0]; y += KEY_VEC[k][1]; }
-    const len = Math.hypot(x, y);
-    return len ? { x: x / len, y: y / len } : null;
+  /* Keys and pads (js/ui/controls.js). Held keys, the d-pad and the left
+     stick all arrive as one stick vector, and walk exactly like the touch
+     joystick. Accept is the touch pad's A: use the spot underfoot, or walk to
+     the nearest one and use it. 1-9 use a spot directly. Back hands the
+     controls to the buttons (the actions panel and the status bar), and Back
+     again takes them back; the mouse never needs this, a click is a click. */
+  let ctrlStick = null;
+  let menuMode = false;
+  const menuOn = () => {
+    const active = document.activeElement;
+    if (menuMode && active && active !== document.body && el.contains(active)) return true;
+    menuMode = false;
+    return false;
   };
-  const onKeyUp = (e) => {
-    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if (!held.delete(k)) return;
-    if (!stickHeld) stick = keyVector();
-  };
-  document.addEventListener('keyup', onKeyUp);
+  function openMenu() {
+    const target = firstFocus(dock) || firstFocus(el);
+    if (!target) return false;
+    menuMode = true;
+    halt();
+    focusEl(target);
+    return true;
+  }
+  function closeMenu() {
+    menuMode = false;
+    if (el.contains(document.activeElement)) document.activeElement.blur();
+  }
+  function halt() {
+    if (!stickHeld) stick = null;
+  }
 
-  const onKey = (e) => {
-    if (document.querySelector('.pp-overlay, .pp-dialogue')) return;
-    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if (freeMode && KEY_VEC[key]) {
-      e.preventDefault();
-      if (!held.has(key)) {
-        held.add(key);
-        if (!stickHeld) { stick = keyVector(); if (!blocked()) { if (walking && !driving) walking = null; drive(); } }
+  const releaseControls = pushHandler({
+    name: 'scene',
+    scope: () => el,
+    onStick(vec) {
+      ctrlStick = vec;
+      if (stickHeld) return;
+      stick = vec;
+      if (vec && !halted()) {
+        if (walking && !driving) walking = null;     // the stick overrides a click-to-walk
+        drive();
       }
-      return;
+    },
+    onAction(a) {
+      if (menuOn()) {
+        if (a.type === 'cancel') { closeMenu(); return true; }
+        if (a.type !== 'map' && a.type !== 'journal') return false;     // the buttons: focus moves, accept presses
+      }
+      if (DIRECTIONS[a.type]) {
+        // Walking is the stick's; a held key only (re)starts it: after a
+        // dialogue stopped it, or when it was held down through the door.
+        ctrlStick = stickVector();
+        stick = stickHeld ? stick : ctrlStick;
+        if (stick && !driving && !halted()) drive();
+        return true;
+      }
+      switch (a.type) {
+        case 'accept': {
+          if (blocked()) return true;
+          const pick = spotForAction();
+          if (pick) use(pick.spot);
+          return true;
+        }
+        case 'cancel': return openMenu();
+        case 'digit':
+          if (a.n > scene.hotspots.length) return false;
+          use(scene.hotspots[a.n - 1]);
+          return true;
+        case 'map': app.go('map'); return true;
+        case 'journal': app.go('journal', { back: app.backParams() }); return true;
+        case 'key':
+          if (a.key === 'h') { setDock(!dockOpen()); return true; }
+          if (a.key === 'l') { toggleDepth(); return true; }
+          return false;
+        default: return false;
+      }
     }
-    const n = Number(e.key);
-    if (n >= 1 && n <= scene.hotspots.length) use(scene.hotspots[n - 1]);
-    if (e.key === 'm' || e.key === 'M') app.go('map');
-    if (e.key === 'h' || e.key === 'H') setDock(!dockOpen());
-    if (e.key === 'l' || e.key === 'L') toggleDepth();
-    if (e.key === 'j' || e.key === 'J') app.go('journal', { back: app.backParams() });
-  };
-  document.addEventListener('keydown', onKey);
+  });
 
   /* ----------------------------------------------------- touch walking -- */
   const adjacent = {};
@@ -710,6 +757,7 @@ export async function sceneScreen(app, params) {
     (adjacent[b] = adjacent[b] || []).push(a);
   }
   const blocked = () => busy || !!document.querySelector('.pp-overlay, .pp-dialogue');
+  const halted = () => blocked() || menuOn();
   const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
   /** The linked node that best matches the stick, measured in screen space from where the player stands now. */
@@ -741,7 +789,7 @@ export async function sceneScreen(app, params) {
       let last = performance.now();
       let padClock = 0;
       try {
-        while (stick && !blocked()) {
+        while (stick && !halted()) {
           await nextFrame();
           const now = performance.now();
           const dt = Math.min(0.05, (now - last) / 1000);
@@ -770,7 +818,7 @@ export async function sceneScreen(app, params) {
       return;
     }
     try {
-      while (stick && !blocked()) {
+      while (stick && !halted()) {
         const target = nodeToward(stick);
         if (!target) {
           // Nothing that way: face it, so the stick still feels alive.
@@ -820,7 +868,7 @@ export async function sceneScreen(app, params) {
   const pad = createTouchpad({
     onStick(vec) {
       stickHeld = !!vec;
-      stick = vec || keyVector();
+      stick = vec || ctrlStick;
       if (vec && !blocked()) {
         if (walking && !driving) walking = null;     // the stick overrides a tap-to-walk
         drive();
@@ -832,12 +880,19 @@ export async function sceneScreen(app, params) {
       if (pick) use(pick.spot);
     }
   });
+  /* The same prompt for keys and pads: the accept button's picture and what it does. */
+  const keyLabel = h('span.pp-keyprompt__label');
+  const keyPrompt = h('div.pp-keyprompt', { 'aria-hidden': 'true' }, prompt('accept'), keyLabel);
   function paintPad() {
     const pick = spotForAction();
-    pad.setAction(pick ? (pick.ready ? pick.spot.verb : `Go: ${pick.spot.label}`) : '', pick?.ready);
+    const label = pick ? (pick.ready ? pick.spot.verb : `Go: ${pick.spot.label}`) : '';
+    pad.setAction(label, pick?.ready);
+    keyLabel.textContent = label;
+    keyPrompt.hidden = !label;
+    keyPrompt.classList.toggle('is-ready', !!pick?.ready);
     paintNames();
   }
-  viewport.append(pad.el);
+  viewport.append(pad.el, keyPrompt);
 
   /* --------------------------------------------------------- actions -- */
   async function runAction(spot) {
@@ -1196,8 +1251,7 @@ export async function sceneScreen(app, params) {
       viewportObserver.disconnect();
       window.removeEventListener('resize', fit);
       settle?.disconnect();
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('keyup', onKeyUp);
+      releaseControls();
     }
   };
 }

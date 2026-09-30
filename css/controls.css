@@ -1,0 +1,123 @@
+/*
+ * controls.css - keyboard and gamepad (js/ui/controls.js, js/ui/prompts.js).
+ *
+ * Loaded last. <html data-input> says what the player used last - mouse,
+ * touch, keyboard or gamepad - and <html data-pad> which maker's pad. The
+ * prompts, the focus rings and the board cursor show only for keys and pads,
+ * so the mouse and touch layouts are exactly what they were.
+ */
+
+/* ------------------------------------------------------------ prompts -- */
+
+.pp-prompt { display: inline-flex; align-items: center; vertical-align: middle; margin-right: 0.3em; line-height: 1; }
+.pp-prompt img { display: block; height: 1.35em; width: auto; }
+.pp-keycap {
+  display: inline-grid; place-items: center; min-width: 1.6em; height: 1.5em; padding: 0 0.4em;
+  font-family: var(--font-pixel); font-size: 0.72em; line-height: 1; color: var(--ink);
+  background: linear-gradient(#f8eed6, #e3cfa4); border: 2px solid #22160c; border-radius: 5px;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.16), 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+:root:not([data-input="keyboard"]):not([data-input="gamepad"]) .pp-prompt:not(.is-pinned),
+:root:not([data-input="keyboard"]):not([data-input="gamepad"]) .pp-when-keys,
+:root:not([data-input="gamepad"]) .pp-when-pad,
+:root[data-input="keyboard"] .pp-when-pointer,
+:root[data-input="gamepad"] .pp-when-pointer { display: none !important; }
+
+/* The dialogue's "continue" line: the prompt sits on the text's baseline. */
+.pp-dialogue__next .pp-prompt img { height: 22px; }
+
+/* A tip's "Got it" carries Back's picture. */
+.pp-coach .pp-btn .pp-prompt img { height: 20px; }
+
+/* --------------------------------------------------------- focus rings -- */
+/* Keyboard focus already shows through :focus-visible. A pad moves focus
+   from script, which browsers do not always count as "visible", so while a
+   pad is in use every :focus draws the same ring. */
+
+:root[data-input="gamepad"] .pp-btn:focus { outline: 3px solid var(--blue); outline-offset: 2px; }
+:root[data-input="gamepad"] .pp-title__item:focus { background: linear-gradient(#ffd46a, #f0a93a); outline: none; }
+:root[data-input="gamepad"] .pp-pin:focus .pp-pin__flag { transform: translateY(-3px); outline: 3px solid var(--blue); }
+/* The flag carries a pin's ring; the browser's own box around the marker is noise. */
+.pp-pin:focus, .pp-pin:focus-visible { outline: none; }
+:root[data-input="gamepad"] .pp-hotspot:focus .pp-hotspot__label { background: var(--gold); color: var(--ink); outline: none; }
+:root[data-input="gamepad"] .pp-hotspot.is-member:focus .pp-hotspot__label { opacity: 1; visibility: visible; }
+:root[data-input="gamepad"] .pp-tree__lesson:focus { background: rgba(255, 233, 196, 0.14); border-color: var(--gold); outline: none; }
+:root[data-input="gamepad"] .pp-citypop__fly:focus,
+:root[data-input="gamepad"] .pp-citypop__close:focus { outline: 3px solid #fff6dc; outline-offset: -4px; }
+/* Everything else keys and pads can land on. */
+:root:is([data-input="keyboard"], [data-input="gamepad"]) :is(select, input, .pp-avatar, .pp-city, .pp-dot, .pp-study__move, .pp-study__line, .pp-tip__hide, .pp-match__more, .pp-postcard):focus {
+  outline: 3px solid var(--blue); outline-offset: 2px;
+}
+
+/* ------------------------------------------------------- board cursor -- */
+/* One element on the board (board2d.setCursor), placed like a square. The
+   frame art has a glow around it: scaled up so the frame itself sits on the
+   square's edges. Blue while it browses, gold while it carries a piece. */
+
+.cwt-cursor {
+  position: absolute; display: none; z-index: 6; pointer-events: none;
+  width: var(--sq); height: var(--sq);
+  left: calc(var(--f) * var(--sq)); bottom: calc(var(--r) * var(--sq));
+  background: url("../assets/ui/prompts/cursor-blue.png") center / 119% 119% no-repeat;
+  transition: left 80ms ease-out, bottom 80ms ease-out;
+}
+.cwt-board[data-orientation="b"] .cwt-cursor { left: calc((7 - var(--f)) * var(--sq)); bottom: calc((7 - var(--r)) * var(--sq)); }
+.cwt-cursor.is-carrying { background-image: url("../assets/ui/prompts/cursor-gold.png"); }
+:root:is([data-input="keyboard"], [data-input="gamepad"]) .cwt-boardhost:not(.is-parked) .cwt-cursor { display: block; }
+:root[data-reduced-motion="true"] .cwt-cursor { transition: none; }
+/* The cursor is the board's focus mark. */
+.cwt-boardhost:focus, .cwt-boardhost:focus-visible { outline: none; }
+
+/* ------------------------------------------------------------- scenes -- */
+/* The touch pad's A button, for keys and pads: the accept picture and what it does. */
+
+.pp-keyprompt {
+  position: absolute; z-index: 12; pointer-events: none;
+  right: max(12px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 8px; max-width: 46%;
+  padding: 6px 14px 6px 8px; border-radius: 8px;
+  background: rgba(20, 12, 6, 0.84); border: 2px solid rgba(243, 227, 191, 0.35);
+  color: var(--paper); font-size: 18px; line-height: 1.15;
+}
+.pp-keyprompt .pp-prompt { margin: 0; }
+.pp-keyprompt .pp-prompt img { height: 34px; }
+.pp-keyprompt__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-keyprompt.is-ready { border-color: var(--gold-hi); }
+.pp-keyprompt[hidden],
+:root:not([data-input="keyboard"]):not([data-input="gamepad"]) .pp-keyprompt { display: none; }
+
+.pp-scene__keys { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
+.pp-scene__keys .pp-prompt img { height: 22px; }
+
+/* -------------------------------------------------------------- match -- */
+
+.pp-hintbtn .pp-prompt img, .pp-undobtn .pp-prompt img { height: 22px; }
+
+/* ------------------------------------------------------------ journal -- */
+
+.pp-journal__shoulder { display: inline-flex; align-items: center; }
+.pp-journal__shoulder .pp-prompt { margin: 0; }
+.pp-journal__shoulder .pp-prompt img { height: 26px; }
+
+/* ------------------------------------------------------ controls page -- */
+
+.pp-controls { display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); }
+.pp-controls__tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.pp-controls__tab { display: inline-flex; align-items: center; gap: 6px; }
+.pp-controls__tab img { height: 26px; width: auto; }
+.pp-controls__tab.is-active { background: linear-gradient(#ffd87a, #e8a93a); }
+.pp-controls__body { flex: 1; min-height: 0; overflow-y: auto; padding-right: 6px; }
+.pp-controls__panel { display: block; width: 100%; max-width: 660px; margin: 0 auto 10px; border-radius: 8px; }
+.pp-controls__section { margin: 4px 0 12px; }
+.pp-controls__section .pp-h3 { margin: 0 0 4px; }
+.pp-controls__row {
+  display: grid; grid-template-columns: minmax(150px, max-content) 1fr; gap: 12px; align-items: center;
+  padding: 4px 0; border-bottom: 1px dashed rgba(90, 60, 30, 0.28);
+}
+.pp-controls__keys { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.pp-controls__keys > img, .pp-controls__keys .pp-prompt img { height: 28px; width: auto; }
+.pp-controls__keys .pp-prompt { margin: 0; }
+@media (max-width: 560px) {
+  .pp-controls__row { grid-template-columns: 1fr; gap: 2px; }
+}

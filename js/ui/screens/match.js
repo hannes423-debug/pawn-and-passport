@@ -16,6 +16,8 @@ import { tapWord } from '../touch.js';
 import { sfx } from '../audio.js';
 import { portraitUrl, PLAYER_LOOKS } from '../sprites.js';
 import { createBoard } from '../board.js';
+import { pushHandler } from '../controls.js';
+import { prompt } from '../prompts.js';
 import { PapMatch } from '../../game/match.js';
 import { UNDO } from '../../data/config.js';
 import { engineService } from '../../chess/engine/engineService.js';
@@ -45,7 +47,7 @@ export function matchScreen(app, params) {
   const career = app.career;
   const { kind, opponent, colour = 'w', clubId, returnScene, returnSpawn } = params;
   const club = clubById(clubId);
-  const match = new PapMatch({ career, kind, opponent, playerColour: colour });
+  const match = new PapMatch({ career, kind, opponent, playerColour: colour, clubId });
   const opening = opponent.openingId ? openingById(opponent.openingId) : null;
   let guideOn = app.settings.guideArrows;
   let finished = false;
@@ -82,7 +84,11 @@ export function matchScreen(app, params) {
     onMove: async (move) => {
       const record = await match.playMove(move);
       if (!record) sfx.illegal();
-    }
+    },
+    // The keyboard/gamepad cursor reads the opening notes the way the mouse does.
+    onCursor: (square) => onBoardHover(cursorPoint(square)),
+    // Live through the opponent's turn too: the cursor keeps the controls while the bot thinks.
+    isLive: () => !finished
   });
   const { renderer } = board;
 
@@ -168,10 +174,15 @@ export function matchScreen(app, params) {
       h('div.pp-small', null, h('b', { text: `Repertoire ${(career.equipped || []).length}/${repertoireSlots(career.level)}: ` }),
         (career.equipped || []).map((id) => `${openingById(id).name} ${career.openings[id] ?? 0}%`).join(', ') || 'none (equip openings in the Journal)'),
       h('div.pp-row', null,
-        button('Offer draw', () => {
+        button('Offer draw', async () => {
           if (finished) return;
-          const r = match.offerDraw();
-          app.toast(r ? 'Draw agreed.' : `${opponent.name.split(' ')[0]} declines the draw.`);
+          const first = opponent.name.split(' ')[0];
+          const r = await match.offerDraw();
+          if (r.reason === 'busy') return;
+          app.toast(r.accepted ? 'Draw agreed.'
+            : r.reason === 'early' ? `${first} wants to play on: no draws before move 20.`
+            : r.reason === 'decides' ? `${first} declines: a draw would put you through.`
+            : `${first} declines the draw: they like their position.`);
         }, { cls: 'pp-btn--small' }),
         button('Resign', async () => {
           if (finished) return;
@@ -192,14 +203,14 @@ export function matchScreen(app, params) {
     /* 'sm', like every other inline icon. At 'md' these two were 24px and
        pushed the Focus panel 8px past the height the portrait match layout
        gives it, which clipped the "Focus 30 / 30" line above them. */
-    hintBtn.replaceChildren(pixelIcon('hint', { size: 'sm' }), ' ', h('span.pp-hintbtn__ask', { text: 'Ask for ' }), 'Hint', h('small', { text: `${q.cost} Focus \u00b7 ${q.label}` }));
+    hintBtn.replaceChildren(prompt('skill1'), pixelIcon('hint', { size: 'sm' }), ' ', h('span.pp-hintbtn__ask', { text: 'Ask for ' }), 'Hint', h('small', { text: `${q.cost} Focus \u00b7 ${q.label}` }));
     hintBtn.disabled = !match.isPlayersTurn || match.hintBusy || !affordable || finished;
     const u = match.undoState();
     const undoNote = u.reason === 'used' ? (u.max === 1 ? 'Used' : 'All used')
       : u.reason === 'cooldown' ? `In ${u.cooldown} move${u.cooldown === 1 ? '' : 's'}`
       : u.reason === 'nothing' ? 'Move first'
       : `${u.cost} Focus · ${u.left} left`;
-    undoBtn.replaceChildren(pixelIcon('back', { size: 'sm' }), ' ', 'Undo', h('small', { text: undoNote }));
+    undoBtn.replaceChildren(prompt('skill2'), pixelIcon('back', { size: 'sm' }), ' ', 'Undo', h('small', { text: undoNote }));
     undoBtn.disabled = !u.ok || finished;
     undoBtn.dataset.state = u.reason || 'ready';
     undoBtn.title = `Take back your last move. Costs ${u.cost} Focus, ${u.max} per game at level ${career.level}, then ${UNDO.cooldownMoves} moves of cooldown.`;
@@ -303,6 +314,14 @@ export function matchScreen(app, params) {
     return out;
   }
 
+  /* Where the cursor's square is, as the pointer event onBoardHover reads.
+     'cursor' puts the card beside the board, level with the square. */
+  function cursorPoint(square) {
+    const p = renderer.projectSquare(square);
+    const rect = board.host.getBoundingClientRect();
+    return p ? { clientX: rect.left + p.x, clientY: rect.top + p.y, pointerType: 'cursor' } : { clientX: -1, clientY: -1, pointerType: 'cursor' };
+  }
+
   function onBoardHover(e) {
     if (!notesOn || !suggestions.length) { tip.hidden = true; return; }
     const square = renderer.squareAtPoint(e.clientX, e.clientY);
@@ -320,8 +339,24 @@ export function matchScreen(app, params) {
       tipBody.replaceChildren(...[...groups.values()].flatMap((g) => describeMove(g)));
     }
     tip.hidden = false;
-    tip.classList.toggle('is-pinned', e.pointerType === 'touch');
-    if (e.pointerType === 'touch') {
+    tip.classList.toggle('is-pinned', e.pointerType === 'touch' || e.pointerType === 'cursor');
+    if (e.pointerType === 'cursor') {
+      // Keys and pads: beside the board, so it never covers the squares the
+      // cursor is about to cross. No room either side: the touch placement.
+      const rect = board.host.getBoundingClientRect();
+      const w = tip.offsetWidth; const hgt = tip.offsetHeight;
+      const x = innerWidth - rect.right >= rect.left
+        ? Math.min(rect.right + 12, innerWidth - w - 8)
+        : Math.max(8, rect.left - 12 - w);
+      // Over the side panel is fine; over a quarter of the card on the board is not.
+      const onBoard = Math.max(0, Math.min(x + w, rect.right) - Math.max(x, rect.left));
+      if (onBoard <= w * 0.25) {
+        tip.style.left = `${x}px`;
+        tip.style.top = `${Math.max(8, Math.min(innerHeight - hgt - 8, e.clientY - hgt / 2))}px`;
+        return;
+      }
+    }
+    if (e.pointerType === 'touch' || e.pointerType === 'cursor') {
       // A finger covers whatever sits beside it: pin the card clear of the board instead.
       const rect = board.host.getBoundingClientRect();
       const w = tip.offsetWidth; const hgt = tip.offsetHeight;
@@ -499,12 +534,23 @@ export function matchScreen(app, params) {
     paintFocus();
   }
 
-  const onKey = (e) => {
-    if (document.querySelector('.pp-overlay, .pp-dialogue')) return;
-    if ((e.key === 'h' || e.key === 'H') && !hintBtn.disabled) askHint();
-    if ((e.key === 'u' || e.key === 'U') && !undoBtn.disabled) askUndo();
-  };
-  document.addEventListener('keydown', onKey);
+  /* The two Focus skills: 1 and 2 (the pad's left and top face buttons), and
+     the old H and U. Pop-ups and dialogues block them (js/ui/controls.js). */
+  const releaseControls = pushHandler({
+    name: 'match',
+    scope: () => el,
+    onAction(a) {
+      const skill = a.type === 'digit' ? a.n : a.type === 'key' ? { h: 1, u: 2 }[a.key] : null;
+      if (skill === 1) {
+        if (!hintBtn.disabled) askHint();
+        else if (!finished && match.isPlayersTurn && !match.hintBusy) app.toast('Not enough Focus for that hint.');
+        return true;
+      }
+      // Undo says why when it cannot (no Focus, cooling down, none left).
+      if (skill === 2) { askUndo(); return true; }
+      return false;
+    }
+  });
 
   /* ---------------------------------------------------------- the end -- */
   /* The end of a game. Rewards are committed ONCE (commitMatchResult is
@@ -723,7 +769,7 @@ export function matchScreen(app, params) {
     board,
     destroy() {
       clearInterval(watchdog);
-      document.removeEventListener('keydown', onKey);
+      releaseControls();
       stopEngineWatch();
       match.dispose();
       board.destroy();

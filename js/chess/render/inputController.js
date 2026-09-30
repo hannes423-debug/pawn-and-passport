@@ -1,10 +1,15 @@
 /**
  * inputController.js — ChessInputController.
  *
- * Turns raw pointer/keyboard events from a renderer into ONE intent:
- * "the player wants to move from X to Y". Game logic never learns whether the
- * player clicked, tapped, dragged or used the keyboard, which is what lets a
- * gamepad be added later as a fourth source with no change above this file.
+ * Turns raw pointer events from a renderer, and the keyboard/gamepad cursor,
+ * into ONE intent: "the player wants to move from X to Y". Game logic never
+ * learns whether the player clicked, tapped, dragged, or steered the cursor
+ * with keys or a pad and pressed accept.
+ *
+ * The cursor is driven from outside (js/ui/board.js hands it the actions of
+ * js/ui/controls.js): moveCursor() steps it, pressCursor() is a click on its
+ * square - so picking a piece up and putting it down again, re-selecting, and
+ * promotion all run through exactly the same code as the mouse.
  *
  * Handles the awkward parts once, for every device:
  *   - click/tap-then-click/tap and drag both produce the same move
@@ -20,7 +25,7 @@
  */
 
 import { HIGHLIGHT } from './boardRenderer.js';
-import { SQUARES, FILES, RANKS, fileIndex, rankIndex, squareAt } from '../core/constants.js';
+import { SQUARES, fileIndex, rankIndex, squareAt } from '../core/constants.js';
 
 export class ChessInputController {
   /**
@@ -47,7 +52,7 @@ export class ChessInputController {
     /** Did THIS pointer press create the current selection? */
     this._selectedOnThisPress = false;
     this._unsubscribe = renderer.onSquareSelected((square, event) => this._onSquare(square, event));
-    this._wireKeyboard();
+    this._paintCursor();
   }
 
   setEnabled(enabled) {
@@ -64,6 +69,7 @@ export class ChessInputController {
     this.renderer.clearHighlights(HIGHLIGHT.SELECTED);
     this.renderer.clearHighlights(HIGHLIGHT.LEGAL);
     this.renderer.clearHighlights(HIGHLIGHT.LEGAL_CAPTURE);
+    this._paintCursor();
     return this;
   }
 
@@ -74,11 +80,12 @@ export class ChessInputController {
     this.clearSelection();
     this.selected = square;
     this.destinations = destinations;
-    // The arrow-key cursor follows the selection, so switching from mouse to
-    // keyboard starts from the piece in hand instead of a fixed square.
+    // The keyboard cursor follows the selection, so switching from mouse to
+    // keys starts from the piece in hand instead of a fixed square.
     this.cursor = square;
     this.renderer.highlightSquare(square, HIGHLIGHT.SELECTED);
     this.renderer.showDestinations?.(destinations);
+    this._paintCursor();
     return true;
   }
 
@@ -134,62 +141,45 @@ export class ChessInputController {
     this.onMove({ from, to, promotion });
   }
 
-  /* ------------------------------------------------------------ keyboard */
+  /* -------------------------------------------------------------- cursor */
 
   /**
-   * Is the player actually driving the BOARD right now?
-   *
-   * This gate exists because the keyboard handler is on `window`, and without
-   * it any Enter or Space anywhere in the app committed a move at the board
-   * cursor. The real sequence that hit: select a piece, click the Hint button,
-   * press Enter — and the game played e2-e4 for you and the opponent replied.
-   * From the player's side that reads as "asking for a hint used my turn".
+   * Step the cursor by whole squares, in SCREEN directions (dx right, dy
+   * down): up is always up the screen, whichever side the board shows.
+   * It stops at the edge. Returns true when it moved.
    */
-  _boardHasFocus() {
-    const host = this.renderer?.host;
-    if (!host) return false;
-    const active = document.activeElement;
-    return active === host || (!!active && host.contains(active));
+  moveCursor(dx, dy) {
+    const flip = this.renderer.orientation === 'b' ? -1 : 1;
+    const next = squareAt(fileIndex(this.cursor) + dx * flip, rankIndex(this.cursor) - dy * flip);
+    if (!next || next === this.cursor) return false;
+    this.cursor = next;
+    this._paintCursor();
+    return true;
   }
 
-  _wireKeyboard() {
-    this._onKey = (event) => {
-      if (!this.enabled) return;
-      const target = event.target;
-      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+  /** Put the cursor on a square (a screen starts it on the player's side). */
+  placeCursor(square) {
+    if (!SQUARES.includes(square)) return;
+    this.cursor = square;
+    this._paintCursor();
+  }
 
-      // Escape is allowed from anywhere: cancelling a selection you can see is
-      // never surprising. Everything that MOVES a piece needs board focus.
-      if (event.key === 'Escape') {
-        if (this.selected) { this.clearSelection(); event.preventDefault(); }
-        return;
-      }
-      if (!this._boardHasFocus()) return;
-      const moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
-      if (moves[event.key]) {
-        const [df, dr] = moves[event.key];
-        const flip = this.renderer.orientation === 'b' ? -1 : 1;
-        const next = squareAt(fileIndex(this.cursor) + df * flip, rankIndex(this.cursor) + dr * flip);
-        if (next) {
-          this.cursor = next;
-          this.renderer.clearHighlights(HIGHLIGHT.HINT);
-          this.renderer.highlightSquare(next, HIGHLIGHT.HINT);
-          event.preventDefault();
-        }
-        return;
-      }
-      if (event.key === 'Enter' || event.key === ' ') {
-        this._onSquare(this.cursor, { phase: 'up' });
-        event.preventDefault();
-        return;
-      }
-    };
-    window.addEventListener('keydown', this._onKey);
+  /**
+   * Accept on the cursor's square: a whole click, press and release, sent
+   * through the renderer so every listener hears it (the lesson player's
+   * "tap a square" challenges listen there too). The first press picks a
+   * piece up, the second commits the move or puts the piece back down.
+   */
+  pressCursor() {
+    this.renderer.pressSquare?.(this.cursor);
+  }
+
+  _paintCursor() {
+    this.renderer.setCursor?.(this.cursor, { carrying: !!this.selected });
   }
 
   destroy() {
     this._unsubscribe?.();
-    window.removeEventListener('keydown', this._onKey);
     this.clearSelection();
   }
 }

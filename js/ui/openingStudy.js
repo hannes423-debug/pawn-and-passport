@@ -15,6 +15,7 @@ import { h, button } from './dom.js';
 import { pixelIcon, sideIcon } from './icons.js';
 import { sfx } from './audio.js';
 import { createBoard } from './board.js';
+import { pushHandler } from './controls.js';
 import { createRules } from '../chess/core/rules.js';
 import { HIGHLIGHT, ARROW } from '../chess/render/boardRenderer.js';
 import { openingById } from '../data/openings.js';
@@ -57,7 +58,7 @@ export function openOpeningStudy(app, openingId, { mode = 'review' } = {}) {
   let finishedMain = false;
   const completed = new Set();
   let board = null;
-  let keyHandler = null;
+  let releaseKeys = null;
 
   const limitFor = (i) => Math.min(opening.lines[i].length, known);
 
@@ -185,15 +186,25 @@ export function openOpeningStudy(app, openingId, { mode = 'review' } = {}) {
       }
     }
 
-    keyHandler = (e) => {
-      if (e.key === 'ArrowRight') { stopAuto(); go(ply + 1); }
-      if (e.key === 'ArrowLeft') { stopAuto(); go(ply - 1); }
-    };
-    document.addEventListener('keydown', keyHandler);
+    /* Left and right step through the line (the arrows, A and D, the d-pad
+       or the stick); up and down move between the buttons, and Back closes
+       the study (js/ui/controls.js). Pushed inside the pop-up, so it is
+       asked before the pop-up's own handler. */
+    releaseKeys = pushHandler({
+      name: 'opening-study',
+      modal: true,
+      scope: () => panel,
+      onAction: (a) => {
+        if (a.type !== 'left' && a.type !== 'right') return false;
+        stopAuto();
+        go(ply + (a.type === 'right' ? 1 : -1));
+        return true;
+      }
+    });
 
     const finish = () => {
       stopAuto();
-      document.removeEventListener('keydown', keyHandler);
+      releaseKeys?.();
       board.destroy();
       close({ finishedMain, linesCompleted: completed.size });
     };
@@ -212,7 +223,7 @@ export function openOpeningStudy(app, openingId, { mode = 'review' } = {}) {
           depthNote,
           h('h3.pp-h3', { text: 'Lines' }),
           lineList)),
-      h('div.pp-row', { style: { justifyContent: 'flex-end' } }, button(tutorial ? 'Done' : 'Close', finish, { cls: 'pp-btn--small' })));
+      h('div.pp-row', { style: { justifyContent: 'flex-end' } }, button(tutorial ? 'Done' : 'Close', finish, { cls: 'pp-btn--small', back: true })));
     requestAnimationFrame(() => paint(true));
     return panel;
   }, { dismissable: false }).then((result) => result || { finishedMain, linesCompleted: completed.size });

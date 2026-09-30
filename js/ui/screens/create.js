@@ -101,7 +101,7 @@ export function createScreen(app) {
       h('p.pp-small.pp-muted', { text: 'Changeable later in Settings, and it only ever affects games you have not played yet.' })),
     h('div.pp-row.pp-create__go', null,
       next,
-      button('Back', () => app.go('title'), { cls: 'pp-btn--small' })));
+      button('Back', () => app.go('title'), { cls: 'pp-btn--small', back: true })));
 
   /* Page 2: the home city, on its own, with room for all six. */
   const cityPage = h('section.pp-panel.pp-create__cities.pp-create__page', { hidden: true },
@@ -112,7 +112,7 @@ export function createScreen(app) {
       summary,
       h('div.pp-row.pp-create__go', null,
         start,
-        button('Back', () => goTo(0), { cls: 'pp-btn--small', icon: pixelIcon('back', { size: 'sm' }) }))));
+        button('Back', () => goTo(0), { cls: 'pp-btn--small', icon: pixelIcon('back', { size: 'sm' }), back: true }))));
 
   function goTo(to) {
     page = Math.max(0, Math.min(PAGES - 1, to));

@@ -562,6 +562,30 @@ export class ChessBoard2DRenderer extends ChessBoardRenderer {
     layer.append(group);
   }
 
+  /* -------------------------------------------------------------- cursor */
+
+  /**
+   * The keyboard/gamepad cursor: blue while it browses, gold while it carries
+   * a piece. One element, moved by --f/--r like everything else on the board,
+   * so it flips with the orientation for free; css/board.css shows it only
+   * while keys or a pad are in use.
+   */
+  setCursor(square, { carrying = false } = {}) {
+    if (!this.cursorEl) {
+      this.cursorEl = document.createElement('div');
+      this.cursorEl.className = 'cwt-cursor';
+      this.cursorEl.setAttribute('aria-hidden', 'true');
+      this.host.append(this.cursorEl);
+    }
+    const file = FILES.indexOf(square?.[0]);
+    const rank = RANKS.indexOf(square?.[1]);
+    if (file < 0 || rank < 0) return;
+    this.cursorEl.style.setProperty('--f', String(file));
+    this.cursorEl.style.setProperty('--r', String(rank));
+    this.cursorEl.classList.toggle('is-carrying', !!carrying);
+    this.cursorEl.dataset.square = square;
+  }
+
   clearHighlights(kind = null) {
     const kinds = kind ? [kind] : [...this._highlights.keys()];
     for (const key of kinds) {
@@ -726,6 +750,7 @@ export class ChessBoard2DRenderer extends ChessBoardRenderer {
   }
 
   destroy() {
+    this.cursorEl = null;
     this._arrows = [];
     this._verdicts.clear();
     this._arrowHoverListeners.clear();

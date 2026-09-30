@@ -8,7 +8,7 @@
 export const GAME = Object.freeze({
   title: 'Pawn & Passport',
   subtitle: 'A Chess Career RPG',
-  version: '1.1.17',
+  version: '1.1.18',
   saveVersion: 3
 });
 
@@ -237,6 +237,18 @@ export const UNDO = Object.freeze({
   ],
   cooldownMoves: 5                   // your moves before it can be used again
   // (what an undo costs the Match Score is SCORE.undoPenalty, below)
+});
+
+/* ================================================================= draws === */
+/* When a bot takes the draw the player offers (js/game/match.js offerDraw).
+   It asks its own engine whether it is better, the way a player would look
+   at the board, instead of counting material: a bot a rook down used to
+   refuse a draw because the material was "not level". */
+export const DRAW = Object.freeze({
+  minPly: 40,              // no draws before move 20: a draw is not a way to skip a game
+  acceptCp: 50,            // takes it unless it thinks it is better by more than this
+  holdOutCp: 150,          // when a draw would put the PLAYER through (a knockout as Black): only when this much worse
+  search: { depth: 12, movetime: 700, nodes: 400000, multiPv: 1 }
 });
 
 /* ======================================================= opening mastery === */

@@ -11,6 +11,7 @@
  */
 
 import { createApp } from './ui/app.js';
+import { installControls } from './ui/controls.js';
 import { titleScreen } from './ui/screens/title.js';
 import { createScreen } from './ui/screens/create.js';
 import { mapScreen } from './ui/screens/map.js';
@@ -41,6 +42,9 @@ const screens = {
   lesson: lessonScreen
 };
 
+// Keyboard and gamepad (js/ui/controls.js) first: the app's pop-ups and every
+// screen register their handlers with it.
+installControls();
 const app = createApp(document.getElementById('app'), screens);
 window.__pap = app;       // for the headless test drivers in tools/
 

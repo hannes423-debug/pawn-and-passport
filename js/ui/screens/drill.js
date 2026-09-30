@@ -14,6 +14,7 @@ import { pixelIcon } from '../icons.js';
 import { sfx } from '../audio.js';
 import { portraitUrl } from '../sprites.js';
 import { createBoard } from '../board.js';
+import { usingKeysOrPad, focusEl } from '../controls.js';
 import { createRules } from '../../chess/core/rules.js';
 import { HIGHLIGHT, ARROW } from '../../chess/render/boardRenderer.js';
 import { openingById } from '../../data/openings.js';
@@ -77,7 +78,7 @@ export function drillScreen(app, params) {
   const title = h('h2.pp-h2');
   const history = h('p.pp-small');
   const status = h('p');
-  const nextBtn = button('Next', () => load(index + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) });
+  const nextBtn = button('Next', () => load(index + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }), autofocus: true });
 
   const panel = h('aside.pp-match__left', null,
     h('div.pp-panel.pp-player.pp-match__opp', null,
@@ -89,7 +90,7 @@ export function drillScreen(app, params) {
       h('div.pp-row.pp-puzzle__actions', null,
         nextBtn,
         button('Show answer', () => reveal(), { cls: 'pp-btn--small pp-btn--blue', icon: pixelIcon('hint', { size: 'sm' }) }),
-        button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small' }))));
+        button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small', back: true }))));
   const el = h('div.pp-screen.pp-match.pp-match--puzzle', null, panel, h('main.pp-match__board', null, board.frame), h('aside.pp-match__right'));
 
   const results = [];
@@ -149,6 +150,7 @@ export function drillScreen(app, params) {
     await wait(700);
     nextBtn.hidden = false;
     nextBtn.querySelector('span:last-child').textContent = index >= set.length - 1 ? 'Finish' : 'Next';
+    if (usingKeysOrPad()) focusEl(nextBtn);      // answered with keys or a pad: Next is one press away
   }
 
   function reveal(countAsMiss = true) {
@@ -174,7 +176,7 @@ export function drillScreen(app, params) {
         : `Pass with ${Math.ceil(MASTERY.drillPassShare * set.length)} or more first-try answers.` }),
       h('div.pp-row', { style: { justifyContent: 'center' } },
         button('Another set', () => close('again'), { cls: 'pp-btn--gold' }),
-        button('Leave', () => close('leave'), { cls: 'pp-btn--small' }))), { dismissable: false });
+        button('Leave', () => close('leave'), { cls: 'pp-btn--small', back: true }))), { dismissable: false });
     if (choice === 'again') {
       set = pickDrillSet(opening.id);
       results.length = 0;

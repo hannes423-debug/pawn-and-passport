@@ -44,6 +44,7 @@ python3 tools/cdp_practice.py [WxH]    # practice room, tutorial unlock, journal
 python3 tools/cdp_lessons.py [WxH]     # practice tree: tiers, unlocking by trophy, read/watch/solve, XP, replay
 python3 tools/cdp_depth.py [scene]      # layered scenes: cut-outs, free walking with collision, depth order, hotspots
 python3 tools/cdp_undo.py               # Undo ability: cost, cap per level, cooldown, takeback; Hint+Undo visible at 8 viewports
+python3 tools/cdp_controls.py           # no mouse: the whole flow on the keyboard, then a fake Xbox, Nintendo and PlayStation pad
 ```
 
 Screenshots go to `tools/shots/`.
@@ -57,13 +58,37 @@ switch to a one-column layout in portrait and board-between-rails in landscape;
 a tap on a guide-arrow square shows its opening card. The HUD gets a fullscreen
 button where the browser supports it. Code: `js/ui/touch.js`, `css/touch.css`.
 
+## Keyboard and gamepad
+
+The whole game plays without a mouse. One router (`js/ui/controls.js`) turns
+keys and pads into the same actions; screens and pop-ups push handlers, and
+anything they do not use moves focus between the buttons on screen.
+
+| | Keyboard | Xbox | Nintendo | PlayStation |
+|---|---|---|---|---|
+| Move / walk / board cursor | WASD, arrows | left stick, d-pad | left stick, d-pad | left stick, d-pad |
+| Accept, pick up and place a piece | E, Space, Enter | A | A (right) | Cross |
+| Back, drop the piece, reach the buttons | Esc, Backspace | B | B (bottom) | Circle |
+| Skill 1: Hint | 1 | X | Y | Square |
+| Skill 2: Undo | 2 | Y | X | Triangle |
+| Map / Journal (in a club) | M / J | Menu / View | + / - | Options / Share |
+| Journal pages | | LB / RB | L / R | L1 / R1 |
+
+The pad's maker is read from its id (Settings > Gamepad layout overrides it),
+so a Nintendo pad accepts with A on the RIGHT, as on a Switch. Prompts
+(`js/ui/prompts.js`) show the right key or button and hide for mouse and touch;
+the board shows a blue cursor, gold while it carries a piece. Settings > All
+the controls draws every device. Art: `ui-input-prompts.png`,
+`ui-controls-overview.png` and `ui-devices-*.png`, cut by
+`tools/build_prompts.py` and `tools/build_controls_art.py`.
+
 ## Focus abilities
 
 **Hint** and **Undo** sit side by side in every layout. Undo takes back your
 last move and the reply. It costs 30 Focus (a level-1 player's whole pool), is
 capped per game (1 use, 2 from level 6, 3 from level 12), has a cooldown of 5 of
 your own moves, and costs 150 Match Score. Tunables: `UNDO` in
-`js/data/config.js`. Keyboard: H and U.
+`js/data/config.js`. Keyboard: 1 and 2 (or H and U); pad: the left and top face buttons.
 
 Grading during a game never says "Missed win" (it would reveal a winning line):
 those moves show as Inaccuracy, Mistake or Blunder by size. A piece left

@@ -12,6 +12,8 @@ import { sfx } from '../audio.js';
 import * as Save from '../../core/save.js';
 import { GAME, difficultyMode } from '../../data/config.js';
 import { difficultyPicker } from '../difficultyPicker.js';
+import { pixelIcon } from '../icons.js';
+import { showControls } from '../controlsHelp.js';
 
 export function settingsScreen(app, params) {
   const back = params.back || { screen: 'title', params: {} };
@@ -33,7 +35,11 @@ export function settingsScreen(app, params) {
     row('Piece animation', select('pieceAnimation', [['off', 'Off'], ['fast', 'Fast'], ['smooth', 'Smooth'], ['slow', 'Slow']])),
     row('Coordinates', toggle('coordinates')),
     h('h2.pp-h2', { text: 'Controls' }),
-    row('Touch controls', select('touchControls', [['auto', 'Auto (on for touch screens)'], ['on', 'Always on'], ['off', 'Off']]), 'Walking joystick, action button and the phone layout.'));
+    row('Touch controls', select('touchControls', [['auto', 'Auto (on for touch screens)'], ['on', 'Always on'], ['off', 'Off']]), 'Walking joystick, action button and the phone layout.'),
+    row('Gamepad layout', select('padLayout', [['auto', 'Auto (read from the controller)'], ['xbox', 'Xbox: A accepts, B goes back'], ['playstation', 'PlayStation: Cross accepts, Circle goes back'], ['nintendo', 'Nintendo: A (right) accepts, B (bottom) goes back']]),
+      'Only needed if the game shows the wrong buttons for your controller.'),
+    h('div.pp-row', { style: { marginBottom: '10px' } },
+      button('All the controls', () => showControls(app), { cls: 'pp-btn--small pp-btn--blue', icon: pixelIcon('settings', { size: 'sm' }) })));
 
   /* Difficulty lives on the career, not in the settings file: it is part of
      the save. Changing it here changes the games AHEAD - the tournament you
@@ -63,7 +69,7 @@ export function settingsScreen(app, params) {
     row('Reduce motion', toggle('reducedMotion'), 'No particles, flashes or shakes.'),
     row('Dialogue speed', select('textSpeed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']])),
     h('div.pp-row', null,
-      button('Done', () => app.go(back.screen, back.params), { cls: 'pp-btn--gold' }),
+      button('Done', () => app.go(back.screen, back.params), { cls: 'pp-btn--gold', back: true }),
       button('Reset settings', async () => {
         const ok = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
           h('h2.pp-h2', { text: 'Reset every setting?' }),

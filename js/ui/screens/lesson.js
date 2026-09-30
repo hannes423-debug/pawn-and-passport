@@ -18,6 +18,7 @@ import { h, button, wait } from '../dom.js';
 import { pixelIcon } from '../icons.js';
 import { sfx } from '../audio.js';
 import { createBoard } from '../board.js';
+import { usingKeysOrPad, focusEl } from '../controls.js';
 import { createRules } from '../../chess/core/rules.js';
 import { HIGHLIGHT, ARROW } from '../../chess/render/boardRenderer.js';
 import { lessonById } from '../../data/lessons.js';
@@ -147,9 +148,9 @@ export function lessonScreen(app, params) {
         : 'Next: try the challenges. You can come back to this page any time.' }));
     fill(actions,
       lesson.demo.length
-        ? button('Watch it', () => setStep('watch'), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) })
-        : button('Challenges', () => setStep('solve'), { cls: 'pp-btn--gold', icon: pixelIcon('practice', { size: 'sm' }) }),
-      button('Back to the tree', backToTree, { cls: 'pp-btn--small' }));
+        ? button('Watch it', () => setStep('watch'), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }), autofocus: true })
+        : button('Challenges', () => setStep('solve'), { cls: 'pp-btn--gold', icon: pixelIcon('practice', { size: 'sm' }), autofocus: true }),
+      button('Back to the tree', backToTree, { cls: 'pp-btn--small', back: true }));
   }
 
   /* ----------------------------------------------------------- 2. watch */
@@ -183,10 +184,10 @@ export function lessonScreen(app, params) {
       button('Back', () => goFrame(frame - 1), { cls: 'pp-btn--small', title: 'Previous frame', icon: pixelIcon('back', { size: 'sm' }) }),
       button(autoplay ? 'Pause' : 'Play', () => toggleAuto(), { cls: 'pp-btn--small pp-btn--blue', icon: pixelIcon('play', { size: 'sm' }) }),
       last
-        ? button('Challenges', () => setStep('solve'), { cls: 'pp-btn--gold', icon: pixelIcon('practice', { size: 'sm' }) })
-        : button('Next', () => goFrame(frame + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) }),
+        ? button('Challenges', () => setStep('solve'), { cls: 'pp-btn--gold', icon: pixelIcon('practice', { size: 'sm' }), autofocus: true })
+        : button('Next', () => goFrame(frame + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }), autofocus: true }),
       button('Instructions', () => setStep('read'), { cls: 'pp-btn--small' }),
-      button('Tree', backToTree, { cls: 'pp-btn--small' }));
+      button('Tree', backToTree, { cls: 'pp-btn--small', back: true }));
     if (last) finishWatching();
   }
 
@@ -262,12 +263,14 @@ export function lessonScreen(app, params) {
       }))));
     const next = index < lesson.challenges.length - 1;
     fill(actions,
-      solvedNow && next ? button('Next challenge', () => loadChallenge(index + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) }) : null,
-      solvedNow && !next ? button('Back to the tree', backToTree, { cls: 'pp-btn--gold' }) : null,
+      solvedNow && next ? button('Next challenge', () => loadChallenge(index + 1), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }), autofocus: true }) : null,
+      solvedNow && !next ? button('Back to the tree', backToTree, { cls: 'pp-btn--gold', autofocus: true }) : null,
       c.hints.length ? button('Hint', () => giveHint(), { cls: 'pp-btn--small pp-btn--blue', icon: pixelIcon('hint', { size: 'sm' }), disabled: hintLevel >= c.hints.length + 1 }) : null,
       button('Retry', () => loadChallenge(index), { cls: 'pp-btn--small', icon: pixelIcon('back', { size: 'sm' }) }),
       button('Instructions', () => setStep('read'), { cls: 'pp-btn--small' }),
-      button('Tree', backToTree, { cls: 'pp-btn--small' }));
+      button('Tree', backToTree, { cls: 'pp-btn--small', back: true }));
+    // Solved with keys or a pad: the way on is one press away.
+    if (solvedNow && usingKeysOrPad()) focusEl(actions.querySelector('[data-autofocus]'));
   }
 
   function uciOf(move, applied) {

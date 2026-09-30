@@ -120,8 +120,8 @@ export function practiceScreen(app, params) {
             ? h('p.pp-small.pp-muted', { text: `${next.tier.label} opens after ${next.trophiesNeeded} more Club ${next.trophiesNeeded === 1 ? 'Trophy' : 'Trophies'}.` })
             : h('p.pp-small.pp-muted', { text: 'Every tier is open: you hold all six Club Trophies.' })),
         h('div.pp-row', null,
-          resume ? button(lessonProgress(career, resume).started ? 'Continue' : 'Start here', () => openLesson(resume), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) }) : null,
-          button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small' }))),
+          resume ? button(lessonProgress(career, resume).started ? 'Continue' : 'Start here', () => openLesson(resume), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }), autofocus: true }) : null,
+          button('Leave', () => app.go('scene', { sceneId: params.returnScene }), { cls: 'pp-btn--small', back: true }))),
       filters,
       list));
 

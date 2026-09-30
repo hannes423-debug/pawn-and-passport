@@ -15,6 +15,8 @@
 import { h, button } from '../dom.js';
 import { pixelIcon, sideIcon } from '../icons.js';
 import { openOpeningStudy } from '../openingStudy.js';
+import { pushHandler } from '../controls.js';
+import { prompt } from '../prompts.js';
 import { tapWord } from '../touch.js';
 import { sfx } from '../audio.js';
 import { portraitUrl, PLAYER_LOOKS } from '../sprites.js';
@@ -76,11 +78,13 @@ export function journalScreen(app, params) {
   const body = h('div.pp-journal__body');
 
   function paintTabs() {
-    tabBar.replaceChildren(...tabs.map(([id, icon, label]) => h('button.pp-btn.pp-btn--small', {
+    tabBar.replaceChildren(h('span.pp-journal__shoulder.pp-when-pad', null, prompt('prevTab')),
+      ...tabs.map(([id, icon, label]) => h('button.pp-btn.pp-btn--small', {
       type: 'button', class: id === tab ? 'is-active' : '', 'aria-pressed': String(id === tab),
       onclick: () => { tab = id; sfx.click(); paint(); }
     }, pixelIcon(icon, { size: 'sm' }), h('span', { text: ` ${label}` }))),
-      button('Close', () => app.go(back.screen, back.params), { cls: 'pp-btn--small pp-btn--ghost', icon: pixelIcon('back', { size: 'sm' }) }));
+      h('span.pp-journal__shoulder.pp-when-pad', null, prompt('nextTab')),
+      button('Close', () => app.go(back.screen, back.params), { cls: 'pp-btn--small pp-btn--ghost', icon: pixelIcon('back', { size: 'sm' }), back: true }));
   }
 
   /* The book art is a landscape spread: on a phone held upright it would be
@@ -283,7 +287,20 @@ export function journalScreen(app, params) {
   paint();
   const ro = new ResizeObserver(onResize);
   ro.observe(body);
-  return { el, destroy() { ro.disconnect(); } };
+  // The shoulder buttons turn the pages (LB/RB, L/R, L1/R1).
+  const releaseControls = pushHandler({
+    name: 'journal',
+    scope: () => el,
+    onAction: (a) => {
+      if (a.type !== 'prevTab' && a.type !== 'nextTab') return false;
+      const i = tabs.findIndex(([id]) => id === tab);
+      tab = tabs[(i + (a.type === 'nextTab' ? 1 : -1) + tabs.length) % tabs.length][0];
+      sfx.click();
+      paint();
+      return true;
+    }
+  });
+  return { el, destroy() { ro.disconnect(); releaseControls(); } };
 }
 
 export default journalScreen;

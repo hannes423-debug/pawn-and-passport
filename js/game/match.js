@@ -25,7 +25,8 @@ import { GameReview } from '../chess/analysis/gameReview.js';
 import { accuracyFromWinProbLoss } from '../chess/core/gameResult.js';
 import { pvToSan, applyUci } from '../chess/core/rules.js';
 import { otherColour } from '../chess/core/constants.js';
-import { FOCUS, MASTERY, BOOK, GRADING, UNDO, HINTS, GUIDE } from '../data/config.js';
+import { FOCUS, MASTERY, BOOK, GRADING, UNDO, HINTS, GUIDE, DRAW, TOURNAMENT } from '../data/config.js';
+import { scoreToCp } from '../chess/analysis/moveClassifier.js';
 import { rollHint, refundFor, QUALITY_META } from '../core/focusHints.js';
 import { legalMoves } from '../chess/core/rules.js';
 import { PIECE_VALUE } from '../chess/core/constants.js';
@@ -79,9 +80,15 @@ export class PapMatch {
    * @param {{id,name,elo,style,openingId}} o.opponent
    * @param {'w'|'b'} o.playerColour
    */
-  constructor({ career, kind, opponent, playerColour = 'w', service = engineService }) {
+  constructor({ career, kind, opponent, playerColour = 'w', service = engineService, clubId = null }) {
     this.career = career;
     this.kind = kind;
+    /* Who a DRAW sends through, when it decides something: a Star final or
+       a Grand Finale round is won only by winning, so a draw is the bot's;
+       a knockout round goes to Black on a draw. Null: a draw is half a point. */
+    this.drawWinner = kind === 'star' || kind === 'finale' ? otherColour(playerColour)
+      : kind === 'tournament' && TOURNAMENT.format[clubId] === 'knockout' ? TOURNAMENT.knockoutDrawGoesTo
+      : null;
     this.opponent = opponent;
     this.playerColour = playerColour;
     this.service = service;
@@ -301,9 +308,11 @@ export class PapMatch {
     try {
       await this.reviewer.annotate(record);
       if (record.undone) return;
-      // Same position, same MultiPV: this is a cache hit, not a second search.
-      const before = await this.service.review(record.fenBefore, { multiPv: REVIEW_LEVEL.multiPv, ...this.gradingSearch });
-      let verdict = gradeMove(record, before.lines);
+      /* The lines annotate() classified the move with. Only when it had
+         nothing to go on (no engine lines) does grading ask for its own. */
+      const lines = record.reviewLines
+        || (await this.service.review(record.fenBefore, { multiPv: REVIEW_LEVEL.multiPv, ...this.gradingSearch })).lines;
+      let verdict = gradeMove(record, lines);
       if (!verdict.grade || record.undone) return;
       verdict = this._noRepeatSpecial(record, verdict);
       /* A move the hint showed is the hint's, not the player's find: it reads
@@ -488,14 +497,37 @@ export class PapMatch {
 
   resign() { this._botToken += 1; return this.game.resign(this.playerColour); }
 
-  /** The bot takes a draw only in a long, materially level game. */
-  offerDraw() {
-    const level = Math.abs(this._materialFor('w') - this._materialFor('b')) <= 100;
-    if (this.game.ply >= 40 && level && !this.game.waitingOnBot) {
-      this.game.offerDraw?.(this.playerColour);
-      return this.game.acceptDraw();
+  /**
+   * The player offers a draw. The bot looks at the board with its own engine
+   * and takes it when it is not better (DRAW.acceptCp); with no engine, when
+   * it is not ahead in material. A draw that would put the player through (a
+   * knockout played as Black) it takes only when clearly worse; one that
+   * wins the bot its round (a final, a knockout played as Black), always.
+   * Never before move 20.
+   *
+   * @returns {Promise<{accepted: boolean, reason: 'agreed'|'early'|'better'|'decides'|'busy'}>}
+   */
+  async offerDraw() {
+    if (this.game.status !== 'active' || this.game.waitingOnBot || this._drawPending) return { accepted: false, reason: 'busy' };
+    if (this.game.ply < DRAW.minPly) return { accepted: false, reason: 'early' };
+    const bot = otherColour(this.playerColour);
+    const ply = this.game.ply;
+    let edge = null;                  // how much better the bot thinks it is, in centipawns
+    if (this.drawWinner !== bot) {
+      this._drawPending = true;
+      try {
+        const r = await this.service.analyze(this.game.fen, DRAW.search);
+        const score = r.lines?.[0]?.score || r.score;
+        if (score) edge = (this.game.fen.split(' ')[1] === bot ? 1 : -1) * scoreToCp(score);
+      } catch { edge = null; } finally { this._drawPending = false; }
+      // The player moved (or the game ended) while it thought: that offer is gone.
+      if (this.game.ply !== ply || this.game.status !== 'active') return { accepted: false, reason: 'busy' };
+      if (edge === null) edge = this._materialFor(bot) - this._materialFor(this.playerColour);
+      const limit = this.drawWinner === this.playerColour ? -DRAW.holdOutCp : DRAW.acceptCp;
+      if (edge > limit) return { accepted: false, reason: this.drawWinner === this.playerColour ? 'decides' : 'better' };
     }
-    return null;
+    this.game.offerDraw?.(this.playerColour);
+    return { accepted: !!this.game.acceptDraw(), reason: 'agreed' };
   }
 
   _materialFor(colour) {
