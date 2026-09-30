@@ -63,6 +63,18 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 from depth_hints import HINTS, OBJECTS  # noqa: E402
 
+def _hand_cleaned():
+    """Scenes whose occlusion layer the artist cleaned by hand (docs/OCCLUSION.md, first table)."""
+    try:
+        doc = open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'docs', 'OCCLUSION.md')).read()
+    except OSError:
+        return frozenset()
+    top = doc.split('## Pruned by the tool')[0]
+    return frozenset(re.findall(r'^\| ([a-z]{3}-[a-z]+) \|', top, re.M))
+
+
+HAND_CLEANED = _hand_cleaned()
+
 CITY_DIR = {'nyc': 'NYC', 'lon': 'London', 'vie': 'Vienna', 'ist': 'Istanbul', 'che': 'Chennai', 'wen': 'Wenzhou', 'mad': 'Spain Madrid'}
 SCENES = ['nyc-ext', 'nyc-int', 'nyc-up', 'nyc-venue', 'lon-ext', 'lon-int', 'lon-venue',
           'vie-ext', 'vie-int', 'vie-up', 'vie-venue', 'ist-ext', 'ist-int', 'ist-up', 'ist-venue',
@@ -70,7 +82,7 @@ SCENES = ['nyc-ext', 'nyc-int', 'nyc-up', 'nyc-venue', 'lon-ext', 'lon-int', 'lo
 
 GRID = (300, 225)          # js/core/freeWalk.js GRID
 ALPHA = 128                # layer alpha that counts as opaque
-BIN = 0.5                  # ground lines are floored to this many percent: one slice per band
+BIN = 0.2                  # ground lines are floored to this many percent: one slice per band
 SPECK = 12                 # opaque specks smaller than this (px) are dropped
 FOOT = 12                  # px: a run is walked under when most of its lowest FOOT px are walkable
 LINTEL = 0.9               # a hanging run with no hint: its line is this many character heights below it
@@ -85,6 +97,8 @@ DOOR_W = 1.0               # character heights: a walkable passage no wider than
 SIDE_W = 0.6               # character heights: a side wall is no wider than this
 ADD_DIFF = 90              # colour distance (sum over RGB) from the floor that counts as part of an added object
 DOOR_SIDE = 1.6            # character heights: each half of a wall beside a doorway is at least this long (a table is shorter)
+WALLTOP_GAP = 4             # px: rows right below a walkable run that must be blocked for it to be a wall top
+WALLTOP_PART = 0.9         # a drawn part with less than this share on walkable floor is a structure, not a rug
 STACK_GAP = 0.08           # character heights: floor this deep between two footprints in one column splits it (stacked things)
 PAD = 4                    # atlas padding (px): a scaled slice must not sample its neighbour
 ATLAS_W = 2048
@@ -251,6 +265,13 @@ def depth(scene, opaque, walk, actor_h):
     gap = max(3, int(STACK_GAP * actor_h * H))
     kinds = np.zeros((H, W), np.uint8)       # 1 grounded, 2 hint, 3 decal, 4 lintel, 5 cut-out object (for the preview)
     hung = []
+    # each drawn part's share on walkable floor: a rug or plaque is ~all of it
+    lab, n = ndimage.label(opaque, structure=np.ones((3, 3)))
+    part_walk = np.ones(n + 1)
+    if n:
+        part_walk[1:] = ndimage.mean(walk, lab, np.arange(1, n + 1))
+    walltop = np.zeros((H, W), bool)
+    perrow = np.zeros((H, W), bool)
     for x in range(W):
         col = opaque[:, x]
         if not col.any():
@@ -312,7 +333,25 @@ def depth(scene, opaque, walk, actor_h):
             if not rest.any():
                 continue
             above = walk[max(0, a - 4):a, x]
-            if a >= 4 and above.mean() >= 0.5:
+            below = walk[b + 1:b + 1 + WALLTOP_GAP, x]
+            if below.size and below.mean() < 0.5 and part_walk[lab[b, x]] < WALLTOP_PART:
+                # The top of a wall the walk mask runs behind on purpose (from
+                # this angle a wall hides the floor behind it): the run is all
+                # walkable, but the ground right below it is blocked and it is
+                # part of a drawn structure, not a rug. It stands at its own
+                # bottom edge: feet on it are behind it and it covers them.
+                base[a:b + 1, x][rest] = b / H * 100
+                kinds[a:b + 1, x][rest] = 1
+                walltop[a:b + 1, x][rest] = True
+            elif part_walk[lab[b, x]] < WALLTOP_PART:
+                # walkable all the way but part of a drawn structure: a wall
+                # running up the picture, a stair rail, a door post the mask
+                # overlaps on purpose. Each row is where it is (as side_walls)
+                ys = np.nonzero(rest)[0] + a
+                base[ys, x] = np.minimum(99.0, (ys + SIDE_D * actor_h * H) / H * 100)
+                kinds[ys, x] = 1
+                perrow[ys, x] = True
+            elif a >= 4 and above.mean() >= 0.5:
                 kinds[a:b + 1, x][rest] = 3                 # on the floor: drawn with the background
             else:
                 base[a:b + 1, x][rest] = min(99.0, (b + lintel) / H * 100)   # refined below
@@ -339,10 +378,21 @@ def depth(scene, opaque, walk, actor_h):
             rows = kinds[a:b + 1, x] == 4
             base[a:b + 1, x][rows] = max(max(lines), b / H * 100)
     side_walls(opaque, walk, base, kinds, actor_h)
-    if scene.endswith(('-int', '-up')):
-        doorways(opaque, walk, base, kinds, actor_h)
+    if scene.endswith(('-int', '-up')) and scene not in HAND_CLEANED:
+        doorways(opaque, walk, base, kinds, actor_h)     # a hand-cleaned layer has no floor left in it
     unify(opaque, base, kinds, actor_h, standable(scene, opaque, walk, actor_h))
     rests_on(opaque, walk, base, kinds)
+    # a wall top keeps its own edge: joined to the structure below it, it took
+    # a line from far down and hid anyone in the room in front of the wall
+    for x in np.nonzero(walltop.any(axis=0))[0]:
+        col = walltop[:, x]
+        d = np.diff(np.concatenate(([0], col.astype(np.int8), [0])))
+        for a0, b0 in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+            base[a0:b0, x] = (b0 - 1) / H * 100
+            kinds[a0:b0, x] = 1
+    ys, xs = np.nonzero(perrow)
+    base[ys, xs] = np.minimum(99.0, (ys + SIDE_D * actor_h * H) / H * 100)
+    kinds[ys, xs] = 1
     for _oid, m, line in objects(scene, opaque):       # after unify: nothing may pull an object's line
         m = m & opaque
         if line is None:                                 # floor: never in front of anybody
@@ -727,6 +777,12 @@ def slices(base, walk, actor_h):
     slice. Lines are in tenths of a percent, the game's z-index unit."""
     H, W = base.shape
     valid = ~np.isnan(base)
+    # stray dots of the drawing go; a depth piece of a real object never does
+    # (dropping small PIECES left holes in chair and table edges: feet showed)
+    lab, n = ndimage.label(valid, structure=np.ones((3, 3)))
+    if n:
+        sizes = ndimage.sum(valid, lab, np.arange(1, n + 1))
+        valid &= ~np.isin(lab, np.nonzero(sizes < SPECK)[0] + 1)
     z = np.where(valid, np.floor(np.nan_to_num(base) * 10 / (BIN * 10)) * BIN * 10, -1).astype(np.int32)
     z[valid & (base >= 99)] = 990
     feet_u = np.round(np.arange(H) / H * 1000).astype(np.int32)     # feet row -> z units, as scene.js rounds
@@ -762,8 +818,6 @@ def slices(base, walk, actor_h):
             y1, x1 = sl[0].stop + (sl[0].stop - y0) % 2, sl[1].stop + (sl[1].stop - x0) % 2
             sl = (slice(y0, min(H, y1)), slice(x0, min(W, x1)))
             part = m[sl] & (lab[sl] == i)
-            if part.sum() < SPECK:
-                continue
             out.append((min(99.0, zu / 10), sl, part))
     return out, snapped
 
@@ -813,7 +867,7 @@ def sources(scene):
     """What a scene's data is made from: both guides, its hints and this file's tunables."""
     folder = os.path.join(ROOT, CITY_DIR[scene[:3]])
     md5 = lambda path: hashlib.md5(open(path, 'rb').read()).hexdigest()[:12]
-    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_HOLD, UNIFY_FAR, 'unify6', OVER, SIDE_LEN, SIDE_D, SIDE_R, SIDE_W, 'rows2', STACK_GAP, DOOR_W, 'door4', DOOR_SIDE, 'rests1', PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
+    tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_HOLD, UNIFY_FAR, 'unify6', OVER, SIDE_LEN, SIDE_D, SIDE_R, SIDE_W, 'rows2', STACK_GAP, DOOR_W, 'door4', DOOR_SIDE, 'rests1', 'walltop2', 'speck2', sorted(HAND_CLEANED), WALLTOP_GAP, WALLTOP_PART, PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
     cuts = [md5(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png')) for o in OBJECTS.get(scene, [])
             if o[1] == 'foliage' and os.path.exists(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png'))]
     tun += repr((OBJECTS.get(scene), cuts))

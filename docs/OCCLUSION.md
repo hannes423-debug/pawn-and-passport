@@ -75,6 +75,19 @@ a wall stands on its OWN blocked section (a passage through a wall no longer
 gives the wall behind the front wall's line), a narrow side wall or pillar is
 at the depth of each of its rows, and two footprints in one column split it.
 
+v1.1.14 (2026-09-30): "feet shown on top of walls, tables, chairs". A
+character is drawn 8% of its height BELOW its feet (css translate(-50%,-92%)),
+and the shoes showed over whatever stands just in front. Three causes:
+(1) a run the walk mask makes walkable all the way (the mask overlaps walls on
+purpose: from this angle a wall hides the floor behind it) was taken for a
+rug. A drawn part not ~all on walkable floor (WALLTOP_PART) is a structure:
+blocked ground below = a wall top at its own bottom edge, else each row where
+it is. Pinned after unify. The doorway-to-floor rule is off for hand-cleaned
+layers (they have no floor left). (2) slices() floored ground lines to 0.5%,
+about the shoe strip: now BIN 0.2. (3) slices() dropped depth pieces under
+SPECK px, holes in chair and table edges: specks are filtered on the drawing
+before slicing now. Measure: `tools/dev/feet_check.py [--shots]`.
+
 v1.1.13 (2026-09-30): "player drawn over tables/stairs, walls glitch" in
 lon-int, vie-int, ist-int. Three causes. (1) The v1.1.11 doorway rule floored
 ANY narrow walkable run, including where feet overlap a wall top or a table
