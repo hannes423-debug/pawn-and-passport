@@ -10,6 +10,7 @@
 import { OPENINGS } from '../js/data/openings.js';
 import { spriteId, setPlayerAvatar, PLAYER_LOOKS } from '../js/ui/sprites.js';
 import { SCENE_LAYERS } from '../js/data/sceneLayers.js';
+import { SCENE_LAYERS_FLOOR } from '../js/data/sceneLayersFloor.js';
 import { createWalkGrid, walkerFor, solidFromWalk } from '../js/core/freeWalk.js';
 import { collisionDebugOn } from '../js/ui/screens/scene.js';
 import { MOODS, MOOD_RULES, moodFacts, heatOf, createMoodTracker } from '../js/core/musicMood.js';
@@ -1298,6 +1299,22 @@ test('undo: level caps and scoring', () => {
 });
 
 /* -------------------------------------------------------- free walking */
+
+test('floor-mask experiment: Vienna only, same walking as the legacy data, slices inside the atlas', () => {
+  const ids = Object.keys(SCENE_LAYERS_FLOOR);
+  assert(ids.length > 0, 'floor data present');
+  for (const id of ids) {
+    assert(id.startsWith('vie-'), `${id}: the floor experiment is Vienna only`);
+    const layers = SCENE_LAYERS_FLOOR[id];
+    eq(JSON.stringify(layers.walk), JSON.stringify(SCENE_LAYERS[id].walk), `${id}: identical walk grid`);
+    assert(existsSync(path.join(ROOT, layers.atlas.split('?')[0])), `${id}: floor atlas`);
+    const [AW, AH] = layers.atlasSize;
+    layers.slices.forEach(([base, , , , , ax, ay, aw, ah], k) => {
+      assert(ax >= 0 && ay >= 0 && ax + aw <= AW && ay + ah <= AH, `${id}/floor slice ${k}: inside the atlas`);
+      assert(base >= 0 && base <= 99, `${id}/floor slice ${k}: ground line`);
+    });
+  }
+});
 
 test('layered scenes: every hotspot reachable from the spawn, and every slice inside its atlas', () => {
   const sizes = JSON.parse(readFileSync(path.join(ROOT, 'assets/manifest.json'), 'utf8')).scenes;

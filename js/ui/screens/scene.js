@@ -40,6 +40,7 @@ import { openOpeningStudy } from '../openingStudy.js';
 import { learnFromTutorial } from '../../core/career.js';
 import { practiceSummary } from '../../core/lessons.js';
 import { SCENE_LAYERS } from '../../data/sceneLayers.js';
+import { SCENE_LAYERS_FLOOR } from '../../data/sceneLayersFloor.js';
 import { createWalkGrid, walkerFor } from '../../core/freeWalk.js';
 import { pixelIcon, sideIcon } from '../icons.js';
 
@@ -113,29 +114,47 @@ const atlasSize = (url) => new Promise((resolve) => {
   img.src = url;
 });
 const fits = (size, d) => !size || (size[0] === d.atlasSize[0] && size[1] === d.atlasSize[1]);
+/* THE VIENNA FLOOR-MASK EXPERIMENT (docs/FLOORMASK.md): Vienna's scenes have a
+   second set of depth slices, built from the artist's original occlusion layer
+   and a floor mask (sceneLayersFloor.js). It is on by default there; the L key
+   or ?depth=legacy switches to the current renderer (and back), live, for the
+   rest of the session. Walking is identical in both: same walk grid. */
+const DEPTH_DEFAULT = 'floor';     // 'legacy' switches the Vienna experiment off for everybody
+let depthMode = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('depth');
+    return q === 'legacy' || q === 'floor' ? q : DEPTH_DEFAULT;
+  } catch { return DEPTH_DEFAULT; }
+})();
+const hasFloorDepth = (id) => !!SCENE_LAYERS_FLOOR[id];
 const checkedLayerCache = new Map();
-async function checkedLayers(id) {
-  const cur = SCENE_LAYERS[id];
+async function checkedLayers(id, mode = depthMode) {
+  const floor = mode === 'floor' && hasFloorDepth(id);
+  const cur = floor ? SCENE_LAYERS_FLOOR[id] : SCENE_LAYERS[id];
   if (!cur) return null;
-  if (checkedLayerCache.has(id)) return checkedLayerCache.get(id);
+  const key = `${id}:${floor ? 'floor' : 'legacy'}`;
+  if (checkedLayerCache.has(key)) return checkedLayerCache.get(key);
   const timeout = () => wait(4000).then(() => null);    // unknown: trust the data
   let good = cur;
   if (!fits(await Promise.race([atlasSize(cur.atlas), timeout()]), cur)) {
     good = null;
     try {
-      const fresh = (await import(`../../data/sceneLayers.js?fresh=${Date.now()}`)).SCENE_LAYERS[id];
+      const mod = floor
+        ? (await import(`../../data/sceneLayersFloor.js?fresh=${Date.now()}`)).SCENE_LAYERS_FLOOR
+        : (await import(`../../data/sceneLayers.js?fresh=${Date.now()}`)).SCENE_LAYERS;
+      const fresh = mod[id];
       if (fresh && fits(await Promise.race([atlasSize(fresh.atlas), timeout()]), fresh)) good = fresh;
     } catch { /* offline: fall through */ }
     if (!good) good = { ...cur, slices: [] };            // walk the floor, draw no wrong depth
   }
-  checkedLayerCache.set(id, good);
+  checkedLayerCache.set(key, good);
   return good;
 }
 
 /* A walk grid takes a moment to bake on a phone: build each scene's once. */
 const walkGrids = new Map();
 function walkGridFor(id, layers, aspect, actorHeight) {
-  const key = `${id}:${layers.atlas}:${aspect.toFixed(4)}:${actorHeight}`;
+  const key = `${id}:${layers.walk.rle.length}:${aspect.toFixed(4)}:${actorHeight}`;      // both depth modes walk alike
   if (!walkGrids.has(key)) walkGrids.set(key, createWalkGrid(layers, { aspect, walker: walkerFor(actorHeight) }));
   return walkGrids.get(key);
 }
@@ -375,20 +394,32 @@ export async function sceneScreen(app, params) {
   const layers = await checkedLayers(scene.id);
   const freeMode = !!layers;
   const grid = freeMode ? walkGridFor(scene.id, layers, aspect, ACTOR_H) : null;
-  if (freeMode) {
-    const [AW, AH] = layers.atlasSize;
+  function drawDepth(set) {
+    for (const old of actors.querySelectorAll('.pp-prop')) old.remove();
+    const [AW, AH] = set.atlasSize;
     const pct = (a, size, whole) => (whole === size ? 0 : (a / (whole - size)) * 100);
-    for (const [base, x, y, pw, ph, ax, ay, w, hgt] of layers.slices) {
+    for (const [base, x, y, pw, ph, ax, ay, w, hgt] of set.slices) {
       actors.append(h('div.pp-prop', {
         style: {
           left: `${x}%`, top: `${y}%`, width: `${pw}%`, height: `${ph}%`,
           zIndex: String(Math.round(base * 10) * 2),
-          backgroundImage: `url("${layers.atlas}")`,
+          backgroundImage: `url("${set.atlas}")`,
           backgroundSize: `${(AW / w) * 100}% ${(AH / hgt) * 100}%`,
           backgroundPosition: `${pct(ax, w, AW)}% ${pct(ay, hgt, AH)}%`
         }
       }));
     }
+    stage.dataset.depth = set.depth === 'floor' ? 'floor' : 'legacy';
+  }
+  if (freeMode) drawDepth(layers);
+  /* L: swap the Vienna depth experiment for the current renderer and back,
+     where the player stands (docs/FLOORMASK.md). */
+  async function toggleDepth() {
+    if (!freeMode || !hasFloorDepth(scene.id)) return;
+    depthMode = depthMode === 'floor' ? 'legacy' : 'floor';
+    const set = await checkedLayers(scene.id);
+    if (set) drawDepth(set);
+    app.toast(depthMode === 'floor' ? 'Depth: floor-mask experiment (L: current renderer)' : 'Depth: current renderer (L: floor-mask experiment)', { ms: 2200 });
   }
 
   /* ?debugCollision=1 paints the grid the player actually walks on, over the
@@ -601,7 +632,9 @@ export async function sceneScreen(app, params) {
   /* The actions panel can be hidden (button or H, remembered in settings), and
      while it is open it takes its own room beside or above the stage instead
      of covering the top of the map. */
-  const dockOpen = () => app.settings.actionsPanel !== false;
+  // A function declaration, not a const: fit() can run from the background's
+  // onload while the scene is still awaiting its depth data, before this line.
+  function dockOpen() { return app.settings.actionsPanel !== false; }
   function paintDock() {
     const open = dockOpen();
     dock.classList.toggle('is-collapsed', !open);
@@ -665,6 +698,7 @@ export async function sceneScreen(app, params) {
     if (n >= 1 && n <= scene.hotspots.length) use(scene.hotspots[n - 1]);
     if (e.key === 'm' || e.key === 'M') app.go('map');
     if (e.key === 'h' || e.key === 'H') setDock(!dockOpen());
+    if (e.key === 'l' || e.key === 'L') toggleDepth();
     if (e.key === 'j' || e.key === 'J') app.go('journal', { back: app.backParams() });
   };
   document.addEventListener('keydown', onKey);

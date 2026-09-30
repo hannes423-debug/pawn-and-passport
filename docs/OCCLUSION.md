@@ -12,6 +12,11 @@ test (see its header) for the layers not cleaned yet:
 
     python3 tools/prune_occlusion.py occlusion-proposals <scene> ...
 
+Vienna also has a second depth build from the artist's ORIGINAL layers
+(`Vienna/<scene>-occlusion-original.png`, restored from 90f2128) and a floor
+mask: see docs/FLOORMASK.md. It is on by default in Vienna (L key /
+`?depth=legacy` for this renderer).
+
 ## Cleaned by the artist (source of truth, never pruned)
 
 | scene | cleaned | shipped |

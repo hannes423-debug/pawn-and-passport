@@ -49,7 +49,9 @@ try:
             c.eval(f"window.__pap.go('scene', {{ sceneId: '{sid}' }}).then(() => 1)", await_promise=True)
             c.pump(1.5)
         print(sid)
-        expected = c.eval(f"import('./js/data/sceneLayers.js').then(m => m.SCENE_LAYERS['{sid}'].slices.length)", await_promise=True)
+        # Vienna draws the floor-mask experiment by default (docs/FLOORMASK.md): expect whichever set the stage shows
+        expected = c.eval(f"""Promise.all([import('./js/data/sceneLayers.js'), import('./js/data/sceneLayersFloor.js')]).then(([a, b]) =>
+            (document.querySelector('.pp-scene__stage')?.dataset.depth === 'floor' && b.SCENE_LAYERS_FLOOR['{sid}'] ? b.SCENE_LAYERS_FLOOR : a.SCENE_LAYERS)['{sid}'].slices.length)""", await_promise=True)
         c.wait_for(f"document.querySelectorAll('.pp-prop').length === {expected}", timeout=30)
         got = c.eval("document.querySelectorAll('.pp-prop').length")
         if got != expected:

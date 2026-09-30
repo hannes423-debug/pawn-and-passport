@@ -11,6 +11,8 @@ for f in $(git ls-files 'js/*.js'); do node --check "$f"; done
 # The collision and depth data is GENERATED from the artist's walk masks and
 # occlusion layers: the committed file has to still be what they make.
 python3 tools/build_occlusion.py --check >/dev/null
+# The Vienna floor-mask experiment (docs/FLOORMASK.md): same rule for its data.
+python3 tools/floor_depth.py --check >/dev/null
 # Nothing walled off, and nothing standing where it cannot be reached.
 node tools/dev/clearance.mjs >/dev/null
 echo "PREDEPLOY OK"

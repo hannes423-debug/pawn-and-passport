@@ -30,7 +30,7 @@ cp index.html "$out/"
 cp -r css js vendor "$out/"
 mkdir -p "$out/assets"
 cp -r assets/ui assets/scenes assets/cities assets/postcards assets/pieces assets/board \
-      assets/fonts assets/characters assets/layers assets/audio "$out/assets/"
+      assets/fonts assets/characters assets/layers assets/layers-floor assets/audio "$out/assets/"
 # assets/manifest.json is a FILE at the top of assets/, not a folder, so the
 # line above never took it. The game fetches it for every scene's size; without
 # it a room lays out from whatever the bitmap happens to report once it loads.
