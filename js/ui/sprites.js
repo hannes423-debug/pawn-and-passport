@@ -101,14 +101,19 @@ function outline(g) {
   return out;
 }
 
+/* The painter's colours when a look names only a sheet ({ sprite: 'girl' }) and
+   the sheets did not load (manifest.json failed on a flaky connection): it used
+   to throw on the missing colours and leave the character undrawn. */
+const LOOK_DEFAULT = Object.freeze({ skin: '#e8b98f', hair: '#4a3322', top: '#3f6fb0', bottom: '#3b3444' });
+
 /** One pose. dir: 'down' | 'left' | 'right' | 'up'; frame 0..2. */
 function pose(look, dir, frame) {
   const g = grid();
-  const skin = look.skin;
-  const hair = look.hair;
-  const top = look.top;
+  const skin = look.skin || LOOK_DEFAULT.skin;
+  const hair = look.hair || LOOK_DEFAULT.hair;
+  const top = look.top || LOOK_DEFAULT.top;
   const topDark = shade(top, -38);
-  const bottom = look.bottom;
+  const bottom = look.bottom || LOOK_DEFAULT.bottom;
   const side = dir === 'left' || dir === 'right';
   const stride = frame === 1 ? 1 : frame === 2 ? -1 : 0;
   const bob = frame === 0 ? 0 : 1;

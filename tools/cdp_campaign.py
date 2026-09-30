@@ -65,6 +65,10 @@ def run(start):
     def button(pattern):
         return f"[...document.querySelectorAll('.pp-overlay button, .pp-dialogue button, .pp-scene__dock button, .pp-map button, button')].find(b => b.offsetParent !== null && /{pattern}/.test(b.textContent))"
 
+    def labelled(pattern):
+        """An icon-only button, by its aria-label (the map's fly button has no text)."""
+        return f"[...document.querySelectorAll('button[aria-label]')].find(b => b.offsetParent !== null && /{pattern}/.test(b.getAttribute('aria-label')))"
+
     def settle_ui(prefer=r"Continue|Add it to my passport|Next|Done|Bye|Later|Close", until="!!document.querySelector('.pp-scene') && !document.querySelector('.pp-overlay, .pp-dialogue, .pp-arrival')", timeout=60):
         """Click through arrival cards, dialogues and result overlays until `until` holds."""
         end = time.time() + timeout
@@ -103,9 +107,9 @@ def run(start):
         city = "Madrid" if club_or_madrid == "mad" else CITY[club_or_madrid]
         click(f"[...document.querySelectorAll('.pp-pin')].find(b => b.getAttribute('aria-label').startsWith('{city}'))", f"the {city} pin")
         c.pump(0.4)
-        pattern = "Fly to Madrid" if club_or_madrid == "mad" else "Fly to the club|Go to the club"
-        wait(f"!!{button(pattern)}", f"the {city} travel button")
-        click(button(pattern), "the travel button")
+        pattern = "Fly to Madrid|Go to the championship" if club_or_madrid == "mad" else f"Fly to {city}|Go to the club"
+        wait(f"!!{labelled(pattern)}", f"the {city} travel button")
+        click(labelled(pattern), "the travel button")
         wait("window.__pap.currentName === 'scene'", f"arrival in {city}", 30)
         settle_ui()
 

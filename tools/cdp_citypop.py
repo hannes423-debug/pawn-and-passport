@@ -44,6 +44,10 @@ for w, hgt in sizes:
         c.eval("[...document.querySelectorAll('.pp-pin')].find(p => p.getAttribute('aria-label').startsWith('Vienna')).click()")
         check(c.wait_for("!!document.querySelector('.pp-citypop')", timeout=5), 'a pin opens the preview')
         c.pump(1.2)
+        # the pictures load after the popup opens: on a busy machine that took longer
+        # than the pump above, and the check failed on a picture still in flight
+        c.wait_for("(() => { const p = document.querySelector('.pp-citypop__pic'), f = document.querySelector('.pp-citypop__frame');"
+                   " return p && f && p.complete && p.naturalWidth > 0 && f.complete && f.naturalWidth > 0; })()", timeout=15)
         box = json.loads(c.eval("""JSON.stringify((() => { const r = document.querySelector('.pp-citypop').getBoundingClientRect();
             const pic = document.querySelector('.pp-citypop__pic');
             return { t: r.top, b: r.bottom, l: r.left, r: r.right, vw: innerWidth, vh: innerHeight,
