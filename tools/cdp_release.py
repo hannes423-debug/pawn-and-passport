@@ -11,7 +11,7 @@ that ?debugCollision=1 paints an overlay while a normal run paints none.
 """
 import sys
 
-from cdp import Chrome, BASE  # noqa: E402
+from cdp import Chrome  # noqa: E402
 
 FAILS = []
 
@@ -65,7 +65,7 @@ def main():
           }); 1""")
         c.wait_for("window.__wrote === 'hard'", timeout=20)
         c.goto("", settle=2.0)                      # a real reload
-        back = c.eval("""
+        c.eval("""
           import('./js/core/save.js').then(S => { window.__read = (S.loadCareer() || {}).difficulty; }); 1""")
         c.wait_for("window.__read !== undefined", timeout=20)
         check("difficulty survives a reload", c.eval("window.__read") == "hard", c.eval("window.__read"))

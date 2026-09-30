@@ -163,12 +163,4 @@ export function membersForClub(clubId) {
 
 export const MEMBERS = Object.freeze(Object.fromEntries(CLUBS.map((c) => [c.clubId, membersForClub(c.clubId)])));
 
-export const memberById = (id) => {
-  for (const list of Object.values(MEMBERS)) {
-    const found = list.find((x) => x.id === id);
-    if (found) return found;
-  }
-  return null;
-};
-
 export default MEMBERS;

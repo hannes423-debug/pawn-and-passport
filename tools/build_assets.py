@@ -172,7 +172,6 @@ def build_pieces():
     if not path:
         return
     sheet = Image.open(path).convert('RGBA')
-    alpha = sheet.getchannel('A')
     # Column and row runs of solid alpha, measured once from the sheet.
     rows = [(57, 523, 'w'), (534, 973, 'b')]
     cols = [(62, 280, 'K'), (318, 532, 'Q'), (566, 780, 'R'), (808, 1012, 'B'), (1020, 1276, 'N'), (1300, 1480, 'P')]

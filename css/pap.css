@@ -63,7 +63,6 @@ img, canvas { image-rendering: pixelated; }
 
 #app { position: fixed; inset: 0; overflow: hidden; }
 .pp-screen { position: absolute; inset: 0; overflow: hidden; }
-.pp-screen--scroll { overflow-y: auto; }
 
 /* ------------------------------------------------------------ primitives -- */
 
@@ -144,7 +143,6 @@ img, canvas { image-rendering: pixelated; }
   background: var(--wood-dark); color: var(--paper);
   font-size: 14px; font-weight: 700;
 }
-.pp-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 6px; background: rgba(59, 39, 22, 0.1); font-weight: 700; }
 
 /* --------------------------------------------------------------- curtain -- */
 
@@ -323,7 +321,6 @@ img, canvas { image-rendering: pixelated; }
 /* Open, with a side gutter wide enough: a column beside the stage (scene.js reserveDock). */
 .pp-scene__dock.is-side { top: calc(var(--hud-h, 56px) + 8px); bottom: auto; max-width: 200px; }
 .pp-scene__dock.is-side .pp-row { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 4px; }
-.pp-scene__placeholder { position: absolute; right: 12px; bottom: 12px; z-index: 10; max-width: 300px; font-size: 14px; }
 
 /* -------------------------------------------------------------- overlays -- */
 
@@ -408,8 +405,6 @@ img, canvas { image-rendering: pixelated; }
 /* ---------------------------------------------------------------- result -- */
 
 .pp-result__head { text-align: center; }
-.pp-result__letter { font-family: var(--font-pixel); font-size: 64px; line-height: 1; color: var(--gold); -webkit-text-stroke: 3px var(--wood-dark); text-shadow: 0 6px 0 var(--wood-dark); }
-.pp-result__score { font-family: var(--font-pixel); font-size: 26px; margin: 8px 0; }
 .pp-result__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 640px) { .pp-result__grid { grid-template-columns: 1fr; } }
 .pp-lines { list-style: none; margin: 0; padding: 0; font-size: 16px; }
@@ -430,7 +425,6 @@ img, canvas { image-rendering: pixelated; }
 .pp-book__page { position: absolute; top: 8%; bottom: 9%; overflow-y: auto; padding: 1%; font-size: max(11px, 1.35cqw); }
 .pp-book__page--left { left: 7%; width: 40%; }
 .pp-book__page--right { left: 53%; width: 40%; }
-.pp-book__cover { position: absolute; background: #f3e3bf; border-radius: 6px; }
 .pp-journal { background: radial-gradient(circle at 50% 40%, #3a2618, #0d0806); }
 .pp-journal__tabs { position: absolute; top: 60px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; z-index: 3; padding: 0 12px; }
 .pp-journal__tabs .pp-btn.is-active { background: linear-gradient(#ffd87a, #e8a93a); }

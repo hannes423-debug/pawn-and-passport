@@ -37,21 +37,12 @@ export const PIECE_NAME = Object.freeze({
   p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king'
 });
 
-export const PIECE_NAME_CAPITALISED = Object.freeze({
-  p: 'Pawn', n: 'Knight', b: 'Bishop', r: 'Rook', q: 'Queen', k: 'King'
-});
-
-/** SAN letter for a piece type ('' for a pawn). */
-export const PIECE_SAN = Object.freeze({ p: '', n: 'N', b: 'B', r: 'R', q: 'Q', k: 'K' });
-
 export const COLOUR_NAME = Object.freeze({ w: 'White', b: 'Black' });
 
 export function otherColour(colour) {
   return colour === WHITE ? BLACK : WHITE;
 }
 
-export function fileOf(square) { return square[0]; }
-export function rankOf(square) { return Number(square[1]); }
 export function fileIndex(square) { return square.charCodeAt(0) - 97; }
 export function rankIndex(square) { return Number(square[1]) - 1; }
 
@@ -65,11 +56,6 @@ export function squareDistance(a, b) {
   return Math.max(Math.abs(fileIndex(a) - fileIndex(b)), Math.abs(rankIndex(a) - rankIndex(b)));
 }
 
-/** 'light' | 'dark' without needing a board instance. */
-export function squareShade(square) {
-  return (fileIndex(square) + rankIndex(square)) % 2 === 0 ? 'dark' : 'light';
-}
-
 export function isSlider(type) {
   return type === BISHOP || type === ROOK || type === QUEEN;
 }
@@ -80,11 +66,3 @@ export const RAYS = Object.freeze({
   r: [[1, 0], [-1, 0], [0, 1], [0, -1]],
   q: [[1, 1], [1, -1], [-1, 1], [-1, -1], [1, 0], [-1, 0], [0, 1], [0, -1]]
 });
-
-export const KNIGHT_STEPS = Object.freeze(
-  [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]]
-);
-
-export const KING_STEPS = Object.freeze(
-  [[1, 1], [1, 0], [1, -1], [0, 1], [0, -1], [-1, 1], [-1, 0], [-1, -1]]
-);

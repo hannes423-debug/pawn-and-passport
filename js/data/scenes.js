@@ -9,7 +9,7 @@
  *
  * A hotspot is where an action happens. `node` is where the player stands to
  * use it; `npc` optionally puts a character sprite there. `action.type` is
- * resolved by js/ui/sceneScreen.js with the club as context:
+ * resolved by js/ui/screens/scene.js with the club as context:
  *   scene      go to another scene      { to, spawn }
  *   leave      open the travel menu (world map / venue / club)
  *   tournament enter or continue the club tournament

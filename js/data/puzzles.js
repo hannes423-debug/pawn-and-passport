@@ -397,6 +397,5 @@ export const PUZZLES = [
   }
 ];
 
-export const puzzlesForMission = (missionId) => PUZZLES.filter((p) => p.mission === missionId);
 
 export default PUZZLES;

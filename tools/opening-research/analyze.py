@@ -22,7 +22,7 @@ import os
 import re
 import subprocess
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 
 MIN_ELO = int(os.environ.get("PAP_MIN_ELO", 2200))
 MAX_PLIES = 28

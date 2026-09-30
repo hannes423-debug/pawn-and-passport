@@ -708,7 +708,8 @@ much of its base band the player can stand in. A prop with no footprint reads
 near 100%. It runs in `predeploy.sh` at `--fail-over=50`; the 13 props left in
 the 10-46% band are a lamp's flared base or an armchair's arm sticking past
 the rect that blocks it, which is the ordinary overlap of a three-quarter view.
-`tools/dev/audit_layers.py` draws the same thing over the scene art.
+`tools/dev/audit_layers.py` draws the same thing over the scene art. (Both tools
+went with the cut-out system in 28c; predeploy no longer runs them.)
 
 ## 28c. Artist walk masks and occlusion layers (2026-09-25)
 

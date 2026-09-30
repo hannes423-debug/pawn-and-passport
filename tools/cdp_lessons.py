@@ -20,7 +20,6 @@ tools/cdp_lessons.py - the club practice tree in a real browser.
      one-way door)
  10. no console errors, and the page never scrolls
 """
-import json
 import os
 import sys
 

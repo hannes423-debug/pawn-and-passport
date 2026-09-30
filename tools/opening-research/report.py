@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """report.py - turn tree.json into report.md: every branch that at least
 SHARE of the games reaching its parent chose, down to MAX_DEPTH plies."""
-import json, os, sys
+import json, os
 HERE = os.path.dirname(os.path.abspath(__file__))
 SHARE = float(os.environ.get("PAP_SHARE", 0.12))
 MAX_DEPTH = int(os.environ.get("PAP_DEPTH", 22))

@@ -17,8 +17,6 @@ import { h } from './dom.js';
 
 let mode = 'auto';
 let sawTouch = false;
-const listeners = new Set();
-
 const coarse = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
 export function isTouch() {
@@ -30,22 +28,13 @@ export function isTouch() {
 function stamp() {
   const on = isTouch();
   const root = document.documentElement;
-  if (root.dataset.touch !== String(on)) {
-    root.dataset.touch = String(on);
-    for (const fn of [...listeners]) fn(on);
-  }
+  if (root.dataset.touch !== String(on)) root.dataset.touch = String(on);
 }
 
 /** Called by app.applySettings(). */
 export function configureTouch(settings) {
   mode = settings?.touchControls || 'auto';
   stamp();
-}
-
-/** Fires with the new value whenever touch mode flips (a first touch, a setting change). */
-export function onTouchChange(fn) {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
 }
 
 /** "tap" on touch screens, "click" elsewhere, for instructions in the UI. */

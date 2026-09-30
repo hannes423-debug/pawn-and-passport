@@ -36,8 +36,6 @@ function append(el, children) {
 }
 
 export const clear = (el) => { while (el.firstChild) el.firstChild.remove(); return el; };
-export const $ = (sel, root = document) => root.querySelector(sel);
-export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -62,4 +60,4 @@ export function meter(value, max, { cls = '', label = null } = {}) {
     h('div.pp-meter__fill', { style: { width: `${pct}%` } }));
 }
 
-export default { h, clear, $, $$, wait, frames, button, meter };
+export default { h, clear, wait, frames, button, meter };

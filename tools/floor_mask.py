@@ -156,13 +156,11 @@ def generate(scene):
         lab_, n = ndimage.label(m)
         if n:
             sizes = ndimage.sum(m, lab_, np.arange(1, n + 1))
-            ring = ndimage.binary_dilation(m, iterations=1) & ~m
             for i in np.nonzero(sizes < 40)[0] + 1:
                 part = lab_ == i
                 edge = ndimage.binary_dilation(part, iterations=1) & ~part
                 if (out[edge] == FLOOR).mean() > 0.95:
                     out[part] = FLOOR
-            del ring
     prov = {'walkable': walk, 'hidden_floor': walk & opaque, 'inaccessible_floor': grown,
             'not_floor': out == NOT_FLOOR, 'unsure_under_layer': (out == UNSURE) & opaque,
             'unsure_visible': (out == UNSURE) & ~opaque, 'opaque': opaque}
@@ -229,7 +227,6 @@ def main():
         art, out, prov = generate(scene)
         Image.fromarray(to_mask_frame(out, scene), 'L').save(floor_path(scene))
         shot = review(scene, art, out, prov)
-        n = out.size
         stats[scene] = {k: round(float(v.mean()) * 100, 2) for k, v in prov.items() if k != 'opaque'}
         print(f'{scene:10} floor {(out == FLOOR).mean():5.1%}  not {(out == NOT_FLOOR).mean():5.1%}  unsure {(out == UNSURE).mean():5.1%}'
               f'  | inaccessible floor {prov["inaccessible_floor"].mean():5.1%}  hidden floor {prov["hidden_floor"].mean():5.1%}'

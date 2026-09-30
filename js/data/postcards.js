@@ -70,7 +70,6 @@ export const BEYOND_THE_TOUR = Object.freeze({
   signoff: 'Same game. A bigger world. See you on the World Tour.'
 });
 
-export const postcardById = (id) => POSTCARDS.find((p) => p.id === id) || null;
 export const postcardForClub = (clubId) => POSTCARDS.find((p) => p.clubId === clubId) || null;
 
 export default POSTCARDS;

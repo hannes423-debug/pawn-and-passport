@@ -23,7 +23,7 @@ import subprocess
 import sys
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 from scipy import ndimage
 
 HERE = os.path.dirname(os.path.abspath(__file__))

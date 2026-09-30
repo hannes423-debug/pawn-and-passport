@@ -180,19 +180,6 @@ export function accuracyFromWinProbLoss(losses) {
 }
 
 /**
- * Accuracy from centipawn losses. Kept for tooling that only has centipawns
- * (the Python pipeline reading a PGN without win-probability annotations);
- * summarise() prefers accuracyFromWinProbLoss, which scores decided games far
- * more sensibly.
- */
-export function accuracyFromLosses(losses) {
-  if (!losses.length) return null;
-  const acpl = losses.reduce((a, b) => a + b, 0) / losses.length;
-  const value = 100 / (1 + Math.pow(acpl / 90, 1.15));
-  return Math.round(Math.max(0, Math.min(100, value)) * 10) / 10;
-}
-
-/**
  * Split the game into opening / middlegame / endgame by ply.
  * Endgame starts when non-pawn material (both sides, kings excluded) drops
  * below the equivalent of a queen and a rook.

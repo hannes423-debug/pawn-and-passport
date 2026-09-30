@@ -65,11 +65,6 @@ export const FEEDBACK = Object.freeze({
                label: '' }
 });
 
-/** Ascending, so a UI can sort or compare tiers without hard-coding names. */
-export const QUALITY_ORDER = Object.freeze(
-  ['blunder', 'mistake', 'neutral', 'playable', 'good', 'best', 'clutch', 'brilliant', 'epic']);
-
-export const rank = (kind) => QUALITY_ORDER.indexOf(kind);
 
 /**
  * The classifier's vocabulary -> this table's.

@@ -12,7 +12,7 @@
  *
  * Scores are ALWAYS from the point of view of the side to move in `fen`, which
  * is what UCI reports. Anything that needs White's point of view converts at
- * the edge (see `toWhitePov`).
+ * the edge.
  */
 
 /**
@@ -87,41 +87,6 @@ export class ChessEngine {
 
   /** Release the worker/process. The engine is unusable afterwards. */
   dispose() { this.ready = false; }
-}
-
-/** Convert a side-to-move score into a White-positive score. */
-export function toWhitePov(score, turn) {
-  if (!score) return { cp: null, mate: null };
-  const sign = turn === 'w' ? 1 : -1;
-  return {
-    cp: typeof score.cp === 'number' ? score.cp * sign : null,
-    mate: typeof score.mate === 'number' ? score.mate * sign : null
-  };
-}
-
-/** '+0.84' / '-1.20' / 'M4' / '-M2' — the eval readout, White-positive. */
-export function formatScore(score, turn = 'w', { alwaysSign = true } = {}) {
-  const white = toWhitePov(score, turn);
-  if (typeof white.mate === 'number' && white.mate !== null) {
-    return `${white.mate > 0 ? '' : '-'}M${Math.abs(white.mate)}`;
-  }
-  if (typeof white.cp !== 'number') return '—';
-  const pawns = white.cp / 100;
-  const text = Math.abs(pawns).toFixed(2);
-  if (!alwaysSign) return text;
-  return `${pawns > 0 ? '+' : pawns < 0 ? '−' : '+'}${text}`;
-}
-
-/** 'White +0.84' — the wordier form the analysis panel uses. */
-export function describeScore(score, turn = 'w') {
-  const white = toWhitePov(score, turn);
-  if (typeof white.mate === 'number' && white.mate !== null) {
-    return white.mate > 0 ? `White mates in ${Math.abs(white.mate)}` : `Black mates in ${Math.abs(white.mate)}`;
-  }
-  if (typeof white.cp !== 'number') return 'No evaluation';
-  if (Math.abs(white.cp) < 20) return 'Equal';
-  const side = white.cp > 0 ? 'White' : 'Black';
-  return `${side} +${(Math.abs(white.cp) / 100).toFixed(2)}`;
 }
 
 /** A no-op engine so every screen works with the engine turned off. */

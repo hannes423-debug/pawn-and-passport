@@ -4,9 +4,9 @@ tools/build_ui_icons.py - cut the board markers out of the supplied UI pack.
 
 The artist's sheet ("ui-icon-pack.png") carries
 a row of small marker icons: a reticle, crossed swords, a shield, a sparkle and
-an alert. The board uses them to say what an arrow MEANS on the square it points
-at - the target of a suggestion, a piece under threat, the expected defence, a
-move you have prepared.
+an alert (the alert is not cut: nothing uses it). The board uses them to say
+what an arrow MEANS on the square it points at - the target of a suggestion, a
+piece under threat, the expected defence, a move you have prepared.
 
 The sheet paints them over a smooth coloured backdrop with a glow. This tool
 flood-fills the backdrop away from the crop's edges (it is smooth, so a
@@ -41,7 +41,6 @@ ICONS = [
     ("swords", 1158, 1262, 30),    # a piece under threat
     ("shield", 1268, 1362, 30),    # the expected reply / a defended square
     ("sparkle", 1366, 1458, 30),   # a move from your own prepared opening
-    ("alert", 1462, 1536, 30),     # something that needs looking at
 ]
 FEATHER = 1          # px of soft edge left around the icon
 

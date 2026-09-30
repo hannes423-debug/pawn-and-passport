@@ -155,8 +155,7 @@ export function difficultyMode(id) {
 /* ==================================================================== focus === */
 export const FOCUS = Object.freeze({
   base: 30,
-  perLevel: 6,             // max = base + perLevel * (level - 1): 30 at L1, 114 at L15
-  refillEachGame: true,
+  perLevel: 6,             // max = base + perLevel * (level - 1): 30 at L1, 114 at L15 (full again every game)
   /* Earned back mid-game by finding strong moves YOURSELF (not the hinted one). */
   regen: { BEST: 2, EXCELLENT: 1, BRILLIANT: 5, EPIC: 6, CLUTCH: 5 }
 });
@@ -236,8 +235,8 @@ export const UNDO = Object.freeze({
     { from: 6, uses: 2 },
     { from: 12, uses: 3 }
   ],
-  cooldownMoves: 5,                  // your moves before it can be used again
-  scorePenalty: 150                  // Match Score, per undo
+  cooldownMoves: 5                   // your moves before it can be used again
+  // (what an undo costs the Match Score is SCORE.undoPenalty, below)
 });
 
 /* ======================================================= opening mastery === */

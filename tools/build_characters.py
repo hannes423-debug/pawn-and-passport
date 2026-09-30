@@ -93,7 +93,6 @@ def foreground(img):
         background = np.isin(labels, list(border))
         mask = ~background
     # Drop shadows: grey/purple-grey, low saturation, light, and touching the background.
-    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
     sat = rgb.max(axis=2) - rgb.min(axis=2)
     shadowish = (rgb.min(axis=2) > 150) & (sat < 40)
     grown = ndimage.binary_dilation(~mask, iterations=2)

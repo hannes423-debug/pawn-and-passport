@@ -88,5 +88,4 @@ export class PositionCache {
   }
 }
 
-export const globalPositionCache = new PositionCache();
 export default PositionCache;

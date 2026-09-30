@@ -233,7 +233,7 @@ def match():
             if not c.wait_for("!!(window.__pap.current && document.querySelector('.pp-hintbtn') && !Array.from(document.querySelectorAll('.pp-thinking')).some(e => e.style.visibility === 'visible'))", timeout=40):
                 failures.append("bot never finished thinking")
                 break
-            legal = c.eval(f"""(async () => {{
+            c.eval(f"""(async () => {{
               const board = document.querySelector('.cwt-board');
               const sq = (s) => board.querySelector('[data-square="' + s + '"]');
               const fire = (el, type) => {{ const r = el.getBoundingClientRect();

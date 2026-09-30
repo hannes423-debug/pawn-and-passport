@@ -24,7 +24,6 @@ eroded by walkerFor), in categories: in front of / behind / beside an
 object, between two objects, in a passage or doorway, by furniture, walls and
 plants. Every spot is a place a player can really stand.
 """
-import base64  # noqa: F401  (kept for parity with the other dev tools)
 import json
 import os
 import re
@@ -229,7 +228,6 @@ def audit(scene, legacy_all, floor_all, heights):
             feet.append((x, y))
             cat_of.append(cat)
     spr = sprite(actor_h, H)
-    results = {}
     renders = {}
     for name, d in (('legacy', leg), ('floor', flo)):
         rgb, owner = render(art, slice_images(d), spr, feet)

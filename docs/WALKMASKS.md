@@ -14,11 +14,11 @@ real footprint (the table and chairs, not the rectangle round them).
 
 These masks are the law: ship them exactly as delivered (a flattened export is
 the one exception: the mask is recovered from it, nothing else changes). Nothing
-else ever edits them; `tools/propose_walkmasks.py` refuses them.
+else ever edits them.
 
 | scene | edited | shipped |
 |---|---|---|
-| nyc-ext | 2026-09-26 | v1.1.2 |
+| nyc-ext | 2026-09-26, updated 2026-09-29 (twice: behind the west bench hedge, hydrant, fountain edge) | v1.1.2, v1.1.11, v1.1.12 |
 | nyc-int | 2026-09-26 | v1.1.2 |
 | nyc-venue | 2026-09-26 | v1.1.2 |
 | che-ext | 2026-09-26 | v1.1.4 |
@@ -27,7 +27,7 @@ else ever edits them; `tools/propose_walkmasks.py` refuses them.
 | lon-ext | 2026-09-27 | v1.1.5 |
 | lon-venue | 2026-09-27 | v1.1.5 |
 | nyc-up | 2026-09-27 (one fix with the artist's OK: a 4 px blocked line at x 912-916, y 454-482 px pinched the trophy-hall doorway to 15 px; opened, 133 px) | v1.1.6 |
-| vie-ext | 2026-09-28 | v1.1.6 |
+| vie-ext | 2026-09-28, updated 2026-09-29 (saved flat on black: floor is dark grey ~90, read at half the brightest level) | v1.1.6, v1.1.11 |
 | vie-int | 2026-09-28 | v1.1.6 |
 | vie-up | 2026-09-28 | v1.1.6 |
 | vie-venue | 2026-09-28 | v1.1.6 |
@@ -37,23 +37,14 @@ else ever edits them; `tools/propose_walkmasks.py` refuses them.
 | ist-venue | 2026-09-28 | v1.1.7 |
 | lon-int | 2026-09-28 | v1.1.7 |
 | wen-ext | 2026-09-28 | v1.1.7 |
-| wen-up | 2026-09-28 | v1.1.7 |
+| wen-up | 2026-09-28, updated 2026-09-30 | v1.1.7, v1.1.14 |
 | wen-venue | 2026-09-28 | v1.1.7 |
 | wen-int | 2026-09-28 (delivered flattened over the art; mask read from the overlay, the flattened file kept beside it) | v1.1.7 |
 | mad-ext | 2026-09-29 (walking ends at the gate: the Leave spot moved up to it, y 84%) | v1.1.8 |
 | mad-int | 2026-09-29 (only the aisle to the stage; scenes.js `crowd` puts the other finalists across both side openings) | v1.1.8 |
 
-## Generated, approved as a first pass (not hand-edited yet)
+## Generated masks
 
-None: every scene's mask is hand-edited since v1.1.8.
-
-## Generating proposals
-
-    python3 tools/propose_walkmasks.py walkmask-proposals <scene> ...
-
-Rules measured from the NYC hand edits (2026-09-26): furniture with floor on both
-sides keeps its front 55% blocked (chamfered octagon), the rest walkable; potted
-plants keep the pot; lamps/posts/trees/statues keep the base; floor carries on
-0.38 character heights behind a front wall, balustrade or rail. Walls, shelves,
-banners, gates, hedges, beds and fountains are untouched. Scored against the hand
-edits: 75% (nyc-int) and 82% (nyc-venue) of what it opens matches.
+None: every scene's mask is hand-edited since v1.1.8. The generator that made the
+first-pass proposals (tools/propose_walkmasks.py) was removed on 2026-09-30; it is
+in git history (last at 2e52007) if a new scene ever needs a first pass.

@@ -291,5 +291,4 @@ function describeDefence(kind) {
   }[kind] || 'holds the position';
 }
 
-export const explanationEngine = new ExplanationEngine();
 export default ExplanationEngine;
