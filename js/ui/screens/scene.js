@@ -114,12 +114,12 @@ const atlasSize = (url) => new Promise((resolve) => {
   img.src = url;
 });
 const fits = (size, d) => !size || (size[0] === d.atlasSize[0] && size[1] === d.atlasSize[1]);
-/* THE VIENNA FLOOR-MASK EXPERIMENT (docs/FLOORMASK.md): Vienna's scenes have a
-   second set of depth slices, built from the artist's original occlusion layer
-   and a floor mask (sceneLayersFloor.js). It is on by default there; the L key
-   or ?depth=legacy switches to the current renderer (and back), live, for the
+/* FLOOR-MASK DEPTH (docs/FLOORMASK.md): every scene has a second set of depth
+   slices, built from the artist's original occlusion layer, a floor mask and
+   the club's ceiling (sceneLayersFloor.js). It is the default; the L key or
+   ?depth=legacy switches to the previous renderer (and back), live, for the
    rest of the session. Walking is identical in both: same walk grid. */
-const DEPTH_DEFAULT = 'floor';     // 'legacy' switches the Vienna experiment off for everybody
+const DEPTH_DEFAULT = 'floor';     // 'legacy' puts everybody back on the previous renderer
 let depthMode = (() => {
   try {
     const q = new URLSearchParams(location.search).get('depth');
@@ -412,14 +412,14 @@ export async function sceneScreen(app, params) {
     stage.dataset.depth = set.depth === 'floor' ? 'floor' : 'legacy';
   }
   if (freeMode) drawDepth(layers);
-  /* L: swap the Vienna depth experiment for the current renderer and back,
-     where the player stands (docs/FLOORMASK.md). */
+  /* L: swap the floor-mask depth for the previous renderer and back, where
+     the player stands (docs/FLOORMASK.md). */
   async function toggleDepth() {
     if (!freeMode || !hasFloorDepth(scene.id)) return;
     depthMode = depthMode === 'floor' ? 'legacy' : 'floor';
     const set = await checkedLayers(scene.id);
     if (set) drawDepth(set);
-    app.toast(depthMode === 'floor' ? 'Depth: floor-mask experiment (L: current renderer)' : 'Depth: current renderer (L: floor-mask experiment)', { ms: 2200 });
+    app.toast(depthMode === 'floor' ? 'Depth: floor-mask (L: previous renderer)' : 'Depth: previous renderer (L: floor-mask)', { ms: 2200 });
   }
 
   /* ?debugCollision=1 paints the grid the player actually walks on, over the

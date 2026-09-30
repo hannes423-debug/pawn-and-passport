@@ -1300,11 +1300,10 @@ test('undo: level caps and scoring', () => {
 
 /* -------------------------------------------------------- free walking */
 
-test('floor-mask experiment: Vienna only, same walking as the legacy data, slices inside the atlas', () => {
+test('floor-mask depth: every scene has it, walks exactly like the legacy data, slices inside the atlas', () => {
   const ids = Object.keys(SCENE_LAYERS_FLOOR);
-  assert(ids.length > 0, 'floor data present');
+  eq(ids.slice().sort().join(' '), Object.keys(SCENE_LAYERS).sort().join(' '), 'floor data for every layered scene');
   for (const id of ids) {
-    assert(id.startsWith('vie-'), `${id}: the floor experiment is Vienna only`);
     const layers = SCENE_LAYERS_FLOOR[id];
     eq(JSON.stringify(layers.walk), JSON.stringify(SCENE_LAYERS[id].walk), `${id}: identical walk grid`);
     assert(existsSync(path.join(ROOT, layers.atlas.split('?')[0])), `${id}: floor atlas`);

@@ -36,9 +36,11 @@ SHOE_W = 0.20                    # half-width of the shoes, in character heights
 SHOE_H = 0.08                    # the canvas below the feet point
 
 
-def built(scene):
-    t = open(os.path.join(ROOT, 'js', 'data', 'sceneLayers.js')).read()
-    return json.loads(t[t.index('{', t.index('SCENE_LAYERS')):t.rindex('};') + 1])[scene]
+def built(scene, floor=False):
+    """The previous renderer's data, or with floor=True the floor-mask data."""
+    path, name = (('sceneLayersFloor.js', 'SCENE_LAYERS_FLOOR') if floor else ('sceneLayers.js', 'SCENE_LAYERS'))
+    t = open(os.path.join(ROOT, 'js', 'data', path)).read()
+    return json.loads(t[t.index('{', t.index(name)):t.rindex('};') + 1])[scene]
 
 
 def over_z(d, W, H):
@@ -65,8 +67,8 @@ def original_layer(scene, W, H):
     return alpha >= bo.ALPHA
 
 
-def check(scene, shots=False):
-    d = built(scene)
+def check(scene, shots=False, floor=False):
+    d = built(scene, floor)
     W, H = d['size']
     _art, _op, walk = bo.load(scene)
     walk_open, _ = bo.plant_walk(scene, _op, walk)
@@ -99,7 +101,7 @@ def check(scene, shots=False):
                 bad.append((n, fx, fy))
     bad.sort(reverse=True)
     total = int(fit[::step, ::step].sum())
-    print(f'{scene:10} spots {total:6}  feet over a front object at {len(bad):5} ({100 * len(bad) / max(1, total):4.1f}%)', flush=True)
+    print(f'{scene:10} {"floor " if floor else "legacy"} spots {total:6}  feet over a front object at {len(bad):5} ({100 * len(bad) / max(1, total):4.1f}%)', flush=True)
     if shots and bad:
         art = Image.open(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')).convert('RGB')
         o = np.asarray(art).astype(float) * 0.55
@@ -116,4 +118,4 @@ def check(scene, shots=False):
 if __name__ == '__main__':
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     for s in args or bo.SCENES:
-        check(s, shots='--shots' in sys.argv)
+        check(s, shots='--shots' in sys.argv, floor='--floor' in sys.argv)

@@ -882,3 +882,25 @@ OBJECTS = {
         ('sign-stairs-down', 'poly', (42.8, 16.8, 57.4, 20.6), 99),
     ],
 }
+
+# CEILING (user, 2026-09-30): in the club interiors the cut tops of the walls are
+# drawn as a "ceiling" (navy in Vienna, New York and Istanbul). The ceiling is
+# ALWAYS in front of a player; the wall faces under it (beige pillars, the ends
+# of the walls at a doorway) sort by where they stand. Found by colour in
+# OpenCV 8-bit Lab: a pixel within `px` of the colour is a candidate (lightness
+# counted half: the tops are shaded), and a connected piece of candidates is
+# ceiling when it is at least `min` of the picture and its median colour is
+# within `med` of the colour (New York's navy banners are bluer: dropped).
+# London and Chennai draw low walls with light stone caps: no ceiling there.
+# Wenzhou's wall tops are dark wood, the colour of its tables and chairs: no
+# ceiling by colour there either (its doorways show the floor, not a ceiling).
+# Check a scene with: python3 tools/dev/ceiling_view.py <scene>
+CEILING = {
+    'vie-int': {'lab': (41, 129, 119), 'px': 14, 'med': 6, 'min': 0.0012},
+    'vie-up': {'lab': (41, 129, 116), 'px': 14, 'med': 6, 'min': 0.0012},
+    'nyc-int': {'lab': (42, 131, 111), 'px': 12, 'med': 6, 'min': 0.0012},
+    'nyc-up': {'lab': (39, 130, 111), 'px': 12, 'med': 6, 'min': 0.0012},
+    'ist-int': {'lab': (52, 130, 117), 'px': 14, 'med': 6, 'min': 0.0012},
+    'ist-up': {'lab': (54, 133, 105), 'px': 14, 'med': 6, 'min': 0.0012},
+    'mad-int': {'lab': (46, 131, 107), 'px': 14, 'med': 6, 'min': 0.0012},
+}

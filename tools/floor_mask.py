@@ -47,7 +47,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import build_occlusion as bo  # noqa: E402
 
-SCENES = [s for s in bo.SCENES if s.startswith('vie-')]      # the experiment: Vienna only
+SCENES = list(bo.SCENES)                                     # every scene since 2026-09-30 (Vienna first)
 FLOOR, NOT_FLOOR, UNSURE = 255, 0, 128
 K = 12                    # floor colour clusters
 L_WEIGHT = 0.35           # lightness matters less than hue: a shadow under a table is still floor
@@ -63,7 +63,16 @@ def floor_path(scene):
 
 
 def original_path(scene):
-    return os.path.join(ROOT, bo.CITY_DIR[scene[:3]], f'{scene}-occlusion-original.png')
+    """The artist's occlusion layer as they drew it. A layer the artist cleaned by
+    hand (docs/OCCLUSION.md, first table) IS their source; for a tool-pruned one
+    the original is kept beside it as <scene>-occlusion-original.png (from 90f2128)."""
+    folder = os.path.join(ROOT, bo.CITY_DIR[scene[:3]])
+    if scene in bo.HAND_CLEANED:
+        return os.path.join(folder, f'{scene}-occlusion.png')
+    path = os.path.join(folder, f'{scene}-occlusion-original.png')
+    if not os.path.exists(path):
+        raise FileNotFoundError(f'{scene}: {os.path.relpath(path, ROOT)} missing (git show 90f2128:<the pruned file>)')
+    return path
 
 
 def hand_edited():
@@ -77,11 +86,15 @@ def hand_edited():
     return set(re.findall(r'^\| ([a-z]{3}-[a-z]+) \|', part, re.M))
 
 
+def original_alpha(scene, W, H):
+    """The artist's ORIGINAL occlusion layer's alpha (0-255, soft edges kept), in the art frame."""
+    lay = Image.open(original_path(scene)).convert('RGBA').resize((W, H), Image.LANCZOS)
+    return bo.warp(np.asarray(lay)[..., 3].copy(), scene, (W, H), cv2.INTER_LINEAR)
+
+
 def original_opaque(scene, W, H):
     """The artist's ORIGINAL occlusion layer (immutable source), in the art frame."""
-    lay = Image.open(original_path(scene)).convert('RGBA').resize((W, H), Image.LANCZOS)
-    alpha = bo.warp(np.asarray(lay)[..., 3].copy(), scene, (W, H), cv2.INTER_LINEAR)
-    return alpha >= bo.ALPHA
+    return original_alpha(scene, W, H) >= bo.ALPHA
 
 
 def inputs(scene):
@@ -217,7 +230,7 @@ def main():
     want = args or SCENES
     bad = [s for s in want if s not in SCENES]
     if bad:
-        sys.exit(f'floor masks are a Vienna experiment: {bad} not allowed (only {SCENES})')
+        sys.exit(f'unknown scenes: {bad}')
     locked = hand_edited()
     stats = {}
     for scene in want:

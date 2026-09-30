@@ -8,7 +8,7 @@
     occlusion   the artist's ORIGINAL layer, <City>/<scene>-occlusion-original.png
                 (immutable: never pruned, never written)
 
-Writes js/data/sceneLayersFloor.js (Vienna only) and assets/layers-floor/*.webp;
+Writes js/data/sceneLayersFloor.js (every scene) and assets/layers-floor/*.webp;
 the legacy data (js/data/sceneLayers.js, assets/layers) is not touched, and the
 game switches between the two (scene.js: L key, ?depth=legacy|floor).
 
@@ -19,8 +19,10 @@ object stands (its footprint); UNSURE counts as not-floor, the old assumption.
   1. A run splits into PIECES wherever a footprint gives way to floor below it:
      two objects stacked in one column, or one object that stands at two
      depths, become separate depth regions (object_depth_1, _2, ...).
-  2. A piece stands where the floor resumes under its footprint (a drawing may
-     overlap the floor in front by OVER character heights: a baseboard).
+  2. A piece stands where the floor resumes under its footprint; what is drawn
+     below that, over walkable floor, up to ATTACH_MAX character heights (a base
+     moulding, a shadow, the floor in a doorway under its jamb) is floor-level
+     and stands with it; longer, it hangs in front of the object (a banner).
   3. THE FLOOR MASK'S JOB. A piece whose drawing starts over floor (a band of
      hidden floor above its footprint, at least MIN_BAND character heights)
      shows how tall it is: that band IS its height h, the floor its top hides.
@@ -41,6 +43,7 @@ object stands (its footprint); UNSURE counts as not-floor, the old assumption.
   6. A part of the layer lying wholly on floor, floor above and below it, is a
      floor thing (a rug, a plaque): dropped, never in front of anybody.
 Report per scene: tools/shots/floor/<scene>-regions.{png,json}."""
+import fcntl
 import hashlib
 import json
 import os
@@ -56,6 +59,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import build_occlusion as bo  # noqa: E402
 import floor_mask as fm  # noqa: E402
+from depth_hints import CEILING  # noqa: E402
 
 SCENES = fm.SCENES
 OVER = 0.35            # character heights: a drawing may overlap the floor in front of its footprint by this much
@@ -69,11 +73,20 @@ INHERIT_R = 0.6        # character heights: how far a hanging piece looks for wh
 DECAL_ON_FLOOR = 0.95  # rule 6
 SPLIT_GAP = 0.25       # character heights: two pieces of one drawing this far apart in line count as separate depths
 SPANS = 0.5            # character heights: a drawing whose lines spread over more than this spans several depths
+RING = 2               # px: an object's soft edge (the layer's anti-aliasing) joins it this far out...
+RING_ALPHA = 16        # ...where the layer is at least this opaque (a resampled edge column leaked the player)
+MIN_FOOT = 3           # px: a footprint thinner than this is walk-mask edge noise
+WALLTOP_GAP = 4        # px: rows right below a floor-drawn piece that decide whether it is a wall top
+ATTACH_MAX = 0.5       # character heights: a drawing this long below where an object stands is its base; longer, it hangs
+CEIL_RIM = 4           # px: the ceiling's side outline joins it (sideways only; Vienna's bevel is 4-5 px)
+SMOOTH_R = 4           # px: a dip (a line lower than on BOTH sides) narrower than 2*SMOOTH_R+1 is filled...
+DIP_TOL = 1.0          # ...when it is at most this many character heights lower: columns of one object a
+                       # little apart (uneven walk-mask edges) split a player between them into thin stripes
 LEGACY_JS = os.path.join(ROOT, 'js', 'data', 'sceneLayers.js')
 OUT_JS = os.path.join(ROOT, 'js', 'data', 'sceneLayersFloor.js')
 SHOTS = os.path.join(ROOT, 'tools', 'shots', 'floor')
 
-K_GROUNDED, K_HINT, K_DECAL, K_OBJECT, K_INHERIT, K_HANGING, K_STRIP, K_BOX = 1, 2, 3, 5, 6, 7, 8, 9
+K_GROUNDED, K_HINT, K_DECAL, K_OBJECT, K_INHERIT, K_HANGING, K_STRIP, K_BOX, K_CEIL, K_FACE = 1, 2, 3, 5, 6, 7, 8, 9, 10, 11
 
 
 def legacy_layers():
@@ -81,7 +94,7 @@ def legacy_layers():
     return json.loads(t[t.index('{', t.index('SCENE_LAYERS')):t.rindex('};') + 1])
 
 
-def inputs(scene):
+def inputs(scene, with_pruned=False):
     art, pruned, walk = bo.load(scene)
     H, W = walk.shape
     walk_open, _n = bo.plant_walk(scene, pruned, walk)       # the legacy movement, exactly
@@ -92,6 +105,8 @@ def inputs(scene):
         elif kind == 'fill':
             opaque |= bo.poly_mask(shape, W, H)
     floor = fm.load_floor(scene, W, H)
+    if with_pruned:
+        return art, opaque, walk_open, floor, pruned
     return art, opaque, walk_open, floor
 
 
@@ -139,19 +154,57 @@ def floor_decals(opaque, is_floor):
     return out
 
 
-def depth(scene, opaque, walk, floor, actor_h):
+def ceiling_mask(scene, art, opaque, debug=False):
+    """The club's CEILING (depth_hints.CEILING): layer px of the ceiling colour that
+    form a big connected piece whose median colour is the ceiling's. Empty for a
+    scene without a ceiling. With debug: (ceiling, every px of the colour)."""
+    spec = CEILING.get(scene)
+    none = np.zeros(opaque.shape, bool)
+    if not spec:
+        return (none, none) if debug else none
+    H, W = opaque.shape
+    lab = cv2.cvtColor(art, cv2.COLOR_RGB2LAB).astype(np.float32)
+    ref = np.array(spec['lab'], np.float32)
+    w = np.array((0.5, 1.0, 1.0), np.float32)
+    dist = np.sqrt((((lab - ref) * w) ** 2).sum(axis=2))
+    near = opaque & (dist < spec['px'])
+    lab_, n = ndimage.label(near, structure=np.ones((3, 3)))
+    ceil = np.zeros_like(near)
+    if n:
+        for i, sl in enumerate(ndimage.find_objects(lab_), start=1):
+            part = lab_[sl] == i
+            if part.sum() < spec['min'] * H * W:
+                continue
+            med = np.median(lab[sl][part], axis=0)
+            if np.sqrt((((med - ref) * w) ** 2).sum()) < spec['med']:
+                ceil[sl] |= part
+        # the ceiling's own panel lines and rivets are other colours: close them in
+        ceil = ndimage.binary_closing(ceil, structure=np.ones((3, 3)), iterations=2) & opaque
+        # its outline down the sides (a bevel line in another colour) is ceiling too:
+        # a player walking beside the block showed through it as a thin line. Sideways
+        # only: the wall face UNDER the ceiling (the beige pillar at a doorway) stays
+        # a face, behind a player standing in the doorway
+        ceil |= ndimage.binary_dilation(ceil, structure=np.ones((1, 2 * CEIL_RIM + 1))) & opaque
+    return (ceil, near) if debug else ceil
+
+
+def depth(scene, opaque, walk, floor, actor_h, art=None, pruned=None):
     """(base percent per px, kind per px, piece id per px, fallback line of hanging px, decals)"""
     H, W = opaque.shape
     A = actor_h * H
     is_floor = floor == fm.FLOOR
     decals = floor_decals(opaque, is_floor)
     opaque = opaque & ~decals
+    # THE CEILING (user, 2026-09-30) is always in front, and it splits the runs:
+    # a wall face between two pieces of ceiling (the beige end of a wall at a
+    # doorway) is its own run and stands at its own bottom
+    ceil = ceiling_mask(scene, art, opaque) if art is not None else np.zeros_like(opaque)
+    run_mask = opaque & ~ceil
     foot = opaque & ~is_floor                    # footprint (unsure counts as footprint)
     base = np.full((H, W), np.nan, np.float32)
     kinds = np.zeros((H, W), np.uint8)
     piece = np.full((H, W), -1, np.int32)
     contact = []                                 # contact row per piece id
-    over = OVER * A
     # rule 3 inputs: per row, is this footprint's horizontal run narrow, with
     # floor within reach of either of its ends (a wall seen from above, not a
     # block of furniture)
@@ -159,25 +212,58 @@ def depth(scene, opaque, walk, floor, actor_h):
     side_d = SIDE_D * A
     min_band = max(2, MIN_BAND * A)
     heights = []                                 # per piece: the known height in px, -1 unknown
+    attach_max = ATTACH_MAX * A
 
     def add_piece(x, y0, y1, c):
         contact.append(c)
         piece[y0:y1 + 1, x] = len(contact) - 1
 
     for x in range(W):
-        col = opaque[:, x]
+        col = run_mask[:, x]
         if not col.any():
             continue
         d = np.diff(np.concatenate(([0], col.astype(np.int8), [0])))
         for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0] - 1):
-            fp = foot[a:b + 1, x]
+            fp = foot[a:b + 1, x].copy()
+            # a footprint thinner than MIN_FOOT is the walk mask's hand-painted
+            # edge missing the drawing's edge by a pixel, not a thing standing
+            # (Chennai: a 1 px sliver at the top of a wall cap became an object
+            # and the whole cap was taken as its base)
+            fd_ = np.diff(np.concatenate(([0], fp.astype(np.int8), [0])))
+            for fa_, fb_ in zip(np.where(fd_ == 1)[0], np.where(fd_ == -1)[0]):
+                if fb_ - fa_ < MIN_FOOT:
+                    fp[fa_:fb_] = False
             # rule 1: cut after every footprint that has floor right below it
             cuts = list(np.where(fp[:-1] & ~fp[1:])[0] + a) + [b]
             start = a
+            prev = None                                                  # (c, kind, piece) of the last object that stands
             for k, e in enumerate(cuts):
                 if e < start:
                     continue
                 seg = fp[start - a:e - a + 1]
+                if not seg.any():
+                    # drawn over floor, with blocked ground right below: the top
+                    # of a wall the walk mask overlaps on purpose. It stands at
+                    # its own bottom edge (in front of anybody behind the wall)
+                    below = walk[e + 1:e + 1 + WALLTOP_GAP, x]
+                    if below.size and below.mean() < 0.5:
+                        base[start:e + 1, x] = (e + 1) / H * 100
+                        kinds[start:e + 1, x] = K_GROUNDED
+                        add_piece(x, start, e, e + 1)
+                        heights.append(-1)
+                        prev = (e + 1, K_GROUNDED, len(contact) - 1)
+                        start = e + 1
+                        continue
+                if not seg.any() and prev is not None and e - start + 1 <= attach_max:
+                    # the end of the run, drawn just below an object that stands
+                    # (its base, the doorway floor under a jamb): floor-level, with
+                    # it. Longer, it hangs in the air in front of the object (a
+                    # banner below its wall): rule 4
+                    base[start:e + 1, x] = prev[0] / H * 100
+                    kinds[start:e + 1, x] = prev[1]
+                    piece[start:e + 1, x] = prev[2]
+                    start = e + 1
+                    continue
                 if not seg.any():                                        # rule 4: hanging
                     base[start:e + 1, x] = (e + 1) / H * 100
                     kinds[start:e + 1, x] = K_HANGING
@@ -186,9 +272,12 @@ def depth(scene, opaque, walk, floor, actor_h):
                     start = e + 1
                     continue
                 last = start + int(np.where(seg)[0][-1])
+                # the drawing below where the object stands, over walkable floor
+                # (a pillar's base moulding, a shadow, the doorway floor under a
+                # jamb) is floor-level and belongs to the object: it stands where
+                # the object does, behind a player standing on it (user rule: a
+                # doorway's jamb is behind the player in the doorway)
                 end = e
-                if k == len(cuts) - 1 and e - last > over:                # a long drawing over the floor in front: its own piece
-                    end = last
                 c = last + 1                                             # rule 2
                 top = start + int(np.argmax(seg))                        # first footprint row
                 hp = top - start                                         # hidden floor above the footprint = the height
@@ -204,11 +293,7 @@ def depth(scene, opaque, walk, floor, actor_h):
                     kinds[start:end + 1, x] = K_GROUNDED
                 heights.append(hp if hp >= min_band else -1)
                 add_piece(x, start, end, c)
-                if end < e:                                              # the long overlap: hanging piece
-                    base[end + 1:e + 1, x] = (e + 1) / H * 100
-                    kinds[end + 1:e + 1, x] = K_HANGING
-                    add_piece(x, end + 1, e, e + 1)
-                    heights.append(-1)
+                prev = (c, kinds[start, x], len(contact) - 1)
                 start = e + 1
     # per-row lines to steps of STEP character heights, rounded DOWN the picture:
     # finer than the shoe strip buys nothing and costs a depth piece per step,
@@ -217,6 +302,19 @@ def depth(scene, opaque, walk, floor, actor_h):
     rowish = (kinds == K_BOX) | (kinds == K_STRIP)
     q = max(bo.BIN, np.ceil(STEP * A / H * 100 / bo.BIN) * bo.BIN)
     base[rowish] = np.minimum(np.ceil(base[rowish] / q - 1e-6) * q, np.maximum(base[rowish], 99.0))
+    # FLOOR DRAWN INTO THE LAYER (the tiles running into a doorway between the
+    # jamb and the ceiling, stair treads): a hanging piece (no footprint of its
+    # own) on walkable floor that the PRUNED layer erased is floor. The prune
+    # (tools/prune_occlusion.py) erased what no player can ever stand behind, and
+    # kept what hangs in front of somebody (leaves, a lintel); colour cannot tell
+    # them apart (parquet, carpet and tile make every warm colour "floor"). For a
+    # hand-cleaned layer the two are the same file: nothing to drop.
+    if pruned is not None:
+        drawn_floor = (kinds == K_HANGING) & walk & ~pruned
+        drawn_floor = ndimage.binary_closing(drawn_floor, structure=np.ones((3, 3))) & (kinds == K_HANGING) & walk
+        base[drawn_floor] = np.nan
+        kinds[drawn_floor] = K_DECAL
+        decals = decals | drawn_floor
     # rule 4: hanging px take the line of what holds them, nearest first (the front-most on a tie)
     fallback = np.where(kinds == K_HANGING, base, np.nan)
     held = (kinds == K_GROUNDED) | (kinds == K_STRIP) | (kinds == K_BOX)
@@ -233,9 +331,31 @@ def depth(scene, opaque, walk, floor, actor_h):
     got = hang & assigned
     base[got] = np.maximum(val[got], fallback[got])                      # never behind the floor it covers
     kinds[got] = K_INHERIT
-    # rule 5: hints for hanging pieces, objects for everything (as build_occlusion.depth)
+    base[ceil] = 99.0                                                    # the ceiling: always in front
+    kinds[ceil] = K_CEIL
+    # rule 5: the manual HINTS (a line set by hand for a lamp, a tree, a sign)
+    # apply to hanging pieces, AND to every run the previous build called
+    # walked under (build_occlusion.depth: the run's bottom is on walkable
+    # floor, and a hint covers it or its blocked part does not end at its
+    # bottom). The walk mask blocks the ground under a lamp's banner or a
+    # tree's canopy, which read as footprint here: the hint never applied and
+    # the canopy stood where the blocked patch ends, behind a player it covers.
     hints = bo.hint_map(scene, W, H)
-    hh_ = ((kinds == K_INHERIT) | (kinds == K_HANGING)) & ~np.isnan(hints)
+    walked_under = np.zeros((H, W), bool)
+    over_px = bo.OVER * A
+    for x in np.nonzero((~np.isnan(hints) & run_mask).any(axis=0))[0]:
+        col = run_mask[:, x]
+        d = np.diff(np.concatenate(([0], col.astype(np.int8), [0])))
+        for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0] - 1):
+            if np.isnan(hints[a:b + 1, x]).all():
+                continue
+            band = walk[max(a, b - bo.FOOT + 1):b + 1, x]
+            blocked = np.where(~walk[a:b + 1, x])[0]
+            meet = a + int(blocked[-1]) + 1 if blocked.size and b - (a + blocked[-1]) <= over_px else None
+            stands = band.mean() < 0.5 or (meet is not None and np.isnan(hints[b, x]) and blocked.size >= 0.5 * (meet - a))
+            if not stands:
+                walked_under[a:b + 1, x] = True
+    hh_ = (((kinds == K_INHERIT) | (kinds == K_HANGING)) | (walked_under & (kinds != K_CEIL))) & ~np.isnan(hints)
     auto = base.copy()                                                   # before any manual depth (the report)
     base[hh_] = hints[hh_]
     kinds[hh_] = K_HINT
@@ -267,20 +387,60 @@ def depth(scene, opaque, walk, floor, actor_h):
 def sources(scene):
     folder = os.path.join(ROOT, bo.CITY_DIR[scene[:3]])
     md5 = lambda p: hashlib.md5(open(p, 'rb').read()).hexdigest()[:12]
-    rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box2', STEP,
+    rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box2', STEP, 'ceil3', CEIL_RIM, 'pruned-floor1', 'attach3', ATTACH_MAX, 'hints2', 'walltop1', MIN_FOOT, WALLTOP_GAP, CEILING.get(scene), RING, RING_ALPHA, 'dip3', SMOOTH_R, DIP_TOL, 'binup1',
                   fm.K, fm.L_WEIGHT, fm.T_FLOOR, fm.T_NOT, bo.GRID, bo.ALPHA, bo.BIN, bo.SPECK,
                   bo.WARP.get(scene), bo.HINTS.get(scene), bo.OBJECTS.get(scene)))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
             'floormask': md5(fm.floor_path(scene)),
             'occlusion': md5(fm.original_path(scene)),
+            'pruned': md5(os.path.join(folder, f'{scene}-occlusion.png')),
             'art': md5(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')),
             'rules': hashlib.md5(rules.encode()).hexdigest()[:12]}
 
 
 def build(scene, actor_h, legacy):
-    art, opaque, walk, floor = inputs(scene)
+    art, opaque, walk, floor, pruned = inputs(scene, with_pruned=True)
     H, W = opaque.shape
-    base, kinds, piece, contact, heights, auto, decals, opaque = depth(scene, opaque, walk, floor, actor_h)
+    base, kinds, piece, contact, heights, auto, decals, opaque = depth(scene, opaque, walk, floor, actor_h, art=art, pruned=pruned)
+    # the layer's soft edge joins the object it is the edge of (front-most neighbour)
+    alpha = fm.original_alpha(scene, W, H)
+    have = ~np.isnan(base)
+    zone = ndimage.binary_dilation(have, structure=np.ones((3, 3)), iterations=RING) & ~have & ~decals & (alpha >= RING_ALPHA)
+    vals = np.where(have, base, -1.0).astype(np.float32)
+    for _ in range(RING):
+        grown = ndimage.grey_dilation(vals, size=(3, 3))
+        fill = zone & (vals < 0) & (grown >= 0)
+        vals[fill] = grown[fill]
+    edge = zone & (vals >= 0)
+    base[edge] = vals[edge]
+    # stripes: a thin dip (a few px whose line is lower than on both sides,
+    # along a row or down a column) comes forward to its sides: a grey closing,
+    # never more than DIP_TOL (so two separate objects never merge). Filling
+    # forward covers a little more and never shows feet over anything
+    have = ~np.isnan(base)
+    tol = DIP_TOL * actor_h * 100
+    for _ in range(2):
+        for axis in (1, 0):
+            cur = np.where(have, base, -1.0).astype(np.float32)
+            n = cur.shape[axis]
+            before = np.full(cur.shape, -1.0, np.float32)       # front-most line within SMOOTH_R px before
+            after = np.full(cur.shape, -1.0, np.float32)        # ...and after (along the axis)
+            for k in range(1, SMOOTH_R + 1):
+                sl_to, sl_from = [slice(None)] * 2, [slice(None)] * 2
+                sl_to[axis], sl_from[axis] = slice(k, n), slice(0, n - k)
+                np.maximum(before[tuple(sl_to)], cur[tuple(sl_from)], out=before[tuple(sl_to)])
+                sl_to[axis], sl_from[axis] = slice(0, n - k), slice(k, n)
+                np.maximum(after[tuple(sl_to)], cur[tuple(sl_from)], out=after[tuple(sl_to)])
+            side = np.minimum(before, after)                     # a dip: both sides stand further forward
+            lift = have & (side > cur) & (side - cur <= tol) & (cur < 99.0)
+            base[lift] = side[lift]
+    # bo.slices FLOORS each line to its BIN, which moves an object up to a bin
+    # (2 px) back up the picture: a door jamb meeting the floor at 64.397 was
+    # drawn at 64.2, behind a player whose feet were at 64.3, and the player
+    # showed through it as a thin line. Round UP to the bin first (a hair
+    # over it, so float32 cannot fall back below): slices' floor is then a no-op
+    have = ~np.isnan(base) & (base < 99.0)
+    base[have] = np.minimum(99.0, np.ceil(base[have].astype(np.float64) / bo.BIN - 1e-6) * bo.BIN + 1e-3)
     parts, _snapped = bo.slices(base, walk, actor_h)
     pos, (aw, ah) = bo.pack(parts)
     atlas = np.zeros((ah, aw, 4), np.uint8)
@@ -299,7 +459,10 @@ def build(scene, actor_h, legacy):
     src += '?v=' + hashlib.md5(open(os.path.join(ROOT, src), 'rb').read()).hexdigest()[:10]
     data = {'source': sources(scene), 'atlas': src, 'atlasSize': [aw, ah], 'size': [W, H], 'slices': props,
             'walk': legacy[scene]['walk'], 'depth': 'floor'}
-    legacy_base, _k = bo.depth(scene, *bo.load(scene)[1:], actor_h)            # what the legacy build says (for the report)
+    if '--report' in sys.argv:                  # what the legacy build says (slow: another full depth pass)
+        legacy_base, _k = bo.depth(scene, *bo.load(scene)[1:], actor_h)
+    else:
+        legacy_base = np.full(base.shape, np.nan, np.float32)
     report = regions(scene, art, opaque, walk, floor, base, kinds, piece, contact, heights, auto, decals, actor_h, legacy_base)
     return data, report
 
@@ -439,7 +602,7 @@ def regions(scene, art, opaque, walk, floor, base, kinds, piece, contact, height
     places.sort(key=lambda u: -u['px'])
     rep = {'scene': scene, 'actor_px': round(A, 1),
            'kinds_share': {name: pct((kinds[opaque] == k).mean() * 100) for name, k in
-                           (('box (height from floor mask)', K_BOX), ('single line', K_GROUNDED), ('strip (no height)', K_STRIP),
+                           (('ceiling', K_CEIL), ('box (height from floor mask)', K_BOX), ('single line', K_GROUNDED), ('strip (no height)', K_STRIP),
                             ('held hanging', K_INHERIT), ('unheld hanging', K_HANGING), ('hint', K_HINT), ('object', K_OBJECT))},
            'decals_px': int(decals.sum()),
            'objects': objs, 'spanning': sum(o['spans_depths'] for o in objs),
@@ -475,10 +638,10 @@ def regions(scene, art, opaque, walk, floor, base, kinds, piece, contact, height
 
 def emit(all_data):
     head = ('/**\n * sceneLayersFloor.js - GENERATED by tools/floor_depth.py. Do not edit by hand.\n *\n'
-            ' * THE VIENNA FLOOR-MASK EXPERIMENT (docs/FLOORMASK.md): depth slices built from\n'
-            ' * the artist\'s ORIGINAL occlusion layer and the floor mask. Same format as\n'
-            ' * sceneLayers.js; the walk grid is a copy of the legacy one (movement is\n'
-            ' * identical). scene.js uses it for these scenes unless ?depth=legacy / L key.\n */\n')
+            ' * FLOOR-MASK DEPTH (docs/FLOORMASK.md): depth slices built from the artist\'s\n'
+            ' * ORIGINAL occlusion layers, the floor masks and the clubs\' ceilings. Same\n'
+            ' * format as sceneLayers.js; the walk grid is a copy of the legacy one\n'
+            ' * (movement is identical). scene.js uses it unless ?depth=legacy / L key.\n */\n')
     body = ',\n'.join(f' {json.dumps(k)}: ' + json.dumps(v, separators=(',', ':')) for k, v in all_data.items())
     return head + 'export const SCENE_LAYERS_FLOOR = {\n' + body + '\n};\n\nexport default SCENE_LAYERS_FLOOR;\n'
 
@@ -506,7 +669,7 @@ def check():
             bad.append(f'{scene}: {path} does not match its ?v= hash')
     extra = sorted(set(have) - set(SCENES))
     if extra:
-        bad.append(f'scenes outside the experiment in sceneLayersFloor.js: {extra}')
+        bad.append(f'unknown scenes in sceneLayersFloor.js: {extra}')
     for b in bad:
         print(b)
     print('sceneLayersFloor.js is ' + ('up to date' if not bad else 'STALE: run tools/floor_depth.py'))
@@ -520,19 +683,26 @@ def main():
     want = args or SCENES
     bad = [s for s in want if s not in SCENES]
     if bad:
-        sys.exit(f'the floor experiment is Vienna only: {bad} not allowed')
+        sys.exit(f'unknown scenes: {bad}')
     heights = bo.scene_actor_heights()
     legacy = legacy_layers()
-    out = read_out()
     for scene in want:
         data, rep = build(scene, heights[scene], legacy)
-        out[scene] = data
+        # merged into the file after EACH scene, under a lock: two builds can run
+        # side by side (2 CPUs), and a crash keeps what was already built
+        os.makedirs(SHOTS, exist_ok=True)
+        with open(os.path.join(SHOTS, '.floor-data.lock'), 'w') as lock:      # tools/shots: never shipped
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            out = read_out()
+            out[scene] = data
+            out = {s: out[s] for s in SCENES if s in out}
+            tmp = OUT_JS + '.tmp'
+            open(tmp, 'w', encoding='utf-8').write(emit(out))
+            os.replace(tmp, OUT_JS)
         ks = rep['kinds_share']
         print(f'{scene:10} slices {len(data["slices"]):5d}  ' + '  '.join(f'{k.split(" (")[0]} {v:4.1f}%' for k, v in ks.items())
               + f'  | objects spanning depths {rep["spanning"]}, split {rep["split"]}, decals {rep["decals_px"]} px', flush=True)
-    out = {s: out[s] for s in SCENES if s in out}
-    open(OUT_JS, 'w', encoding='utf-8').write(emit(out))
-    print(f'wrote {os.path.relpath(OUT_JS, ROOT)} ({len(out)} scenes)')
+    print(f'wrote {os.path.relpath(OUT_JS, ROOT)}')
 
 
 if __name__ == '__main__':

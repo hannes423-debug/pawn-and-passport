@@ -1,24 +1,27 @@
-# Floor masks: the Vienna depth experiment
+# Floor-mask depth
 
-Started 2026-09-30. Vienna only (vie-ext, vie-int, vie-up, vie-venue). Every
-other city still uses the current renderer, and nothing here changes how
-anybody walks.
+Every scene's depth (what is drawn in front of a player) is built from three
+separate sources. Started 2026-09-30 as a Vienna experiment (v1.1.15); rolled
+out to every club the same day (v1.1.17) after the Vienna test. Nothing here
+changes how anybody walks: the walk grid is a copy of the previous one.
 
 ## Three masks, three jobs
 
-| mask | file | says | used for |
+| source | file | says | used for |
 |---|---|---|---|
 | walk mask | `<City>/<scene>-walkmask.png` | where FEET may stand | collision, paths (unchanged) |
 | floor mask | `<City>/<scene>-floormask.png` | where the GROUND is, reachable or not | depth only |
-| occlusion | `<City>/<scene>-occlusion-original.png` | what may be drawn in front of a player | the pixels of every depth slice |
+| occlusion | the artist's layer, as drawn | what may be drawn in front of a player | the pixels of every depth slice |
+| ceiling | `CEILING` in tools/depth_hints.py | the cut tops of the walls | always in front |
+
+The occlusion source is the artist's layer as they drew it: for the 7 layers
+the artist cleaned by hand (docs/OCCLUSION.md) that is `<scene>-occlusion.png`;
+for the 17 the tool pruned it is `<scene>-occlusion-original.png`, restored
+from git (90f2128). No tool ever writes either.
 
 Not walkable does not mean solid. Floor under a table, a strip behind a
 railing, the floor a wall hides from this angle are all floor the feet cannot
 reach, and they decide where an object meets the ground.
-
-The occlusion source for this experiment is the artist's ORIGINAL layer,
-restored from git (90f2128) next to the tool-pruned file the current renderer
-uses. Neither file is ever written by the tools.
 
 ## The floor mask file
 
@@ -35,139 +38,140 @@ floor; the surround reaching the picture's edge = not floor; everything under
 the drawing that is not walkable = grey. It never overwrites a mask listed
 below as hand-edited.
 
-## How depth is built from it (`tools/floor_depth.py`)
+## The ceiling (user, 2026-09-30)
 
-Per pixel column, each run of the layer is read downwards. A layer pixel over
-floor is the object in front of the floor it hides; over not-floor it is the
-object's footprint.
+In the club interiors the tops of the walls are drawn as a dark band, the
+"ceiling": navy in Vienna, New York, Istanbul and the Madrid finale hall. The
+ceiling is ALWAYS in front of a player. The wall face under it (the beige
+pillar at a Vienna doorway, the end of the wall north of the opening) is not
+ceiling: it stands where it meets the floor, so a player in the doorway is in
+front of it.
+
+Found by colour: `CEILING[scene] = {'lab', 'px', 'med', 'min'}` (OpenCV Lab
+centre, per-pixel radius, the radius a whole piece's median must be within,
+the smallest piece as a share of the picture). New York's navy banners are
+bluer than its ceiling and drop out on the median test. The ceiling's own
+side outline (a bevel line in another colour, 4-5 px) joins it sideways only,
+never downwards onto the wall face. London and Chennai draw low walls with
+light stone caps, Wenzhou dark wood the colour of its furniture: no ceiling by
+colour there. Check a scene: `python3 tools/dev/ceiling_view.py <scene>`.
+
+## How depth is built (`tools/floor_depth.py`)
+
+Per pixel column, each run of the layer (the ceiling excluded, it is 99) is
+read downwards. A layer pixel over floor is the object in front of the floor
+it hides; over not-floor it is the object's footprint.
 
 1. A run splits where a footprint gives way to floor below it: two things
-   stacked in one column (a chair behind a table) become separate depth
-   regions.
+   stacked in one column (a chair behind a table) become separate regions.
 2. A region meets the ground where the floor resumes under its footprint.
-3. The floor mask's main job: the floor hidden above a footprint is the
-   object's drawn HEIGHT h. Seen from this angle an object of height h on
-   footprint rows t..c draws its top at rows t-h..c-h and its front at c-h..c,
-   so each pixel stands at `min(row + h, c)`. One drawing is then in front of
-   a player at one row and behind at the next: a long table, a wall top, the
-   north chair of a chess table, a doorway side. With no hidden floor the
-   height is unknown and the region stands at c whole, as before. Per-row
-   lines are kept to the shoe strip (0.08 character heights), always rounded
-   forward, so rounding can never show feet over anything.
-4. A region with no footprint in its column (leaves over the floor, the far
-   rim of a round table) takes the line of what holds it, nearest first.
-5. The manual `HINTS` (tools/depth_hints.py) apply to those free-hanging
-   regions only; the manual `OBJECTS` apply as in the current build.
+   What is drawn below that, over walkable floor (a base moulding, a shadow,
+   the floor in a doorway under its jamb), is floor-level and stands with it.
+3. The floor hidden above a footprint is the object's drawn HEIGHT h. An
+   object of height h on footprint rows t..c draws its top at rows t-h..c-h
+   and its front at c-h..c, so each pixel stands at `min(row + h, c)`: in
+   front of a player at one row, behind at the next (a long table, a wall top,
+   the north chair of a chess table). With no hidden floor it stands at c.
+4. A region with no footprint at all (leaves over the floor, a lintel) takes
+   the line of what holds it, nearest first; the manual `HINTS` apply to these.
+   If the PRUNED layer erased it (no player ever stands behind it) and it lies
+   on walkable floor, it is floor drawn into the layer (tiles running into a
+   doorway, stair treads) and is dropped.
+5. The manual `OBJECTS` apply as before.
+6. Clean-up, all of it rounding FORWARD (covering a little more, never showing
+   feet over anything): the layer's soft edge (alpha 16-127) joins the object
+   it is the edge of; a thin dip (a line lower than on both sides, up to 4 px
+   either way, at most a character height) comes forward to its sides; every
+   line is rounded UP to the 0.2 % bin before slicing (slicing used to round
+   down and put an object 2 px behind where it stands).
 
-Output: `js/data/sceneLayersFloor.js` and `assets/layers-floor/*.webp`. The walk
-grid inside is a copy of the current one (a test and `--check` enforce it).
+Output: `js/data/sceneLayersFloor.js` and `assets/layers-floor/*.webp`.
 
 ## Switching
 
-- In a Vienna scene: `L` swaps between the floor-mask depth and the current
+- In any scene: `L` swaps between the floor-mask depth and the previous
   renderer, live, where the player stands. A toast says which one is on.
-- `?depth=legacy` starts on the current renderer, `?depth=floor` on the
-  experiment. Other cities ignore both.
-- To switch it off for everybody: `DEPTH_DEFAULT = 'legacy'` in
-  `js/ui/screens/scene.js`.
+- `?depth=legacy` starts on the previous renderer, `?depth=floor` on this one.
+- To go back for everybody: `DEPTH_DEFAULT = 'legacy'` in
+  `js/ui/screens/scene.js`. The previous data (js/data/sceneLayers.js,
+  assets/layers) is still built and checked, so it keeps working.
 
 ## Commands
 
-    python3 tools/floor_mask.py [scene ...]     # first-version floor masks (skips hand-edited ones)
-    python3 tools/floor_depth.py [scene ...]    # the depth data (~5 min per scene on this PC)
-    python3 tools/floor_depth.py --check        # predeploy runs this
-    python3 tools/dev/floor_audit.py [scene]    # the audit below, into tools/shots/floor/
+    python3 tools/floor_mask.py [scene ...]      # first-version floor masks (skips hand-edited ones)
+    python3 tools/floor_depth.py [scene ...]     # the depth data (~25 s a scene)
+    python3 tools/floor_depth.py --check         # predeploy runs this
+    python3 tools/dev/leak_check.py [scene] [--legacy] [--shots]   # thin lines of a player showing through
+    python3 tools/dev/door_audit.py [scene]      # every doorway walked through, both renderers
+    python3 tools/dev/door_probe.py SCENE x0 y0 x1 y1 [step]      # every spot of one small area
+    python3 tools/dev/ceiling_view.py SCENE      # what counts as ceiling
+    python3 tools/dev/floor_audit.py [scene]     # the Vienna-era audit: masks, regions, test players
 
-After painting a floor mask: add the scene to the table below, then run
-floor_depth.py and floor_audit.py.
+After painting a floor mask or delivering a new layer: add the scene to the
+table below (masks), then run floor_depth.py and leak_check.py.
 
 ## Hand-edited floor masks
 
 | scene | edited | note |
 |---|---|---|
 
-## Results, 2026-09-30 (first-version masks, nothing hand-painted yet)
+## Results
 
-Audit: `tools/shots/floor/<scene>-1-masks.png` (walk vs floor), `-regions.png`
-(depth by colour, white where it jumps, hatched where the height came from the
-floor mask), `-3-legacy.png` / `-4-floor.png` (the same test players in both
-renderers, hidden parts outlined cyan), `-5-diff.png` (every player that looks
-different, current | floor, feet circled, walk edge green, floor edge blue).
+Measured 2026-09-30 on every standable spot of the game's own walk grid (a
+spot every 3 px), with the game's own sprite, size and foot anchor:
 
-Test players stand only where the game lets feet stand, picked at full
-resolution in eight kinds of place: in front of, behind, beside and between
-objects, in passages, by furniture, walls and plants.
+- **leak px**: `tools/dev/leak_check.py`, pixels of a player showing through
+  something that hides the rest of them as a line 1-2 px wide (counted only
+  where the artist drew something, not in a gap between leaves or bars).
+- **shoe spots**: `tools/dev/feet_check.py`, spots where the shoes (drawn 8 %
+  of a character below the feet) show over a drawing that stands below them.
+  It predates the doorway rule and counts "player in front of the doorway's
+  pillar base" as an error: the nyc-int, vie-int and ist-up rises are that
+  rule, checked by eye.
 
-| scene | players | shoe px over a front object: current | floor | look different |
+| scene | leak px, previous | leak px, floor | shoe spots, previous | shoe spots, floor |
 |---|---|---|---|---|
-| vie-ext | 68 | 3 | 0 | 5 |
-| vie-int | 112 | 9 | 0 | 8 |
-| vie-up | 91 | 7 (1 player) | 0 | 7 |
-| vie-venue | 23 | 0 | 0 | 1 |
+| nyc-ext | 54,687 | 9,490 | 63 | 23 |
+| nyc-int | 10,475 | 1,323 | 42 | 196 |
+| nyc-up | 5,038 | 2,046 | 4 | 32 |
+| nyc-venue | 134,826 | 2,740 | 239 | 21 |
+| lon-ext | 12,698 | 772 | 56 | 11 |
+| lon-int | 3,869 | 14 | 41 | 11 |
+| lon-venue | 135,117 | 2,927 | 64 | 22 |
+| vie-ext | 40,450 | 21,578 | 191 | 123 |
+| vie-int | 12,012 | 2,874 | 202 | 246 |
+| vie-up | 12,404 | 1,723 | 133 | 7 |
+| vie-venue | 53,979 | 53,256 | 58 | 16 |
+| ist-ext | 84,265 | 2,145 | 87 | 91 |
+| ist-int | 11,107 | 1,128 | 46 | 19 |
+| ist-up | 5,312 | 2,113 | 48 | 200 |
+| ist-venue | 52,828 | 2,049 | 73 | 51 |
+| che-ext | 140,286 | 14,206 | 16 | 29 |
+| che-int | 2,639 | 159 | 78 | 17 |
+| che-venue | 165,507 | 4,045 | 16 | 76 |
+| wen-ext | 42,780 | 9,413 | 203 | 124 |
+| wen-int | 3,654 | 627 | 55 | 19 |
+| wen-up | 7,332 | 2,854 | 134 | 116 |
+| wen-venue | 311,222 | 30,521 | 126 | 70 |
+| mad-ext | 26,284 | 8,644 | 161 | 159 |
+| mad-int | 6,250 | 110 | 9 | 4 |
+| **total** | **1,335,021** | **176,757** | **2,145** | **1,683** |
 
-Floor mask against walk mask (% of the picture):
+Leaks are 87 % fewer and fewer in every scene; shoe spots 22 % fewer.
 
-| scene | walkable | hidden floor (walkable under the drawing) | floor feet cannot reach | not floor | unsure, under the drawing | unsure, visible |
-|---|---|---|---|---|---|---|
-| vie-ext | 18.2 | 5.5 | 0.5 | 15.7 | 64.9 | 0.7 |
-| vie-int | 32.3 | 7.4 | 0.7 | 13.4 | 53.1 | 0.4 |
-| vie-up | 17.7 | 5.4 | 0.4 | 25.6 | 50.2 | 6.0 |
-| vie-venue | 40.0 | 14.7 | 2.9 | 6.8 | 47.6 | 2.6 |
+Still open, for a person (or a floor mask) to decide:
 
-Where the floor feet cannot reach is: under and between the three cafe tables
-and the counter front (vie-venue); round the director's armchairs and the
-entrance steps (vie-int); inside the gate posts (vie-ext). The large visible
-unsure area in vie-up (x 36-64 %, y 75-88 %) is the ground floor seen down the
-stairwell: floor, but another level.
+- nyc-ext: the two open wrought-iron gates, drawn diagonally. One gate spans
+  several depths, and its bars over the hedge behind it take the hedge's line:
+  a player standing behind a gate shows through some bars (the worst leak in
+  the game now, 66 px at 59.9 %, 74.5 %).
+- vie-venue: leaks barely moved (53,979 -> 53,256): the cafe's tables, chairs
+  and railings stand close together and the walk mask gives them little room.
+  A hand-painted floor mask (floor under the tables white) is the fix.
+- che-ext (81 px at 81.4 %, 52.5 %), vie-ext (63 px at 42.3 %, 81.1 %) and
+  wen-venue (34 px at 4.6 %, 45.0 %): the worst remaining spots.
+- The grey (unsure) parts of every floor mask are treated as footprint, as
+  before. Painting them is the next step wherever something still looks wrong.
 
-Objects the build gave more than one depth (per-row from the measured height,
-or split where stacked):
-
-- vie-int, 19 of 23: all 8 tournament tables (north chair to front edge, for
-  example table-r1 36.0 to 43.2), the 4 practice tables, the lobby's round
-  table, the east lobby wall with its settee, the director's armchairs and
-  globe, the building's walls.
-- vie-up, 4 of 6: the trophy display, the game table, the trophy hall's east
-  chair, the building's walls.
-- vie-ext, 2 of 9: the building's walls and the north-east cafe tables.
-- vie-venue, 3 of 27: the counter wall, the piano, the back wall.
-
-Manual depth the automatic rule does NOT reproduce (still needed):
-
-- vie-ext: lamp-w, tables-ne, chess-plinth, pillar-w/e, gate-w/e, gazebo,
-  gazebo-statue, hedge-ne, table-ne-back
-- vie-int: globe, plant-dir-sw, prac-nw/ne/sw, lamp-stair-w/e, settee-e,
-  lamp-hall-w/e, gate-w, cypress-e, table-l4, balustrade-w/e
-- vie-up: armchair-sw, plant-lounge-ne, game-table, lamp-lounge-w,
-  lamp-upper-w/e, railing-top, display, bust-trophy-e
-- vie-venue: plant-mid, piano
-
-The rule agrees with 54 other hints (8, 23, 14, 9); they are left in place.
-
-Uncertain, for a person to decide:
-
-- Grey under the drawing is half of every picture. The build treats it as
-  footprint, which is exactly the old assumption; the automatic mask adds
-  little the walk mask did not already say. The real test is a hand-painted
-  mask (the cafe first: the floor under the tables).
-- Heights come from the walk mask's overlap band. Where it was painted shorter
-  than the object is tall, the object's top is placed a little too far back.
-  This only matters for a player standing beside the object.
-- A player standing BESIDE a wall top (vie-int diff #97): the floor build hides
-  the overlapping side up to the wall's height, the current renderer only the
-  bottom fifth. Physically the floor build is consistent; which reads better
-  is a judgement call.
-- Hanging parts nothing holds: the stairwell balustrade in vie-up (x 46-54 %,
-  y 23-31 %), a statue alcove in the vie-int tournament hall (x 80-82 %,
-  y 28-32 %). They keep the line of the floor under them.
-
-Cost: the vie-int depth has 1530 pieces (current 1085), the others about the
-same as now; `assets/layers-floor` is 2.2 MB.
-
-Verdict: at every one of the 21 players that look different, the floor build
-is right or equal, bar the judgement call above. It also replaces several
-special rules with one (`min(row + h, c)`). But both renderers are already
-near zero on the shoe check, and the gain comes from heights the walk mask's
-overlap already encoded, not from new floor knowledge. Promising, not yet
-proven: play Vienna with L, have one floor mask painted, and only then roll it
-out to other cities.
+The previous renderer (js/data/sceneLayers.js) is still built and checked:
+`L` in the game or `?depth=legacy` compares the two anywhere.
