@@ -133,6 +133,17 @@ export function createApp(root, screens) {
           release();
           resolve(value);
         };
+        // A touch tap that OPENS an overlay (the promotion pick opens on the
+        // board's pointerup) is followed by the browser's own click at the same
+        // spot, which now lands on this layer: on the backdrop it dismissed the
+        // pop-up, on a button it chose for the player. So pointer clicks count
+        // only once a press has begun inside the layer. Keys and pads click with
+        // detail 0 and always pass.
+        let pressed = false;
+        layer.addEventListener('pointerdown', () => { pressed = true; }, true);
+        layer.addEventListener('click', (e) => {
+          if (!pressed && e.detail > 0) { e.stopPropagation(); e.preventDefault(); }
+        }, true);
         layer.addEventListener('click', (e) => { if (e.target === layer && dismissable) close(null); });
         layer.append(build(close));
         document.body.append(layer);
