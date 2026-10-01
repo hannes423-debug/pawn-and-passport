@@ -316,6 +316,14 @@ export function createApp(root, screens) {
       requestAnimationFrame(() => showNextCoach(attempt + 1));
       return;
     }
+    /* One card at a time: a tip never opens over a dialogue, a pop-up or a
+       result card (on a phone they stacked into a wall of text). It waits,
+       and shows once they are gone. */
+    if (document.querySelector('.pp-dialogue, .pp-overlay')) {
+      coachPending = true;
+      setTimeout(() => showNextCoach(attempt), 400);
+      return;
+    }
     coachPending = false;
     coachQueue.shift();
     /* With a host (a match's side panel) the tip sits inline in it and never

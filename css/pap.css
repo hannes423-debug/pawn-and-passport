@@ -805,3 +805,6 @@ img, canvas { image-rendering: pixelated; }
   .pp-difficulty { grid-template-columns: 1fr; }
   .pp-difficulty__tagline { align-self: start; }
 }
+/* One card at a time: a tip already up steps aside while a dialogue or pop-up
+   is open, and while the match's opening card shows (app.js holds new tips back). */
+body:has(.pp-dialogue) .pp-coach, body:has(.pp-overlay) .pp-coach, body:has(.pp-tip:not([hidden])) .pp-coach { display: none; }

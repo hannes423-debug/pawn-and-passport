@@ -5,7 +5,7 @@ Each step: implement -> tests -> commit + push -> tick here. If a session
 dies, resume at the first unticked step.
 
 - [x] 1. A's "Go:" target = the current objective (HUD "Next:"), members only when close
-- [ ] 2. Help cards one at a time; held back while a dialogue is open
+- [x] 2. Help cards one at a time; held back while a dialogue is open
 - [ ] 4. Re-check old DESIGN items: desk locks tier on "Not yet"; walk lines through furniture
 - [ ] 5. Money: tournament entry fee + travel cost between cities (only these two for now).
         Rules from the user: not grindy; a loss should matter; winning the
