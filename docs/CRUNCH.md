@@ -17,7 +17,7 @@ dies, resume at the first unticked step.
         Done: fee 40..90 by trophies, prizes in fee shares (runner-up 1.2x fee,
         champion 2.5x fee + 100 + points), flight 50 (Madrid free), sponsor
         debt instead of ever blocking. Table in DESIGN.md section 27.
-- [ ] 6. One faint objective marker visible at any distance
+- [x] 6. One faint objective marker visible at any distance
 - [ ] 7. Won trophies displayed in each club's upstairs Trophy Hall
 - [ ] 8. Member rematches with the head-to-head record line ("You 2-1 Danny")
         Found: the dialogue already says "We are 2-1 so far" and every talk ends in a

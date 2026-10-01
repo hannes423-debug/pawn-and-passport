@@ -583,6 +583,7 @@ img, canvas { image-rendering: pixelated; }
    use now (.is-near), under the mouse or with keyboard focus. */
 .pp-hotspot { transition: opacity 160ms ease, visibility 160ms; }
 .pp-hotspot.is-far { opacity: 0; visibility: hidden; pointer-events: none; }
+.pp-hotspot.is-goal-far { opacity: 0.6; }
 .pp-hotspot:not(.is-near):not(:hover):not(:focus-visible) .pp-hotspot__text,
 .pp-hotspot:not(.is-near):not(:hover):not(:focus-visible) .pp-hotspot__key { display: none; }
 .pp-hotspot:not(.is-near):not(:hover):not(:focus-visible) .pp-hotspot__label:not(.pp-hotspot__name) { padding: 2px 4px; }

@@ -13,6 +13,7 @@ tools/cdp_cues.py - hotspots show only as much as the player's distance earns.
      which the walk mask does not reach)
   5. on a touch screen no visible marker sits under the joystick or A button
   6. out of reach of everything, A heads for the career's next goal
+  7. the way to that goal is one faint icon at any distance
 """
 import os
 import sys
@@ -42,6 +43,7 @@ STATE = """(() => {
       shown: getComputedStyle(b).visibility !== 'hidden' && getComputedStyle(b).opacity !== '0',
       words: !!text && getComputedStyle(text).display !== 'none' && getComputedStyle(text).visibility !== 'hidden',
       near: b.classList.contains('is-near'),
+      goal: b.classList.contains('is-goal-far'),
       top: (r.top - stage.top) / stage.height * 100, bottom: (r.bottom - stage.top) / stage.height * 100,
       rect: [r.left, r.top, r.right, r.bottom]
     };
@@ -85,7 +87,7 @@ try:
     enter(c, "nyc-ext")
     s = place(c, 50, 89)
     door, gate = s["Enter: Enter the club"], s["Travel: Leave"]
-    check(not door["shown"], "1. at the gate the far club door is not drawn")
+    check(door["shown"] and door["goal"] and not door["words"], "7. the far club door is the next goal: a faint icon, no words")
     check(gate["shown"] and gate["near"] and gate["words"], "3. the gate A would use shows its words")
     check(gate["top"] >= 89 or gate["bottom"] >= 98,
           f"4. the gate marker hangs under the feet, or sits on the bottom edge ({gate['top']:.1f}-{gate['bottom']:.1f}%)")
@@ -106,7 +108,10 @@ try:
     # Floor plan: from the entrance the tournament hall is out of reach.
     enter(c, "nyc-int")
     s = place(c, 50, 91)
-    check(not s["Play: Tournament hall"]["shown"], "1. from the entrance the tournament hall is not drawn")
+    check(not s["Talk: Director's office"]["shown"], "1. from the entrance the director's office is not drawn")
+    hall = s["Play: Tournament hall"]
+    check(hall["shown"] and hall["goal"] and not hall["words"], "7. the tournament hall (the goal) shows faintly from the entrance")
+    check(sum(1 for v in s.values() if v["goal"]) == 1, "7. exactly one faint goal marker")
     garden = s["Exit: Garden"]
     check(garden["shown"] and (garden["top"] >= 88 or garden["bottom"] >= 98),
           f"4. the Garden exit is on the front steps ({garden['top']:.1f}-{garden['bottom']:.1f}%)")

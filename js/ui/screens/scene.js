@@ -617,10 +617,14 @@ export async function sceneScreen(app, params) {
   let nearSpot = null;
   function paintCues(pick = spotForAction()) {
     const near = pick?.ready ? pick.spot : null;
+    // The way to the next goal stays on screen at any distance, faintly: one
+    // small icon, so the room is never empty of a direction.
+    const goal = goalSpot();
     for (const [spot, node] of spotNodes) {
       const [x, y] = scene.nodes[spot.node];
-      const far = spot !== near && Math.hypot((x - player.x) * aspect, y - player.y) > CUE_RADIUS;
-      node.classList.toggle('is-far', far);
+      const out = spot !== near && Math.hypot((x - player.x) * aspect, y - player.y) > CUE_RADIUS;
+      node.classList.toggle('is-far', out && spot !== goal);
+      node.classList.toggle('is-goal-far', out && spot === goal);
       node.classList.toggle('is-near', spot === near);
     }
     // The words widen the label: slide it back inside the screen again.
