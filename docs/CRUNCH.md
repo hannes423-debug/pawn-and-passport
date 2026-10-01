@@ -23,4 +23,7 @@ dies, resume at the first unticked step.
         Found: the dialogue already says "We are 2-1 so far" and every talk ends in a
         challenge. Remaining: show the record on the name label + the dock button.
 - [x] 9. A member you've talked to fades their bubble
-- [ ] 10. A button "Go: <long name>" -> short (icon + arrow)
+- [x] 10. A button "Go: <long name>" -> short (icon + arrow)
+
+All steps done 2026-10-01: v1.2.0 (see git log 45ba327..HEAD). Not done: a real-phone
+test of any of it; itch not uploaded.

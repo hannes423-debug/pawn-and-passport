@@ -130,11 +130,16 @@ export function createTouchpad({ onStick, onAction }) {
 
   return {
     el,
-    /** label: what A does right now; ready: the player is standing on it. */
-    setAction(label, ready) {
-      actionLabel.textContent = label || '';
+    /**
+     * label: what A does right now; ready: the player is standing on it.
+     * icon: instead of words, a picture of where A walks to (title says it in full).
+     */
+    setAction(label, ready, { icon = null, title = label } = {}) {
+      actionLabel.replaceChildren(...(icon ? [icon, '\u00a0\u25b8'] : [label || '']));
+      actionLabel.title = title || '';
+      action.setAttribute('aria-label', title || 'A');
       action.classList.toggle('is-ready', !!ready);
-      action.disabled = !label;
+      action.disabled = !label && !icon;
     },
     release,
     destroy() { release(); el.remove(); }

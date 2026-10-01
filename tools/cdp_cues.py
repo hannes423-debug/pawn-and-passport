@@ -101,7 +101,9 @@ try:
     check(door["shown"] and not door["words"], "2. halfway up the path the door shows its icon, no words")
     near = [k for k, v in s.items() if v["words"]]
     check(len(near) <= 1, f"3. at most one hotspot shows words ({near})")
-    label = c.eval("document.querySelector('.pp-keyprompt__label')?.textContent || document.querySelector('.pp-pad__label, .pp-pad__action')?.textContent || ''")
+    label = c.eval("document.querySelector('.pp-keyprompt__label')?.title || ''")
+    short = c.eval("document.querySelector('.pp-keyprompt__label')?.textContent || ''")
+    check(len(short.strip()) <= 2, f"10. the prompt shows an icon and an arrow, not the long name ({short!r})")
     check("Enter the club" in label, f"6. A heads for the next goal, not a nearby member ({label!r})")
     c.shot(f"cues-path-{spec}")
 

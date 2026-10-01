@@ -975,9 +975,13 @@ export async function sceneScreen(app, params) {
   const keyPrompt = h('div.pp-keyprompt', { 'aria-hidden': 'true' }, prompt('accept'), keyLabel);
   function paintPad() {
     const pick = spotForAction();
+    /* Ready: the verb ("Travel"). Not yet: where A walks to, as that spot's
+       own icon and an arrow - "Go: Leave the promenade" did not fit a phone. */
     const label = pick ? (pick.ready ? pick.spot.verb : `Go: ${pick.spot.label}`) : '';
-    pad.setAction(label, pick?.ready);
-    keyLabel.textContent = label;
+    const icon = () => (pick && !pick.ready ? pixelIcon(KIND_ICON[spotKind(pick.spot)], { size: 'sm' }) : null);
+    pad.setAction(pick?.ready ? label : '', pick?.ready, { icon: icon(), title: label });
+    keyLabel.replaceChildren(...(pick && !pick.ready ? [icon(), '\u00a0\u25b8'] : [label]));
+    keyLabel.title = label;
     keyPrompt.hidden = !label;
     keyPrompt.classList.toggle('is-ready', !!pick?.ready);
     paintCues();
