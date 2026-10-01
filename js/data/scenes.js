@@ -93,6 +93,8 @@ function upstairs(id, image, p) {
   const club = id.slice(0, 3);
   return {
     id, image, kind: 'upstairs', spawn: { default: 'stairs', stairs: 'stairs' },
+    // `shelf`: [centre x, y, width] where the won Club Trophies stand (on the display's plaque).
+    shelf: p.shelf || null,
     nodes: { stairs: p.stairs, hub: p.hub, lounge: p.lounge, trophies: p.trophies },
     links: [['stairs', 'hub'], ['hub', 'lounge'], ['hub', 'trophies']],
     hotspots: [
@@ -133,7 +135,7 @@ add({ ...hallA('nyc-int', 'assets/scenes/nyc-int.webp', {
   hallDoor: [64, 40], hall: [80.5, 46], hallNpc: [80.5, 35]
 }), actorHeight: 0.07 });
 add({ ...upstairs('nyc-up', 'assets/scenes/nyc-up.webp',
-  { stairs: [50, 40], hub: [50, 32], lounge: [22, 39.5], loungeNpc: [18, 39.5], trophies: [80, 59.5] }), actorHeight: 0.07 });
+  { stairs: [50, 40], hub: [50, 32], lounge: [22, 39.5], loungeNpc: [18, 39.5], trophies: [80, 59.5], shelf: [80.4, 53.6, 13] }), actorHeight: 0.07 });
 add({
   id: 'nyc-venue', image: 'assets/scenes/nyc-venue.webp', actorHeight: 0.113, kind: 'venue', placeholder: false,
   spawn: { default: 'arrive' },
@@ -180,7 +182,7 @@ add({ ...hallA('vie-int', 'assets/scenes/vie-int.webp', {
   hallDoor: [65, 36], hall: [81.3, 47], hallNpc: [81.3, 37]
 }), actorHeight: 0.07 });
 add({ ...upstairs('vie-up', 'assets/scenes/vie-up.webp',
-  { stairs: [50, 37], hub: [50, 33], lounge: [21, 48], loungeNpc: [24, 48.5], trophies: [81, 57] }), actorHeight: 0.07 });
+  { stairs: [50, 37], hub: [50, 33], lounge: [21, 48], loungeNpc: [24, 48.5], trophies: [81, 57], shelf: [81.5, 48.5, 9] }), actorHeight: 0.07 });
 add({
   // Café Wien: in over the doormat, between the plants, to the table under the cathedral window.
   id: 'vie-venue', image: 'assets/scenes/vie-venue.webp', actorHeight: 0.27, kind: 'venue', spawn: { default: 'arrive' },
@@ -202,7 +204,7 @@ add({ ...hallA('ist-int', 'assets/scenes/ist-int.webp', {
   hallDoor: [66, 44.5], hall: [80.5, 50], hallNpc: [80.5, 36]
 }), actorHeight: 0.07 });
 add({ ...upstairs('ist-up', 'assets/scenes/ist-up.webp',
-  { stairs: [50, 37], hub: [50, 48], lounge: [21, 48.5], loungeNpc: [18, 49], trophies: [82.5, 50] }), actorHeight: 0.07 });
+  { stairs: [50, 37], hub: [50, 48], lounge: [21, 48.5], loungeNpc: [18, 49], trophies: [82.5, 50], shelf: [80.7, 45, 13] }), actorHeight: 0.07 });
 add({
   // Bosphorus tea terrace: up the steps, round the sign, to the middle table.
   id: 'ist-venue', image: 'assets/scenes/ist-venue.webp', actorHeight: 0.17, kind: 'venue', spawn: { default: 'arrive' },
@@ -250,7 +252,7 @@ add({ ...hallA('wen-int', 'assets/scenes/wen-int.webp', {
   hallDoor: [67, 50.5], hall: [82.5, 56], hallNpc: [82.5, 34.5]
 }), actorHeight: 0.07 });
 add({ ...upstairs('wen-up', 'assets/scenes/wen-up.webp',
-  { stairs: [50, 40], hub: [50, 52], lounge: [20, 47.5], loungeNpc: [17, 48], trophies: [79, 60] }), actorHeight: 0.07 });
+  { stairs: [50, 40], hub: [50, 52], lounge: [20, 47.5], loungeNpc: [17, 48], trophies: [79, 60], shelf: [79.1, 53, 9] }), actorHeight: 0.07 });
 add({
   // Ou River pavilion: down the old-town steps, across the quay, to the riverside table.
   id: 'wen-venue', image: 'assets/scenes/wen-venue.webp', actorHeight: 0.166, kind: 'venue', spawn: { default: 'arrive' },

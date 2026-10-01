@@ -451,7 +451,7 @@ XP for `counts.GREAT`, which the classifier never produces: a dead term there.)
 **OPTIONAL polish**
 - A real music track; more SFX variation.
 - Hand-drawn portraits for the six Star Players.
-- Show the actual won trophies inside each upstairs Trophy Hall scene.
+- ~~Show the actual won trophies inside each upstairs Trophy Hall scene.~~ Done (crunch step 7): they stand on the display (`shelf` in scenes.js).
 - ~~Gamepad input.~~ Done in v1.1.18: `js/ui/controls.js` (keyboard and pads, one set of actions), see README "Keyboard and gamepad".
 - Strip `explain/` out of `GameReview.annotate` to save CPU.
 

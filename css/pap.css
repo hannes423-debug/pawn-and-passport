@@ -813,3 +813,6 @@ body:has(.pp-dialogue) .pp-coach, body:has(.pp-overlay) .pp-coach, body:has(.pp-
 .pp-hud__debt { color: #ff9b8a; font-weight: 700; }
 .pp-desk__fee .pp-ico { vertical-align: -2px; }
 .pp-citypop__fare { display: inline-flex; align-items: center; gap: 3px; }
+/* Won Club Trophies on the upstairs Trophy Hall's display (scene.js, scenes.js `shelf`). */
+.pp-shelf-trophy { position: absolute; width: 2.4%; height: auto; transform: translate(-50%, -100%); image-rendering: pixelated; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6)); }
+.pp-shelf-trophy.is-home { width: 3.2%; }
