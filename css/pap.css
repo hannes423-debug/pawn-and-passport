@@ -817,3 +817,5 @@ body:has(.pp-dialogue) .pp-coach, body:has(.pp-overlay) .pp-coach, body:has(.pp-
 .pp-shelf-trophy { position: absolute; width: 2.4%; height: auto; transform: translate(-50%, -100%); image-rendering: pixelated; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6)); }
 .pp-shelf-trophy.is-home { width: 3.2%; }
 .pp-hotspot__record { color: var(--gold-hi); font-weight: 700; }
+/* A member already met: a faded bubble, full again when the player walks up. */
+.pp-hotspot.is-member.is-met:not(.is-near) .pp-hotspot__bubble { opacity: 0.45; }

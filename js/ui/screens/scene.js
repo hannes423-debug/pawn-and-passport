@@ -681,7 +681,7 @@ export async function sceneScreen(app, params) {
         : h('span.pp-hotspot__label', null, h('small.pp-hotspot__key', { text: String(i + 1) }),
             pixelIcon(KIND_ICON[kind], { size: 'sm' }), h('span.pp-hotspot__text', { text: ` ${spot.label}` }));
       const node = h('button.pp-hotspot', {
-        type: 'button', class: `${spotState(spot)} is-${kind}${out ? ' is-out' : ''} is-far`,
+        type: 'button', class: `${spotState(spot)} is-${kind}${out ? ' is-out' : ''}${spot.member && (career.membersMet?.[spot.action.memberId] || career.memberRecords?.[spot.action.memberId]) ? ' is-met' : ''} is-far`,
         style: { left: `${spot.npc?.at && !spot.mark ? spot.npc.at[0] : mx}%`, top: `${Math.max(4, labelY)}%` },
         'aria-label': `${spot.verb}: ${spot.label}`,
         onclick: (e) => { e.stopPropagation(); use(spot); }
@@ -1103,6 +1103,12 @@ export async function sceneScreen(app, params) {
   async function memberTalk(memberId) {
     const member = (MEMBERS[clubId] || []).find((x) => x.id === memberId);
     if (!member) return;
+    // Met once: their bubble fades from now on, so the people not met yet stand out.
+    if (!career.membersMet?.[member.id]) {
+      career.membersMet = { ...(career.membersMet || {}), [member.id]: true };
+      app.save();
+      for (const [spot, node] of spotNodes) if (spot.action.memberId === member.id) node.classList.add('is-met');
+    }
     const elo = memberElo(member.rel, tier(career), career.difficulty);
     const stake = stakeFor(elo);
     const record = career.memberRecords?.[member.id];

@@ -131,6 +131,8 @@ try:
     check(len(shown) == 1, f"the record shows on that member's dock button ({shown})")
     label = c.eval("[...document.querySelectorAll('.pp-hotspot__record')].map((n) => n.textContent)")
     check(label == [" · you 0-1"], f"and on their name label ({label})")
+    met = c.eval("document.querySelectorAll('.pp-hotspot.is-member.is-met').length")
+    check(met == 1, f"the member already met has a faded bubble, the others not ({met} faded)")
 
     # 3. the tournament desk
     c.pump(1)

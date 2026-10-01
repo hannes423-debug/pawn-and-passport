@@ -22,5 +22,5 @@ dies, resume at the first unticked step.
 - [x] 8. Member rematches with the head-to-head record line ("You 2-1 Danny")
         Found: the dialogue already says "We are 2-1 so far" and every talk ends in a
         challenge. Remaining: show the record on the name label + the dock button.
-- [ ] 9. A member you've talked to fades their bubble
+- [x] 9. A member you've talked to fades their bubble
 - [ ] 10. A button "Go: <long name>" -> short (icon + arrow)
