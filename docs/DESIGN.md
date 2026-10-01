@@ -620,19 +620,33 @@ has no PNG. `build-itch.sh` re-checks inside the built zip, because the paths
 are templated and the build's "is every asset shipped" sweep skips those by
 design.
 
-### NPC names are revealed, not printed
+### Hotspots are revealed by distance, not printed (v1.1.20)
 
-A club floor holds twelve members, and a name plate over every head hides the
-room. A member now wears only the speech-bubble icon; the NAME appears when
-the player walks up to them (`.is-near`, within `NAME_RADIUS` = 22% of the
-scene height, refreshed by the scene's own walk tick), hovers them, or focuses
-them with the keyboard - and when the dialogue opens, the name is the
-dialogue's own header. Everything else - the tournament desk, the exits, the
-practice room - keeps its label, because those are signposts and a signpost
-nobody can read is not a signpost. The dock at the bottom still lists every
-member by name, so nothing is reachable only by walking.
-`tools/cdp_members.py` asserts that no name is on screen before the player
-approaches, and that approaching one shows exactly that one.
+A phone shows a slice of the scene, and a name plate, a speech bubble and a
+signpost over everything in it hid the room. Every hotspot (members, exits,
+the tournament desk, the practice room) now has three states, set by the
+scene's walk tick (`paintCues()` in js/ui/screens/scene.js):
+
+- out of reach (further than `CUE_RADIUS` = 30% of the scene height): not drawn;
+- within reach: its icon only (a member's speech bubble, an exit's door);
+- the one spot the A button would use right now (`.is-near`): icon + words.
+
+Hover and keyboard/gamepad focus still show the words. Nothing is reachable
+only by walking: the dock lists every action and member, and A's own label
+says "Go: <nearest>" from anywhere.
+
+**Exits mark the way out, where it is.** A label floated above the head of
+whoever stood on the spot, so a garden gate's sign sat in the middle of the
+garden (and on a phone it was then lifted above the joystick, further in). An
+exit whose spot is in the bottom 40% of the art (`.is-out`) now hangs UNDER
+the feet, pointing out, pinned to the bottom edge when the stage is short.
+When the walk mask does not reach the doorway, the hotspot's `mark` draws it
+on the doorway itself (Istanbul's tea terrace: on the steps). Under the
+joystick or A button an exit steps sideways into the gap, drops its words
+(`.is-tight`; A says "Travel") if it still does not fit, and only then lifts.
+`tools/cdp_cues.py` (phone portrait, landscape, desktop) checks all of it;
+`tools/cdp_members.py` still checks that no member name shows before the
+player walks up.
 
 ## 27. Club members, coins and real tournaments (2026-09-18)
 

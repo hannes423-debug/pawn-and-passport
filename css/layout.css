@@ -194,6 +194,8 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
 /* The label slides back inside a narrow stage; the arrow stays on its spot. */
 .pp-hotspot { transform: translate(calc(-50% + var(--nudge, 0px)), calc(-100% + var(--nudge-y, 0px))); }
 .pp-hotspot__arrow { position: relative; left: calc(-1 * var(--nudge, 0px)); }
+/* An exit at the bottom of the art hangs under the feet, pointing out. */
+.pp-hotspot.is-out { transform: translate(calc(-50% + var(--nudge, 0px)), var(--nudge-y, 0px)); }
 
 /* ============================================================== journal == */
 /* A column: HUD, tabs, then the page, which gets whatever height is left.

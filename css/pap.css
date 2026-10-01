@@ -578,6 +578,16 @@ img, canvas { image-rendering: pixelated; }
 .pp-hotspot.is-member:focus-visible .pp-hotspot__label { opacity: 1; visibility: visible; }
 .pp-hotspot.is-member.is-near .pp-hotspot__bubble { border-color: var(--gold); background: rgba(50, 30, 8, 0.9); }
 .pp-hotspot.is-member .pp-hotspot__arrow { animation: none; opacity: 0.55; font-size: clamp(10px, 1vw, 14px); }
+/* Distance decides how much a hotspot shows (scene.js CUE_RADIUS): out of
+   reach nothing, nearer only its icon, and the words only on the spot A would
+   use now (.is-near), under the mouse or with keyboard focus. */
+.pp-hotspot { transition: opacity 160ms ease, visibility 160ms; }
+.pp-hotspot.is-far { opacity: 0; visibility: hidden; pointer-events: none; }
+.pp-hotspot:not(.is-near):not(:hover):not(:focus-visible) .pp-hotspot__text,
+.pp-hotspot:not(.is-near):not(:hover):not(:focus-visible) .pp-hotspot__key { display: none; }
+.pp-hotspot:not(.is-near):not(:hover):not(:focus-visible) .pp-hotspot__label:not(.pp-hotspot__name) { padding: 2px 4px; }
+.pp-hotspot.is-out .pp-hotspot__arrow { animation: none; opacity: 0.8; }
+.pp-hotspot.is-tight .pp-hotspot__text, .pp-hotspot.is-tight .pp-hotspot__key { display: none; }
 .pp-scene__people { gap: 4px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
 .pp-scene__people .pp-btn { padding: 2px 8px; }
 

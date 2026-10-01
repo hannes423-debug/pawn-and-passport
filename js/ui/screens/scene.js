@@ -62,13 +62,15 @@ function spotKind(spot) {
   return 'info';
 }
 
-/* How close the player has to be before an NPC's NAME appears. A club floor
-   holds a dozen members, and a dozen name plates permanently on screen hide
-   the room they are standing in - so a member shows only the speech bubble
-   until the player is near them, hovers them, or focuses them with the
-   keyboard. Everything else (the tournament desk, the exits) keeps its label:
-   those are signposts, and a signpost nobody can read is not a signpost. */
-const NAME_RADIUS = 22;   // percent of the scene height, like USE_RADIUS
+/* How close the player has to be before a hotspot shows anything. A phone
+   shows a slice of the scene, and a name plate, a speech bubble and a signpost
+   over everything in it hide the room. So a hotspot has three states: out of
+   reach it is not drawn at all (the dock still lists it, and A says "Go: ..."
+   toward the nearest one); within CUE_RADIUS it shows only its icon (a
+   member's speech bubble, an exit's door); and its WORDS appear only on the
+   one spot A would use right now (.is-near), or under the mouse or the
+   keyboard focus. */
+const CUE_RADIUS = 30;    // percent of the scene height, like USE_RADIUS
 
 /** Is ?debugCollision=1 (or #debugCollision=1) in the address bar? */
 export function collisionDebugOn() {
@@ -297,32 +299,58 @@ export async function sceneScreen(app, params) {
      hangs off the screen: slide the label, not the arrow, back inside. */
   function nudgeLabels() {
     const limit = el.getBoundingClientRect();
-    const top = viewport.getBoundingClientRect().top;
+    const vp = viewport.getBoundingClientRect();
+    const controls = [...viewport.querySelectorAll('.pp-pad__stick, .pp-pad__action')]
+      .filter((c) => c.getBoundingClientRect().width && getComputedStyle(c.parentElement).display !== 'none')
+      .map((c) => c.getBoundingClientRect());
     for (const spot of hotspotLayer.querySelectorAll('.pp-hotspot')) {
+      spot.style.setProperty('--nudge', '0px');
+      spot.style.setProperty('--nudge-y', '0px');
+      spot.classList.remove('is-tight');
+      if (spot.classList.contains('is-far')) continue;          // not drawn
+      // An exit whose words do not fit between the joystick and the A button
+      // drops the words (the A button says what it does) and stays on its doorway.
+      if (place(spot, false)) continue;
+      if (spot.classList.contains('is-near')) {
+        spot.classList.add('is-tight');
+        if (place(spot, false)) continue;
+      }
+      place(spot, true);
+    }
+    /** Nudge one label inside the screen and off the controls; false when an exit would have to leave its doorway (unless `lift`). */
+    function place(spot, lift) {
       spot.style.setProperty('--nudge', '0px');
       spot.style.setProperty('--nudge-y', '0px');
       const r = spot.getBoundingClientRect();
       const pad = 2;
       let dx = 0;
+      let dy = 0;
       // Off camera entirely: leave it where it is rather than pin it to the edge.
-      if (r.right < limit.left || r.left > limit.right) continue;
+      if (r.right < limit.left || r.left > limit.right) return true;
       if (r.left < limit.left + pad) dx = limit.left + pad - r.left;
       else if (r.right > limit.right - pad) dx = limit.right - pad - r.right;
-      spot.style.setProperty('--nudge', `${Math.round(dx)}px`);
-      // A label near the top edge of the art would tuck under the HUD.
-      if (r.top < top + pad) spot.style.setProperty('--nudge-y', `${Math.round(top + pad - r.top)}px`);
-      // Never under the joystick or the A button: lift the label above them
-      // (above the HIGHER of the two when a wide label spans both).
-      let lift = 0;
-      for (const control of viewport.querySelectorAll('.pp-pad__stick, .pp-pad__action')) {
-        const c = control.getBoundingClientRect();
-        if (!c.width || getComputedStyle(control.parentElement).display === 'none') continue;
-        const moved = r.left + dx;
-        if (moved < c.right && moved + r.width > c.left && r.bottom > c.top && r.top < c.bottom) {
-          lift = Math.min(lift, c.top - 6 - r.bottom);
-        }
+      // A label near the top edge of the art would tuck under the HUD; an
+      // exit under the feet must not hang off the bottom.
+      if (r.top < vp.top + pad) dy = vp.top + pad - r.top;
+      else if (r.bottom > vp.bottom - pad) dy = vp.bottom - pad - r.bottom;
+      const hits = (left) => controls.filter((c) => left < c.right && left + r.width > c.left && r.bottom + dy > c.top && r.top + dy < c.bottom);
+      let hit = hits(r.left + dx);
+      /* Never under the joystick or the A button. An exit stays on its
+         doorway and steps sideways into the gap between them; anything else
+         is lifted above the higher one. */
+      if (hit.length && spot.classList.contains('is-out') && !lift) {
+        if (hit.length > 1) return false;
+        const c = hit[0];
+        const side = (c.left + c.right) / 2 < (r.left + r.right) / 2
+          ? c.right + 6 - (r.left + dx) : c.left - 6 - (r.right + dx);
+        if (hits(r.left + dx + side).length || r.left + dx + side < limit.left || r.right + dx + side > limit.right) return false;
+        dx += side;
+        hit = [];
       }
-      if (lift) spot.style.setProperty('--nudge-y', `${Math.round(lift)}px`);
+      if (hit.length) dy = Math.min(...hit.map((c) => c.top - 6 - r.bottom));
+      spot.style.setProperty('--nudge', `${Math.round(dx)}px`);
+      spot.style.setProperty('--nudge-y', `${Math.round(dy)}px`);
+      return true;
     }
   }
 
@@ -442,12 +470,15 @@ export async function sceneScreen(app, params) {
   // to cut straight across the room, through whatever was painted there.
   let headingNode = null;
   let stepClock = 0;
+  let cueClock = 0;
   /** Advance the walk animation and face the direction of travel (screen-space dx, dy). */
   function animateStep(dxPx, dy, dt) {
     if (Math.abs(dxPx) > 1e-6 || Math.abs(dy) > 1e-6) {
       player.dir = Math.abs(dxPx) > Math.abs(dy) ? (dxPx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
     }
     stepClock += dt;
+    cueClock += dt;
+    if (cueClock > 0.15) { cueClock = 0; paintCues(); }
     if (!player.walking) { player.walking = true; player.frame = 0; }
     if (stepClock > 0.09) {
       stepClock = 0;
@@ -460,7 +491,7 @@ export async function sceneScreen(app, params) {
   function stopWalking() {
     player.walking = false; player.frame = 0; player.draw();
     if (camera) nudgeLabels();
-    paintNames();
+    paintCues();
   }
 
   /** Free mode: walk a list of points (already collision-free) to the end. */
@@ -520,7 +551,7 @@ export async function sceneScreen(app, params) {
           player.walking = false; player.frame = 0; player.draw();
           playerNode = target; headingNode = null; walking = null;
           if (camera) nudgeLabels();
-          paintNames();
+          paintCues();
           resolve(true); return;
         }
         headingNode = path[segment];
@@ -582,18 +613,18 @@ export async function sceneScreen(app, params) {
      repainting the layer (a repaint mid-walk drops hover and focus). */
   const spotNodes = new Map();
 
-  function anchorOf(spot) {
-    return spot.npc?.at || scene.nodes[spot.node];
-  }
-
-  /** Reveal the names of the members the player is standing among. */
-  function paintNames() {
+  /** Show each hotspot as much as the player's distance earns (see CUE_RADIUS). */
+  let nearSpot = null;
+  function paintCues(pick = spotForAction()) {
+    const near = pick?.ready ? pick.spot : null;
     for (const [spot, node] of spotNodes) {
-      if (!spot.member) continue;
-      const [x, y] = anchorOf(spot);
-      const near = Math.hypot((x - player.x) * aspect, y - player.y) <= NAME_RADIUS;
-      node.classList.toggle('is-near', near);
+      const [x, y] = scene.nodes[spot.node];
+      const far = spot !== near && Math.hypot((x - player.x) * aspect, y - player.y) > CUE_RADIUS;
+      node.classList.toggle('is-far', far);
+      node.classList.toggle('is-near', spot === near);
     }
+    // The words widen the label: slide it back inside the screen again.
+    if (near !== nearSpot) { nearSpot = near; nudgeLabels(); }
   }
 
   function drawHotspots() {
@@ -603,18 +634,27 @@ export async function sceneScreen(app, params) {
     const people = h('div');
     scene.hotspots.forEach((spot, i) => {
       const [x, y] = scene.nodes[spot.node];
-      // Labels float just above a character's head, however tall characters are drawn here.
-      const labelY = spot.npc?.at ? Math.min(y, spot.npc.at[1]) - ACTOR_H * 95 - 1 : y - Math.max(7, ACTOR_H * 70);
       const kind = spotKind(spot);
+      /* Labels float just above a character's head, however tall characters
+         are drawn here. An exit is the exception: it marks the way OUT, so a
+         way out at the bottom of the picture (a garden gate, the front steps)
+         hangs under the feet of whoever stands there, pointing out, and
+         `mark` (scenes.js) puts it on the doorway itself when the art's
+         doorway lies outside the walk mask. Above the head it sat in the
+         middle of the garden. */
+      const [mx, my] = spot.mark || [x, y];
+      const out = kind === 'exit' && my >= 60;
+      const labelY = out ? my + (spot.mark ? 0 : 0.5)
+        : spot.npc?.at ? Math.min(y, spot.npc.at[1]) - ACTOR_H * 95 - 1 : my - Math.max(7, ACTOR_H * 70);
       /* A member wears the speech bubble on its own; its name is a label that
          is revealed, not drawn. Everything else keeps icon + words. */
       const label = spot.member
         ? h('span.pp-hotspot__label.pp-hotspot__name', { text: spot.label })
         : h('span.pp-hotspot__label', null, h('small.pp-hotspot__key', { text: String(i + 1) }),
-            pixelIcon(KIND_ICON[kind], { size: 'sm' }), h('span', { text: ` ${spot.label}` }));
+            pixelIcon(KIND_ICON[kind], { size: 'sm' }), h('span.pp-hotspot__text', { text: ` ${spot.label}` }));
       const node = h('button.pp-hotspot', {
-        type: 'button', class: `${spotState(spot)} is-${kind}`,
-        style: { left: `${spot.npc?.at ? spot.npc.at[0] : x}%`, top: `${Math.max(4, labelY)}%` },
+        type: 'button', class: `${spotState(spot)} is-${kind}${out ? ' is-out' : ''} is-far`,
+        style: { left: `${spot.npc?.at && !spot.mark ? spot.npc.at[0] : mx}%`, top: `${Math.max(4, labelY)}%` },
         'aria-label': `${spot.verb}: ${spot.label}`,
         onclick: (e) => { e.stopPropagation(); use(spot); }
       }, spot.member ? h('span.pp-hotspot__bubble', null, pixelIcon('dialogue', { size: 'sm' })) : null,
@@ -632,6 +672,8 @@ export async function sceneScreen(app, params) {
         h('span', null, prompt('cancel'), ' Menu'), h('span', null, prompt('map'), ' Map'), h('span', null, prompt('journal'), ' Journal'))));
     paintDock();
     refit();
+    nearSpot = undefined;
+    paintCues();
   }
 
   /* The actions panel can be hidden (button or H, remembered in settings), and
@@ -890,7 +932,7 @@ export async function sceneScreen(app, params) {
     keyLabel.textContent = label;
     keyPrompt.hidden = !label;
     keyPrompt.classList.toggle('is-ready', !!pick?.ready);
-    paintNames();
+    paintCues();
   }
   viewport.append(pad.el, keyPrompt);
 
@@ -1244,6 +1286,14 @@ export async function sceneScreen(app, params) {
 
   return {
     el,
+    /** Tests: stand the player at a spot (percent of the scene), as if walked there. */
+    debugPlace(x, y) {
+      walking = null;
+      const [px, py] = freeMode ? (grid.nearestFree(x, y) || [x, y]) : [x, y];
+      player.x = px; player.y = py; playerNode = null;
+      player.draw(); follow(); paintPad();
+      return [px, py];
+    },
     destroy() {
       walking = null;
       stick = null;

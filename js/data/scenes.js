@@ -8,8 +8,9 @@
  * mask to maintain: a new scene is a picture, a few points and its hotspots.
  *
  * A hotspot is where an action happens. `node` is where the player stands to
- * use it; `npc` optionally puts a character sprite there. `action.type` is
- * resolved by js/ui/screens/scene.js with the club as context:
+ * use it; `npc` optionally puts a character sprite there; `mark` draws its
+ * marker somewhere else (an exit whose doorway the walk mask does not reach).
+ * `action.type` is resolved by js/ui/screens/scene.js with the club as context:
  *   scene      go to another scene      { to, spawn }
  *   leave      open the travel menu (world map / venue / club)
  *   tournament enter or continue the club tournament
@@ -209,7 +210,8 @@ add({
   links: [['arrive', 'steps'], ['steps', 'west'], ['west', 'host'], ['arrive', 'exit']],
   hotspots: [
     { id: 'mission', node: 'host', label: 'Tea terrace table', verb: 'Puzzles', action: { type: 'mission' }, npc: { kind: 'host', at: [59, 61.5] } },
-    { id: 'exit', node: 'exit', label: 'Down to the water', verb: 'Travel', action: { type: 'leave' } }
+    // The steps down are outside the walk mask: use them from the terrace edge, mark them on the steps.
+    { id: 'exit', node: 'exit', mark: [50, 79], label: 'Down the steps', verb: 'Travel', action: { type: 'leave' } }
   ]
 });
 

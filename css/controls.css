@@ -42,6 +42,7 @@
 .pp-pin:focus, .pp-pin:focus-visible { outline: none; }
 :root[data-input="gamepad"] .pp-hotspot:focus .pp-hotspot__label { background: var(--gold); color: var(--ink); outline: none; }
 :root[data-input="gamepad"] .pp-hotspot.is-member:focus .pp-hotspot__label { opacity: 1; visibility: visible; }
+:root[data-input="gamepad"] .pp-hotspot.pp-hotspot:focus .pp-hotspot__text { display: inline; }
 :root[data-input="gamepad"] .pp-tree__lesson:focus { background: rgba(255, 233, 196, 0.14); border-color: var(--gold); outline: none; }
 :root[data-input="gamepad"] .pp-citypop__fly:focus,
 :root[data-input="gamepad"] .pp-citypop__close:focus { outline: 3px solid #fff6dc; outline-offset: -4px; }
