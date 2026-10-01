@@ -52,6 +52,7 @@ export function newCareer({ name, avatar, startClubId, difficulty = DIFFICULTY.d
     puzzlesSolved: {},       // puzzleId -> true
     tournaments: {},         // clubId -> the current or last event, see enterTournament
     coins: COINS.start,
+    debt: 0,
     finale: { unlocked: false, round: 0, opponents: null, results: [], won: false },
     stars: {},               // starId -> { met, beaten, losses }
     stats: {
@@ -186,6 +187,7 @@ export function migrateCareer(career) {
   }
   // v2 -> v3: coins, and the old three-game tournaments restart as real events.
   if (typeof career.coins !== 'number') career.coins = COINS.start;
+  if (typeof career.debt !== 'number') career.debt = 0;
   for (const [clubId, run] of Object.entries(career.tournaments || {})) {
     if (!run || !run.format) delete career.tournaments[clubId];
   }
@@ -272,6 +274,38 @@ export function stakeFor(elo) {
 
 export const canAfford = (career, amount) => (career.coins ?? 0) >= amount;
 
+/** The entry fee of a tournament entered now (or at a given tier). */
+export const entryFee = (career, tierIndex = tier(career)) => COINS.entryFee[Math.min(Math.max(0, tierIndex), COINS.entryFee.length - 1)];
+
+/** What a flight to a city costs from where the player is: nothing home, nothing to Madrid. */
+export function flightCost(career, clubId) {
+  if (clubId === FINALE.id || clubId === career.location?.clubId) return 0;
+  return COINS.flight;
+}
+
+/**
+ * Pay a cost. What the player cannot cover, the sponsor does: it is added to
+ * `career.debt` and comes out of the next tournament prize. Coins never go
+ * negative, and nothing is ever refused, so no save can get stuck.
+ * @returns {{paid:number, owed:number}}
+ */
+export function payCoins(career, amount) {
+  const cost = Math.max(0, Math.round(amount));
+  const paid = Math.min(cost, career.coins ?? 0);
+  career.coins = (career.coins ?? 0) - paid;
+  const owed = cost - paid;
+  if (owed) career.debt = (career.debt || 0) + owed;
+  career.stats.coinsSpent = (career.stats.coinsSpent || 0) + cost;
+  return { paid, owed };
+}
+
+/** Fly to a city: pay the fare (or owe it), then go. */
+export function buyFlight(career, clubId, sceneId) {
+  const bill = payCoins(career, flightCost(career, clubId));
+  travelTo(career, clubId, sceneId);
+  return bill;
+}
+
 export function earnCoins(career, amount) {
   career.coins = Math.max(0, (career.coins ?? COINS.start) + Math.round(amount));
   if (amount > 0) career.stats.coinsEarned = (career.stats.coinsEarned || 0) + Math.round(amount);
@@ -338,12 +372,16 @@ export function enterTournament(career, clubId, random = Math.random, now = Date
   if (career.trophies[clubId]) return existing || null;
   const t = tier(career);
   const star = starForClub(clubId);
+  const fee = entryFee(career, t);
+  const bill = payCoins(career, fee);
   const run = Event.createEvent({
     clubId, format: tournamentFormat(clubId), tier: t, now, random,
     players: tournamentField(career, clubId, t, random),
     star: { id: star.id, name: star.name, elo: starElo(t, career.difficulty), style: star.style, openingId: star.openingId, look: star.look }
   });
   run.attempt = (existing?.attempt || 0) + 1;
+  run.fee = fee;
+  run.feeOwed = bill.owed;
   career.tournaments[clubId] = run;
   return run;
 }
@@ -390,7 +428,7 @@ function learnFromTournament(career, openingId, score) {
  */
 export function recordTournamentGame(career, clubId, score, now = Date.now(), random = Math.random) {
   const run = career.tournaments[clubId];
-  const none = { roundIndex: -1, final: false, outcome: null, completed: false, toFinal: false, eliminated: false, mastery: 0, coins: 0, trophy: null };
+  const none = { roundIndex: -1, final: false, outcome: null, completed: false, toFinal: false, eliminated: false, mastery: 0, coins: 0, repaid: 0, trophy: null };
   if (!run || run.completed) return none;
   const club = clubById(clubId);
   const final = run.stage === 'final';
@@ -404,17 +442,30 @@ export function recordTournamentGame(career, clubId, score, now = Date.now(), ra
     if (score === 1) entry.beaten = true; else entry.losses += 1;
   }
   let coins = 0;
+  let repaid = 0;
   let trophy = null;
   if (run.completed) {
-    coins = Event.playerPoints(run) * COINS.perTournamentPoint;
-    if (run.outcome === 'runner-up') coins += COINS.finalist;
-    if (run.outcome === 'champion') coins += COINS.champion;
-    earnCoins(career, coins);
+    coins = tournamentPrize(run);
+    // The sponsor is paid back first, out of this prize.
+    repaid = Math.min(career.debt || 0, coins);
+    if (repaid) career.debt -= repaid;
+    earnCoins(career, coins - repaid);
     run.prize = coins;
+    run.repaid = repaid;
+    coins -= repaid;
     career.stats.tournaments = (career.stats.tournaments || 0) + 1;
     if (run.outcome === 'champion') trophy = awardTrophy(career, clubId, run.star.elo, now);
   }
-  return { roundIndex, final, outcome: run.outcome, completed: run.completed, toFinal: step.toFinal, eliminated: step.eliminated, mastery, coins, trophy };
+  return { roundIndex, final, outcome: run.outcome, completed: run.completed, toFinal: step.toFinal, eliminated: step.eliminated, mastery, coins, repaid, trophy };
+}
+
+/** A finished event's prize money, in shares of its entry fee (config COINS). */
+export function tournamentPrize(run) {
+  const fee = run.fee ?? COINS.entryFee[Math.min(run.tier || 0, COINS.entryFee.length - 1)];
+  let coins = Event.playerPoints(run) * COINS.perPointShare * fee;
+  if (run.outcome === 'runner-up') coins += COINS.finalistShare * fee;
+  if (run.outcome === 'champion') coins += COINS.championShare * fee + COINS.championBonus;
+  return Math.round(coins);
 }
 
 /** Trophy + full opening mastery + XP, exactly once. */
@@ -598,6 +649,7 @@ export function validateCareer(career, { sceneExists = () => true } = {}) {
   if (!sceneExists(sceneId)) problems.push(`unknown scene ${sceneId}`);
   if (career.level !== levelForXp(career.xp)) problems.push(`level ${career.level} does not match ${career.xp} XP`);
   if (typeof career.coins !== 'number' || career.coins < 0) problems.push(`coins ${career.coins}`);
+  if (career.debt != null && !(career.debt >= 0)) problems.push(`debt ${career.debt}`);
   for (const id of Object.keys(career.trophies)) if (!clubById(id)) problems.push(`trophy for unknown club ${id}`);
   for (const id of career.equipped || []) if (!((career.openings[id] ?? 0) > 0)) problems.push(`equipped unknown opening ${id}`);
   for (const [id, run] of Object.entries(career.tournaments || {})) {

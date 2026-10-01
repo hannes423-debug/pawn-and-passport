@@ -1036,8 +1036,9 @@ test('tournament fuzz: every club, random results, the invariants always hold', 
       let attempts = 0;
       while (!c.trophies[club.clubId] && attempts < 12) {
         attempts += 1;
-        const coinsBefore = c.coins;
+        const worthBefore = c.coins - c.debt;
         const run = Career.enterTournament(c, club.clubId, random);
+        eq(run.fee, COINS.entryFee[Object.keys(c.trophies).length], 'the fee follows the trophies held');
         eq(run.format, format); eq(run.attempt, attempts, 'attempt counter');
         eq(run.players.length, format === 'swiss' ? 16 : 32);
         let games = 0; let last = null;
@@ -1058,8 +1059,12 @@ test('tournament fuzz: every club, random results, the invariants always hold', 
         }
         // Outcomes are consistent with the path.
         const pts = Event.playerPoints(run);
-        let prize = pts * COINS.perTournamentPoint + (run.outcome === 'runner-up' ? COINS.finalist : 0) + (run.outcome === 'champion' ? COINS.champion : 0);
-        eq(c.coins - coinsBefore, prize, `${club.clubId}: prize money (${run.outcome}, ${pts} pts)`);
+        const prize = Math.round(pts * COINS.perPointShare * run.fee + (run.outcome === 'runner-up' ? COINS.finalistShare * run.fee : 0)
+          + (run.outcome === 'champion' ? COINS.championShare * run.fee + COINS.championBonus : 0));
+        eq(run.prize, prize, `${club.clubId}: prize money (${run.outcome}, ${pts} pts)`);
+        // Coins minus what the sponsor is owed moves by exactly prize - fee.
+        eq(c.coins - c.debt - worthBefore, prize - run.fee, `${club.clubId}: fee paid, prize received, sponsor repaid`);
+        assert(c.coins >= 0 && c.debt >= 0, 'coins and debt never negative');
         if (run.outcome === 'champion') { assert(c.trophies[club.clubId] && last.trophy, 'champion = trophy'); eq(c.openings[club.openingId], 100); }
         else { assert(!c.trophies[club.clubId], `${run.outcome}: no trophy`); assert(c.openings[club.openingId] <= Math.max(TOURNAMENT.masteryCap, 40), 'mastery capped'); }
         if (run.outcome === 'eliminated') eq(format, 'knockout');
@@ -1151,7 +1156,7 @@ test('a knockout loss ends the run; the bracket still finishes and the next entr
   eq(run.rounds[4].pairings.length, 1);
   assert(run.final && run.final.result !== null && !run.final.playerIn, 'an NPC played the Star in the final');
   eq(Event.exitRound(run), 1);
-  eq(res.coins, COINS.perTournamentPoint, 'one win pays one point of prize money');
+  eq(res.coins, Math.round(COINS.perPointShare * run.fee), 'one win pays one point of prize money');
   assert(!c.trophies.lon);
   const again = Career.enterTournament(c, 'lon', random);
   assert(again !== run && again.attempt === 2 && !again.completed, 'a fresh event');
@@ -1189,6 +1194,42 @@ test('coins: stakes by Elo, challenges settle, puzzles pay, old saves migrate', 
   delete old.coins; old.tournaments = { nyc: { clubId: 'nyc', round: 1, rounds: [{ kind: 'regular' }], completed: false } };
   Career.migrateCareer(old);
   eq(old.coins, COINS.start); assert(!old.tournaments.nyc, 'an old three-game run restarts as a real event');
+});
+
+test('money: the candidate rounds cover the fee, the Star Player pays for the next city, nothing ever blocks', () => {
+  const fees = COINS.entryFee;
+  for (let t = 0; t < fees.length; t += 1) {
+    const fee = fees[t];
+    const runnerUp = TOURNAMENT.rounds * COINS.perPointShare * fee + COINS.finalistShare * fee;
+    const champion = TOURNAMENT.rounds * COINS.perPointShare * fee + COINS.championShare * fee + COINS.championBonus;
+    assert(runnerUp >= fee, `tier ${t}: winning every candidate round covers the fee (${runnerUp} >= ${fee})`);
+    assert(runnerUp <= fee * 1.5, `tier ${t}: but losing the final is no paycheck (${runnerUp})`);
+    const next = fees[Math.min(t + 1, fees.length - 1)];
+    assert(champion - fee >= COINS.flight + next + 50, `tier ${t}: the trophy pays the flight and the next entry with room to spare (${champion - fee})`);
+    // Out in round 2 of a knockout (one win): most of the fee is lost.
+    assert(COINS.perPointShare * fee < fee / 2, `tier ${t}: an early exit costs something`);
+  }
+  // A whole first lap of the tour is affordable from the start with modest results.
+  assert(COINS.start >= fees[0] + COINS.flight, 'the starting purse pays one entry and one flight');
+
+  const c = Career.newCareer({ name: 'Broke', avatar: 'boy', startClubId: 'nyc' });
+  eq(c.debt, 0);
+  eq(Career.flightCost(c, 'nyc'), 0, 'staying is free'); eq(Career.flightCost(c, 'mad'), 0, 'Madrid is an invitation');
+  eq(Career.flightCost(c, 'lon'), COINS.flight);
+  c.coins = 30;
+  const bill = Career.buyFlight(c, 'lon', 'lon-ext');
+  eq(bill.paid, 30); eq(bill.owed, COINS.flight - 30); eq(c.coins, 0); eq(c.debt, COINS.flight - 30);
+  eq(c.location.clubId, 'lon', 'a flight you cannot pay still flies (the sponsor covers it)');
+  const random = seeded(77);
+  const run = Career.enterTournament(c, 'lon', random);
+  assert(run && !run.completed, 'an entry you cannot pay still enters');
+  eq(c.debt, COINS.flight - 30 + run.fee);
+  while (!run.completed) Career.recordTournamentGame(c, 'lon', 1, Date.now(), random);
+  eq(run.outcome, 'champion');
+  eq(run.repaid, COINS.flight - 30 + run.fee, 'the prize pays the sponsor back first');
+  eq(c.debt, 0); eq(c.coins, run.prize - run.repaid);
+  const old = Career.newCareer({ name: 'Old', avatar: 'boy', startClubId: 'nyc' });
+  delete old.debt; Career.migrateCareer(old); eq(old.debt, 0, 'old saves owe nothing');
 });
 
 test('every club has 12 members who look and sound like their city', () => {

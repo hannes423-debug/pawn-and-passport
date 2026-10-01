@@ -24,7 +24,7 @@ import { CLUBS, FINALE, clubById } from '../../data/clubs.js';
 import { openingById } from '../../data/openings.js';
 import { starById } from '../../data/starPlayers.js';
 import { postcardForClub } from '../../data/postcards.js';
-import { hasAllTrophies, trophyCount, postcardCount, missionProgress, masteryState, travelTo } from '../../core/career.js';
+import { hasAllTrophies, trophyCount, postcardCount, missionProgress, masteryState, buyFlight, flightCost } from '../../core/career.js';
 
 export function mapScreen(app) {
   const career = app.career;
@@ -143,8 +143,10 @@ export function mapScreen(app) {
     await wait(350);
     const clubId = entry.finale ? FINALE.id : entry.club.clubId;
     const firstVisit = !entry.finale && !career.visited[clubId];
-    travelTo(career, clubId, sceneId);
+    const fare = flightCost(career, clubId);
+    const bill = buyFlight(career, clubId, sceneId);
     app.save();
+    if (fare) app.toast(bill.owed ? `Flight ${fare} coins: your sponsor paid ${bill.owed} of it, out of your next prize.` : `Flight: ${fare} coins.`, { ms: 3200 });
     app.go('scene', { sceneId, arrival: true, firstVisit });
   }
 
@@ -181,12 +183,15 @@ export function mapScreen(app) {
       const postcard = !!career.postcards[club.postcardId];
       title = club.city;
       sceneId = club.scenes.exterior;
-      flyLabel = isHere ? 'Go to the club' : `Fly to ${club.city}`;
+      const fare = flightCost(career, club.clubId);
+      flyLabel = isHere ? 'Go to the club' : `Fly to ${club.city} (${fare} coins)`;
       portrait = portraitUrl(star.look, { ring: '#c8963e', ground: '#f6e7c8' });
       lines = [
         h('b', { text: club.clubName }),
         h('span', { text: `${opening.name} (${opening.side === 'w' ? 'White' : 'Black'}) \u00b7 you know ${mastery}%` }),
-        h('span', { text: `Star Player: ${star.name}` })];
+        h('span', { text: `Star Player: ${star.name}` }),
+        isHere ? null : h('span.pp-citypop__fare', null, pixelIcon('coins', { size: 'sm' }),
+          ` Flight ${fare} coins${fare > (career.coins ?? 0) ? ` (you have ${career.coins}: the sponsor covers the rest)` : ''}`)].filter(Boolean);
       tiles = [
         ['pin', visited, isHere ? 'You are here' : visited ? 'Visited' : 'Not visited yet'],
         ['trophy', won, won ? `${club.trophyName}: won` : `${club.trophyName}: not won yet`],

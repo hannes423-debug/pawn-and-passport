@@ -653,7 +653,8 @@ export function matchScreen(app, params) {
       row('xp', 'XP', `+${rewards.xp.xp}${progress?.trophy ? ` +${progress.trophy.xp.xp} trophy` : ''}${progress?.won && progress.xp ? ` +${progress.xp.xp} finale` : ''}`),
       ...Object.entries(rewards.mastery).map(([id, gain]) => row('journal', openingById(id).name, `+${gain}% → ${career.openings[id]}%`)),
       progress?.mastery ? row('journal', `${openingById(club.openingId).name} (tournament)`, `+${progress.mastery}% → ${career.openings[club.openingId]}%`) : null,
-      coinDelta ? row('coin', kind === 'challenge' ? 'Stake' : 'Prize money', `${coinDelta > 0 ? '+' : ''}${coinDelta} → ${career.coins}`, coinDelta < 0 ? 'is-neg' : '') : null
+      coinDelta ? row('coin', kind === 'challenge' ? 'Stake' : 'Prize money', `${coinDelta > 0 ? '+' : ''}${coinDelta} → ${career.coins}`, coinDelta < 0 ? 'is-neg' : '') : null,
+      progress?.repaid ? row('coin', 'To your sponsor', `-${progress.repaid}${career.debt ? ` (${career.debt} still owed)` : ' (all paid back)'}`, 'is-neg') : null
     ].filter(Boolean);
     /* A level-up says exactly what got better. */
     const improved = [];

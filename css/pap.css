@@ -808,3 +808,7 @@ img, canvas { image-rendering: pixelated; }
 /* One card at a time: a tip already up steps aside while a dialogue or pop-up
    is open, and while the match's opening card shows (app.js holds new tips back). */
 body:has(.pp-dialogue) .pp-coach, body:has(.pp-overlay) .pp-coach, body:has(.pp-tip:not([hidden])) .pp-coach { display: none; }
+/* Money owed to the sponsor (career.debt), beside the coins. */
+.pp-hud__debt { color: #ff9b8a; font-weight: 700; }
+.pp-desk__fee .pp-ico { vertical-align: -2px; }
+.pp-citypop__fare { display: inline-flex; align-items: center; gap: 3px; }

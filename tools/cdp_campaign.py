@@ -121,9 +121,9 @@ def run(start):
 
     def tournament_game(club, win):
         walk_to("Tournament hall|Play")
-        wait(f"!!{button('Enter the tournament|Enter again|Play round|Play the final|Play last|Play quarter|Play semi|Play bracket')}", "the tournament desk", 30)
-        if js(f"!!{button('Enter the tournament|Enter again')}"):
-            click(button("Enter the tournament|Enter again"), "Enter")
+        wait(f"!!{button('Enter [(]|Enter again|Play round|Play the final|Play last|Play quarter|Play semi|Play bracket')}", "the tournament desk", 30)
+        if js(f"!!{button('Enter [(]|Enter again')}"):
+            click(button("Enter [(]|Enter again"), "Enter")
             wait(f"!!{button('Play ')}", "the round panel")
         click(button("Play "), "Play")
         # The final starts with the Star Player's challenge dialogue.

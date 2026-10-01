@@ -10,10 +10,13 @@ dies, resume at the first unticked step.
         Both already fixed: enterTournament() runs only on "Enter" (scene.js
         tournamentDesk); free walking on artist masks replaced the walk lines (v1.1.0).
         DESIGN.md section 21 updated.
-- [ ] 5. Money: tournament entry fee + travel cost between cities (only these two for now).
+- [x] 5. Money: tournament entry fee + travel cost between cities (only these two for now).
         Rules from the user: not grindy; a loss should matter; winning the
         candidate rounds covers the entry fee; beating the Star Player is a good
         paycheck that funds more travel and tournaments. More money stuff later.
+        Done: fee 40..90 by trophies, prizes in fee shares (runner-up 1.2x fee,
+        champion 2.5x fee + 100 + points), flight 50 (Madrid free), sponsor
+        debt instead of ever blocking. Table in DESIGN.md section 27.
 - [ ] 6. One faint objective marker visible at any distance
 - [ ] 7. Won trophies displayed in each club's upstairs Trophy Hall
 - [ ] 8. Member rematches with the head-to-head record line ("You 2-1 Danny")

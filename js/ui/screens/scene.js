@@ -23,11 +23,11 @@ import { CLUBS, FINALE, clubById } from '../../data/clubs.js';
 import { STAR_PLAYERS, starById, starForClub } from '../../data/starPlayers.js';
 import { missionForClub } from '../../data/missions.js';
 import { openingById } from '../../data/openings.js';
-import { ELO, MASTERY } from '../../data/config.js';
+import { ELO, MASTERY, COINS } from '../../data/config.js';
 import {
   travelTo, meetStar, enterTournament, currentRound, tier, regularElo, missionProgress,
   hasAllTrophies, enterFinale, currentFinaleRound, trophyCount, masteryState,
-  memberElo, finaleElo, stakeFor, canAfford, nextStep
+  memberElo, finaleElo, stakeFor, canAfford, nextStep, entryFee
 } from '../../core/career.js';
 import { MEMBERS, CHESS_TIPS } from '../../data/members.js';
 import { MEMBER_SPOTS } from '../../data/memberSpots.js';
@@ -992,6 +992,17 @@ export async function sceneScreen(app, params) {
     app.go('match', { kind, opponent, colour, clubId, returnScene: scene.id, returnSpawn: playerNode });
   }
 
+  /* What the entry costs and what it can pay back, in coins (config COINS). */
+  function feeLine(fee) {
+    const back = Math.round(TOURNAMENT.rounds * COINS.perPointShare * fee + COINS.finalistShare * fee);
+    const champion = Math.round(TOURNAMENT.rounds * COINS.perPointShare * fee + COINS.championShare * fee + COINS.championBonus);
+    const short = fee - (career.coins ?? 0);
+    return h('p.pp-small.pp-desk__fee', null, pixelIcon('coins', { size: 'sm' }),
+      h('b', { text: ` Entry ${fee} coins. ` }),
+      `Every point pays prize money; reach the final and you win back about ${back}. Beat the Star Player for about ${champion}.`,
+      short > 0 ? h('span', { text: ` You have ${career.coins}: your sponsor covers the other ${short}, out of your next prize.` }) : null);
+  }
+
   async function tournamentDesk() {
     const star = starForClub(clubId);
     const opening = openingById(club.openingId);
@@ -1004,6 +1015,7 @@ export async function sceneScreen(app, params) {
     let run = career.tournaments[clubId];
     if (!run || run.completed) {
       const format = TOURNAMENT.format[clubId];
+      const fee = entryFee(career);
       const last = run?.completed ? run : null;
       const lastLine = !last ? null
         : last.outcome === 'runner-up' ? `Last time you reached the final and lost to ${star.name}. So close.`
@@ -1016,8 +1028,9 @@ export async function sceneScreen(app, params) {
           : `A ${TOURNAMENT.field.knockout}-player knockout: ${TOURNAMENT.rounds} rounds, one loss and you are out. A drawn game goes to Black. Win the bracket and ${star.name} is waiting in the final.` }),
         h('p.pp-small', { text: `${club.trophyName} goes only to whoever beats ${star.name} in the final. Every game you play teaches you the ${opening.name}, even if you fall short.` }),
         lastLine ? h('p.pp-small', null, h('b', { text: lastLine })) : null,
+        feeLine(fee),
         h('div.pp-row', null,
-          button(last ? 'Enter again' : 'Enter the tournament', () => close('enter'), { cls: 'pp-btn--gold', icon: pixelIcon('medal', { size: 'sm' }) }),
+          button(`${last ? 'Enter again' : 'Enter'} (${fee} coins)`, () => close('enter'), { cls: 'pp-btn--gold', icon: pixelIcon('medal', { size: 'sm' }) }),
           button('Not yet', () => close(null), { cls: 'pp-btn--small' }))));
       if (choice !== 'enter') return;
       run = enterTournament(career, clubId);

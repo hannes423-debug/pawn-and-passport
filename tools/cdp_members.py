@@ -89,7 +89,8 @@ try:
     check(actors >= tags + 3, f"members are drawn as characters ({actors} actors)")
     check(people == tags, f"members are listed in the dock ({people})")
     hud = c.eval("document.querySelector('.pp-hud__coins b')?.textContent")
-    check(hud == "100", f"the HUD shows 100 coins at the start ({hud})")
+    start = c.eval("import('./js/data/config.js').then((m) => m.COINS.start)", await_promise=True)
+    check(hud == str(start), f"the HUD shows {start} coins at the start ({hud})")
     c.shot(f"m1-members-{spec}")
 
     # 2. talk and challenge
@@ -122,17 +123,17 @@ try:
     c.eval("[...document.querySelectorAll('.pp-modal button')].find(b => b.textContent.includes('Continue')).click()")
     c.wait_for("!!document.querySelector('.pp-scene')", timeout=20)
     coins = c.eval("window.__pap.career.coins")
-    check(coins == 100 - stake, f"losing cost exactly the stake ({coins} = 100 - {stake})")
+    check(coins == start - stake, f"losing cost exactly the stake ({coins} = {start} - {stake})")
     record = c.eval("JSON.stringify(window.__pap.career.memberRecords)")
     check('"l":1' in (record or ""), f"the head-to-head record is kept ({record})")
 
     # 3. the tournament desk
     c.pump(1)
     c.eval("[...document.querySelectorAll('.pp-hotspot')].find(b => /Tournament/.test(b.getAttribute('aria-label'))).click()")
-    check(c.wait_for("[...document.querySelectorAll('.pp-modal button')].some(b => b.textContent.includes('Enter the tournament'))", timeout=20),
+    check(c.wait_for("[...document.querySelectorAll('.pp-modal button')].some(b => b.textContent.includes('Enter ('))", timeout=20),
           "the desk explains the event and offers entry")
     c.shot(f"m5-desk-intro-{spec}")
-    c.eval("[...document.querySelectorAll('.pp-modal button')].find(b => b.textContent.includes('Enter the tournament')).click()")
+    c.eval("[...document.querySelectorAll('.pp-modal button')].find(b => b.textContent.includes('Enter (')).click()")
     check(c.wait_for("document.querySelectorAll('.pp-standings tbody tr').length === 16", timeout=10), "a 16-player Swiss table is shown")
     c.pump(0.4); c.shot(f"m6-desk-standings-{spec}")
     c.eval("[...document.querySelectorAll('.pp-modal button')].find(b => b.textContent.includes('Play round')).click()")

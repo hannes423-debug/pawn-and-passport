@@ -325,16 +325,28 @@ export const SIM = Object.freeze({
 
 /* ================================================================= coins === */
 export const COINS = Object.freeze({
-  start: 100,
+  start: 150,
   /* A challenge stake by the opponent's Elo: stakeMin at stakeFromElo[0],
      stakeMax at stakeFromElo[1], rounded to 5. A draw returns the stake. */
   stakeMin: 10,
   stakeMax: 40,
   stakeFromElo: [450, 1350],
-  /* Tournament prize money: per point scored, and for the final. */
-  perTournamentPoint: 8,
-  finalist: 40,
-  champion: 120,
+  /* Travel and tournaments cost money (2026-10-01). The user's rules: not
+     grindy, a loss should matter, winning the candidate rounds covers the
+     entry fee, and beating the Star Player is a paycheck that funds the next
+     flight and tournament with room to spare. In entry fees:
+       per point scored  perPointShare      (5 wins = 0.6 fee)
+       reaching the final finalistShare     (runner-up: 1.2 fees back)
+       winning the final  championShare fee + championBonus
+     Out early: a few points back, most of the fee lost. */
+  entryFee: [40, 50, 60, 70, 80, 90],     // by Club Trophies held when entering
+  perPointShare: 0.12,
+  finalistShare: 0.6,
+  championShare: 2.5,
+  championBonus: 100,
+  flight: 50,                // to another city; Madrid is an invitation (free); club <-> venue is free
+  /* Never stuck: a fee or a flight you cannot pay is covered by a sponsor,
+     and the shortfall comes out of your next tournament prize money. */
   puzzle: 5,               // first solve of any puzzle
   missionComplete: 25
 });
