@@ -440,9 +440,9 @@ XP for `counts.GREAT`, which the classifier never produces: a dead term there.)
   real browser (headless cannot).
 
 **SHOULD finish**
-- Tune scene waypoints after playtesting: some walk lines cross furniture.
+- ~~Tune scene waypoints after playtesting: some walk lines cross furniture.~~ Obsolete: free walking on the artist's walk masks (v1.1.0).
 - Phone/portrait layout for the match and scene screens (desktop-first, not phone-tested).
-- The tournament desk fixes the run's tier as soon as it is opened, even on "Not yet".
+- ~~The tournament desk fixes the run's tier as soon as it is opened, even on "Not yet".~~ Fixed: the run is created only on "Enter".
 - A short "How to play" page (hotkeys: 1-9 hotspots, M map, J journal, H hint).
 - Draw offers use a simple material/length rule, not the engine.
 - London needs its own interior (it uses the generic floor plan), and NYC's
