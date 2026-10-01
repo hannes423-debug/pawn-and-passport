@@ -8,7 +8,7 @@
 export const GAME = Object.freeze({
   title: 'Pawn & Passport',
   subtitle: 'A Chess Career RPG',
-  version: '1.1.18',
+  version: '1.1.19',
   saveVersion: 3
 });
 
@@ -394,14 +394,27 @@ export const SCORE = Object.freeze({
 /* A target Elo, as an opponent. js/core/difficulty.js interpolates this table
  * and hands the result to the bot; nothing else decides how strong anyone is.
  *
- * MEASURED, NOT ASSUMED. tools/dev/calibrate_bots.mjs prints the average
- * centipawn loss each row actually produces against a depth-12 reference.
- * At --samples=40 this table measures 269 / 242 / 188 / 160 / 120 / 94 / 75
- * ACPL at labels 300 / 500 / 700 / 900 / 1100 / 1300 / 1500: strictly
- * monotone, evenly separated. Read the ladder, not the absolute number - the
- * tool's ACPL-to-Elo anchors are approximate and its estimate runs about 130
- * points under the label all the way up, which is an offset in the anchors,
- * not a step in the table.
+ * MEASURED AGAINST REAL PLAYERS. tools/dev/human_strength.mjs takes 509
+ * positions from rated Lichess games (five cohorts, ~1160 to ~1940), scores
+ * every legal move once at depth 12, and compares the move each bot picks
+ * with the move the human really played there. The human curve it fits is
+ * ACPL 56 at 1528, 5.7 cp more per 100 Elo less. Since v1.1.19 the rungs from
+ * 850 up are tuned to that curve (below ~1160, where there are no human games,
+ * it is continued smoothly down to the 700 rung, which is unchanged):
+ *
+ *   label    850  1000  1150  1250  1300  1400  1500
+ *   ACPL     135   101    81    74    64    55    51     (v1.1.18: 1000 151,
+ *   curve    138   105    82    72    68    61    56      1250 109, 1500 73)
+ *
+ * The lever is how often a bot makes an unforced error (`blunderChance`):
+ * the old table erred on 20-50% of its moves from 1000 up, far more than
+ * real players of those ratings. The top rungs stay on the novice engine with
+ * rare errors: the beginner engine's shallow search alone already measured
+ * ~10 ACPL stronger, which the monotone error rate could not pay back. At
+ * 1500 `seesFreeMaterialCp` is 110, not 100: at exactly a pawn the greedy
+ * grab fired on a quarter of all moves (a free-looking pawn taken while its
+ * own queen hung), which only the 1500 rung did. tools/dev/calibrate_bots.mjs
+ * still checks the ladder on self-play positions.
  *
  * Stockfish will not limit itself below UCI_Elo 1320, so under about 1200 the
  * strength does not come from the engine at all. It comes from `blunderChance`
@@ -432,12 +445,12 @@ export const BOT_STRENGTH = Object.freeze([
   { elo: 400,  strength: 0.035, blunderChance: 0.780, blunderSeverityCp: 980,  wildness: 0.530, candidatePool: 6, maxEvalLossCp: 1800, seesFreeMaterialCp: 300, greed: 0.76, level: 'novice' },
   { elo: 550,  strength: 0.055, blunderChance: 0.715, blunderSeverityCp: 860,  wildness: 0.450, candidatePool: 6, maxEvalLossCp: 1560, seesFreeMaterialCp: 280, greed: 0.79, level: 'novice' },
   { elo: 700,  strength: 0.082, blunderChance: 0.650, blunderSeverityCp: 740,  wildness: 0.375, candidatePool: 5, maxEvalLossCp: 1300, seesFreeMaterialCp: 250, greed: 0.82, level: 'novice' },
-  { elo: 850,  strength: 0.115, blunderChance: 0.580, blunderSeverityCp: 640,  wildness: 0.305, candidatePool: 5, maxEvalLossCp: 1100, seesFreeMaterialCp: 220, greed: 0.85, level: 'novice' },
-  { elo: 1000, strength: 0.160, blunderChance: 0.490, blunderSeverityCp: 545,  wildness: 0.240, candidatePool: 5, maxEvalLossCp: 900,  seesFreeMaterialCp: 190, greed: 0.87, level: 'novice' },
-  { elo: 1150, strength: 0.210, blunderChance: 0.410, blunderSeverityCp: 460,  wildness: 0.185, candidatePool: 5, maxEvalLossCp: 790,  seesFreeMaterialCp: 160, greed: 0.89, level: 'novice' },
-  { elo: 1300, strength: 0.280, blunderChance: 0.320, blunderSeverityCp: 370,  wildness: 0.125, candidatePool: 5, maxEvalLossCp: 670,  seesFreeMaterialCp: 130, greed: 0.91, level: 'novice' },
-  { elo: 1400, strength: 0.345, blunderChance: 0.255, blunderSeverityCp: 315,  wildness: 0.090, candidatePool: 4, maxEvalLossCp: 560,  seesFreeMaterialCp: 115, greed: 0.92, level: 'beginner' },
-  { elo: 1500, strength: 0.420, blunderChance: 0.195, blunderSeverityCp: 265,  wildness: 0.060, candidatePool: 4, maxEvalLossCp: 470,  seesFreeMaterialCp: 100, greed: 0.94, level: 'beginner' }
+  { elo: 850,  strength: 0.115, blunderChance: 0.400, blunderSeverityCp: 640,  wildness: 0.305, candidatePool: 5, maxEvalLossCp: 1100, seesFreeMaterialCp: 220, greed: 0.85, level: 'novice' },
+  { elo: 1000, strength: 0.160, blunderChance: 0.220, blunderSeverityCp: 545,  wildness: 0.240, candidatePool: 5, maxEvalLossCp: 900,  seesFreeMaterialCp: 190, greed: 0.87, level: 'novice' },
+  { elo: 1150, strength: 0.210, blunderChance: 0.155, blunderSeverityCp: 460,  wildness: 0.185, candidatePool: 5, maxEvalLossCp: 790,  seesFreeMaterialCp: 160, greed: 0.89, level: 'novice' },
+  { elo: 1300, strength: 0.280, blunderChance: 0.090, blunderSeverityCp: 370,  wildness: 0.125, candidatePool: 5, maxEvalLossCp: 670,  seesFreeMaterialCp: 130, greed: 0.91, level: 'novice' },
+  { elo: 1400, strength: 0.345, blunderChance: 0.070, blunderSeverityCp: 315,  wildness: 0.090, candidatePool: 4, maxEvalLossCp: 560,  seesFreeMaterialCp: 115, greed: 0.92, level: 'novice' },
+  { elo: 1500, strength: 0.420, blunderChance: 0.050, blunderSeverityCp: 265,  wildness: 0.060, candidatePool: 4, maxEvalLossCp: 470,  seesFreeMaterialCp: 110, greed: 0.94, level: 'novice' }
 ]);
 
 export const BOOK = Object.freeze({

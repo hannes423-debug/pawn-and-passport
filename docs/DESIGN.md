@@ -191,6 +191,34 @@ rather than at the table (the tool says so itself: treat that column as a band,
 not a rating). Relative strength is the design target - a 900 is clearly above
 a 700 and clearly below an 1100 - not FIDE calibration.
 
+### Against real players (v1.1.19)
+
+The table above is self-play positions and guessed anchors. `node
+tools/dev/human_strength.mjs` measures the labels against PEOPLE: 509
+positions from rated Lichess games (the Chess DNA Lab's cohorts, ~1160 to
+~1940), every legal move scored once at depth 12, each bot's choice compared
+with the move the human actually played in the same position. The humans fit
+ACPL 56 at 1528, 5.7 cp more per 100 Elo less.
+
+v1.1.18's bots from 800 up played well below their labels on these positions
+(1000: 151, 1250: 109, 1500: 73; the 1500 played like a ~1240). v1.1.19 tunes
+the rungs from 850 to 1500 onto the human curve, mainly by making unforced
+errors much rarer (`blunderChance` 0.58 -> 0.40 at 850, 0.49 -> 0.22 at 1000,
+0.195 -> 0.05 at 1500):
+
+| label | 850 | 1000 | 1150 | 1250 | 1300 | 1400 | 1500 |
+|-------|-----|------|------|------|------|------|------|
+| ACPL now | 135 | 101 | 81 | 74 | 64 | 55 | 51 |
+| human curve | 138 | 105 | 82 | 72 | 68 | 61 | 56 |
+| blunders (>= 300 cp) | 20% | 12% | 8% | 7% | 5% | 3.5% | 3.6% |
+
+Real players blunder 10.7% (~1160), 3.4% (~1290) and 4.9% (~1560) of moves.
+Below ~1160 there are no human games in the data, so 850 and 1000 continue
+the curve smoothly down to the 700 rung, which is unchanged (as is everything
+under it). The top rungs use the novice engine with rare errors: the beginner
+engine alone measured ~10 ACPL stronger, more than a monotone error rate
+could pay back. Normal's last Star Players and the Finale got harder.
+
 Tournament: two regular rounds (a win or a draw clears), then the Star Player
 (must be won). A failed round stays current and can be replayed.
 

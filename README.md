@@ -145,6 +145,7 @@ top) and how aimless it is. Openings stay sensible at every level because the
 opening book runs before any of it.
 
 ```bash
+node tools/dev/human_strength.mjs --elo=850,1000,1250,1500   # bots vs real rated players, same positions
 node tools/dev/calibrate_bots.mjs          # every mode and tier: ACPL vs a depth-12 reference
 node tools/dev/calibrate_bots.mjs --elo 300,900,1500 --samples=40
 ```

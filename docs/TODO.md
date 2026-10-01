@@ -25,25 +25,12 @@ Fixed in v1.1.18:
   it takes only when clearly worse, and one that wins it a final, always.
 - The Brilliant grade was unreachable (every brilliant move became Epic).
 
-- [ ] **Bot strength vs. their Elo labels: decide how to fix.** Measured
-      against real rated games (`tools/dev/human_strength.mjs`: 509 positions
-      from Lichess games of five rating cohorts, bots vs. the humans who
-      really played there, depth-12 reference):
-
-      | bot label | ACPL | plays like (Lichess) |
-      |---|---|---|
-      | 1500 | 73 | ~1230-1250 |
-      | 1250 | 109 | below ~1160 (no human data that low) |
-      | 1000 | 151 | below ~1160 |
-      | 400-800 | 247-178 | no human data that low |
-
-      Humans: ~1161: 95, ~1289: 52, ~1563: 54, ~1682: 39, ~1943: 41 (noisy).
-      The earlier self-play calibration (`tools/dev/calibrate_bots.mjs`) put
-      the ladder within ~150 of its labels; on real-game positions the bots
-      from 800 up play about 130-260 below them. Two ways to make the numbers
-      honest: (a) strengthen 800-1500 so each plays like its label (Normal
-      and Hard get harder at the top), or (b) keep the bots and lower the
-      numbers shown. Not changed yet: it is a balance decision.
+- [x] **Bot strength vs. their Elo labels** (v1.1.19): the 850-1500 rungs
+      now play on the human curve measured by `tools/dev/human_strength.mjs`
+      (1000: ACPL 151 -> 101, 1250: 109 -> 74, 1500: 73 -> 51; humans fit
+      56 at 1528). Table and method in docs/DESIGN.md, "Against real players".
+      Normal's last Star Players and the Finale are harder than before: worth
+      a play test.
 - [ ] Nine more book moves cost 5-10 win-probability points (inaccuracies,
       not mistakes). All are established main-line moves (the Sveshnikov's
       11.Bd3, the Frankenstein-Dracula's 5...Nc6, the Burn French's 9...Bb7,
