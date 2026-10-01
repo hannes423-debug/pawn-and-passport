@@ -443,21 +443,6 @@ export async function sceneScreen(app, params) {
   }
   if (freeMode) drawDepth(layers);
 
-  /* The Trophy Hall upstairs shows the Club Trophies the player has won, in
-     tour order, standing on its display; this club's own is a size larger. */
-  if (scene.shelf) {
-    const won = CLUBS.filter((c) => career.trophies[c.clubId]);
-    const [cx, y, width] = scene.shelf;
-    const step = won.length > 1 ? Math.min(width / (won.length - 1), 2.6) : 0;
-    won.forEach((c, i) => {
-      const x = cx + (i - (won.length - 1) / 2) * step;
-      const icon = pixelIcon('trophy', { size: 'md', cls: `pp-shelf-trophy${c.clubId === clubId ? ' is-home' : ''}`, label: c.trophyName });
-      // They stand ON the display, so they draw with its front edge (the art's depth slices sit lower).
-      Object.assign(icon.style, { left: `${x}%`, top: `${y}%`, zIndex: String(Math.round((y + 6) * 10) * 2 + 1) });
-      icon.title = `${c.trophyName} (${c.city})`;
-      actors.append(icon);
-    });
-  }
   /* L: swap the floor-mask depth for the previous renderer and back, where
      the player stands (docs/FLOORMASK.md). */
   async function toggleDepth() {

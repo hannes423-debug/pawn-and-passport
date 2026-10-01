@@ -19,6 +19,7 @@ dies, resume at the first unticked step.
         debt instead of ever blocking. Table in DESIGN.md section 27.
 - [x] 6. One faint objective marker visible at any distance
 - [x] 7. Won trophies displayed in each club's upstairs Trophy Hall
+        REVERTED (user, v1.2.1): no trophies in the scene; only the display table's pop-up shows them.
 - [x] 8. Member rematches with the head-to-head record line ("You 2-1 Danny")
         Found: the dialogue already says "We are 2-1 so far" and every talk ends in a
         challenge. Remaining: show the record on the name label + the dock button.
