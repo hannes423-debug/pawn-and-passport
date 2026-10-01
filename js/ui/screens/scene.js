@@ -647,6 +647,13 @@ export async function sceneScreen(app, params) {
     if (near !== nearSpot) { nearSpot = near; nudgeLabels(); }
   }
 
+  /** Your head-to-head against a member, wins-losses(-draws): "2-1", or '' before the first game. */
+  function recordText(memberId) {
+    const r = career.memberRecords?.[memberId];
+    if (!r || !(r.w + r.l + (r.d || 0))) return '';
+    return `${r.w}-${r.l}${r.d ? `-${r.d}` : ''}`;
+  }
+
   function drawHotspots() {
     clear(hotspotLayer);
     spotNodes.clear();
@@ -668,8 +675,9 @@ export async function sceneScreen(app, params) {
         : spot.npc?.at ? Math.min(y, spot.npc.at[1]) - ACTOR_H * 95 - 1 : my - Math.max(7, ACTOR_H * 70);
       /* A member wears the speech bubble on its own; its name is a label that
          is revealed, not drawn. Everything else keeps icon + words. */
+      const record = spot.member ? recordText(spot.action.memberId) : '';
       const label = spot.member
-        ? h('span.pp-hotspot__label.pp-hotspot__name', { text: spot.label })
+        ? h('span.pp-hotspot__label.pp-hotspot__name', null, spot.label, record ? h('small.pp-hotspot__record', { text: ` · you ${record}` }) : null)
         : h('span.pp-hotspot__label', null, h('small.pp-hotspot__key', { text: String(i + 1) }),
             pixelIcon(KIND_ICON[kind], { size: 'sm' }), h('span.pp-hotspot__text', { text: ` ${spot.label}` }));
       const node = h('button.pp-hotspot', {
@@ -681,7 +689,7 @@ export async function sceneScreen(app, params) {
         label, h('span.pp-hotspot__arrow', { text: '\u25be', 'aria-hidden': 'true' }));
       spotNodes.set(spot, node);
       hotspotLayer.append(node);
-      if (spot.member) people.append(button(spot.label.split(' ')[0], () => use(spot), { cls: 'pp-btn--small', title: `Talk to ${spot.label}` }));
+      if (spot.member) people.append(button(`${spot.label.split(' ')[0]}${record ? ` ${record}` : ''}`, () => use(spot), { cls: 'pp-btn--small', title: `Talk to ${spot.label}${record ? ` (you are ${record})` : ''}` }));
       else list.append(button(`${i + 1}. ${spot.verb}`, () => use(spot), { cls: 'pp-btn--small', title: spot.label }));
     });
     const toggle = h('button.pp-btn.pp-btn--small.pp-scene__toggle', { type: 'button', onclick: (e) => { e.stopPropagation(); setDock(!dockOpen()); } });

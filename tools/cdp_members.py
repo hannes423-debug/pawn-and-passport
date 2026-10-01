@@ -126,6 +126,11 @@ try:
     check(coins == start - stake, f"losing cost exactly the stake ({coins} = {start} - {stake})")
     record = c.eval("JSON.stringify(window.__pap.career.memberRecords)")
     check('"l":1' in (record or ""), f"the head-to-head record is kept ({record})")
+    c.pump(1)
+    shown = c.eval("[...document.querySelectorAll('.pp-scene__people button')].map((b) => b.textContent).filter((t) => /0-1/.test(t))")
+    check(len(shown) == 1, f"the record shows on that member's dock button ({shown})")
+    label = c.eval("[...document.querySelectorAll('.pp-hotspot__record')].map((n) => n.textContent)")
+    check(label == [" · you 0-1"], f"and on their name label ({label})")
 
     # 3. the tournament desk
     c.pump(1)
