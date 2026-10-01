@@ -12,6 +12,7 @@ tools/cdp_cues.py - hotspots show only as much as the player's distance earns.
      (or sits on the bottom edge when the stage is short), not above the head in the middle of the garden (ist-venue: on the steps,
      which the walk mask does not reach)
   5. on a touch screen no visible marker sits under the joystick or A button
+  6. out of reach of everything, A heads for the career's next goal
 """
 import os
 import sys
@@ -98,6 +99,8 @@ try:
     check(door["shown"] and not door["words"], "2. halfway up the path the door shows its icon, no words")
     near = [k for k, v in s.items() if v["words"]]
     check(len(near) <= 1, f"3. at most one hotspot shows words ({near})")
+    label = c.eval("document.querySelector('.pp-keyprompt__label')?.textContent || document.querySelector('.pp-pad__label, .pp-pad__action')?.textContent || ''")
+    check("Enter the club" in label, f"6. A heads for the next goal, not a nearby member ({label!r})")
     c.shot(f"cues-path-{spec}")
 
     # Floor plan: from the entrance the tournament hall is out of reach.

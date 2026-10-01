@@ -27,7 +27,7 @@ import { ELO, MASTERY } from '../../data/config.js';
 import {
   travelTo, meetStar, enterTournament, currentRound, tier, regularElo, missionProgress,
   hasAllTrophies, enterFinale, currentFinaleRound, trophyCount, masteryState,
-  memberElo, finaleElo, stakeFor, canAfford
+  memberElo, finaleElo, stakeFor, canAfford, nextStep
 } from '../../core/career.js';
 import { MEMBERS, CHESS_TIPS } from '../../data/members.js';
 import { MEMBER_SPOTS } from '../../data/memberSpots.js';
@@ -884,27 +884,47 @@ export async function sceneScreen(app, params) {
     return Math.hypot((x - player.x) * aspect, y - player.y);
   };
 
-  /** What A does: the hotspot underfoot, otherwise the nearest one (walk there, then use it). */
+  /**
+   * The hotspot that leads toward the career's next goal (the HUD's "Next:")
+   * from this scene: the goal itself when it is here, otherwise the way out
+   * that heads for it. Null when nothing here does.
+   */
+  function goalSpot() {
+    const step = nextStep(career);
+    if (step.type === 'ending') return null;
+    const here = step.clubId === clubId && step.type !== 'travel';
+    const goal = !here ? 'leave' : step.type === 'finale' ? 'finale' : 'tournament';
+    const spots = scene.hotspots.filter((spot) => !spot.member);
+    const direct = spots.find((spot) => spot.action.type === goal);
+    if (direct) return direct;
+    // Not in this scene: inward toward the hall, outward toward the gate.
+    const toward = (suffix) => spots.find((spot) => spot.action.type === 'scene' && spot.action.to.endsWith(suffix));
+    return goal === 'leave' ? (toward('-ext') || toward('-int')) : (toward('-int') || toward('-ext'));
+  }
+
+  /**
+   * What A does: the hotspot within reach (walk up, use it), otherwise the way
+   * to the next goal, otherwise the nearest signpost. A member is only ever
+   * the target when the player is already next to them: "Go: Hector Ramos"
+   * from the gate sent people to whoever stood nearest, not where the game is.
+   */
   function spotForAction() {
-    if (freeMode) {
-      let best = null;
-      for (const spot of scene.hotspots) {
-        const d = distanceTo(spot);
-        if (!best || d < best.d) best = { spot, d };
-      }
-      return best ? { spot: best.spot, ready: best.d <= USE_RADIUS } : null;
-    }
-    if (!walking) {
-      const here = scene.hotspots.find((spot) => spot.node === playerNode);
-      if (here) return { spot: here, ready: true };
-    }
     let best = null;
     for (const spot of scene.hotspots) {
-      const [x, y] = scene.nodes[spot.node];
-      const d = Math.hypot((x - player.x) * aspect, y - player.y);
+      const d = freeMode ? distanceTo(spot) : (spot.node === playerNode && !walking ? 0 : Infinity);
       if (!best || d < best.d) best = { spot, d };
     }
-    return best ? { spot: best.spot, ready: false } : null;
+    if (best && best.d <= (freeMode ? USE_RADIUS : 0)) return { spot: best.spot, ready: true };
+    const goal = goalSpot();
+    if (goal) return { spot: goal, ready: false };
+    let sign = null;
+    for (const spot of scene.hotspots) {
+      if (spot.member) continue;
+      const [x, y] = scene.nodes[spot.node];
+      const d = Math.hypot((x - player.x) * aspect, y - player.y);
+      if (!sign || d < sign.d) sign = { spot, d };
+    }
+    return sign ? { spot: sign.spot, ready: false } : null;
   }
 
   const pad = createTouchpad({
