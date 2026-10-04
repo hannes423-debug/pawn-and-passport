@@ -321,6 +321,14 @@ img, canvas { image-rendering: pixelated; }
 /* Open, with a side gutter wide enough: a column beside the stage (scene.js reserveDock). */
 .pp-scene__dock.is-side { top: calc(var(--hud-h, 56px) + 8px); bottom: auto; max-width: 200px; }
 .pp-scene__dock.is-side .pp-row { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 4px; }
+/* Open, with no gutter to spare: it floats over the full-size stage, see-through
+   so the room shows behind it; solid again while pointed at or in use. */
+.pp-scene__dock.is-over .pp-panel { background: rgba(243, 227, 191, 0.55); box-shadow: inset 0 0 0 3px rgba(233, 211, 164, 0.5), 0 4px 0 rgba(20, 10, 5, 0.25); transition: background 150ms; }
+.pp-scene__dock.is-over .pp-btn { opacity: 0.88; }
+@media (hover: hover) {
+  .pp-scene__dock.is-over:hover .pp-panel, .pp-scene__dock.is-over:focus-within .pp-panel { background: rgba(243, 227, 191, 0.92); }
+  .pp-scene__dock.is-over:hover .pp-btn, .pp-scene__dock.is-over:focus-within .pp-btn { opacity: 1; }
+}
 
 /* -------------------------------------------------------------- overlays -- */
 

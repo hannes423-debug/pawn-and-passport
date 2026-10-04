@@ -261,12 +261,13 @@ export async function sceneScreen(app, params) {
   refit = () => fit();
 
   /* Room for the open actions panel: a column beside the stage when the side
-     gutter is wide enough for it (landscape phone, wide desktop), otherwise a
-     band above or below the stage (portrait phone, top dock; desktop, bottom). */
+     gutter is wide enough for it (landscape phone, wide desktop). Otherwise the
+     stage keeps the whole screen and the panel floats over it, see-through
+     (css/pap.css .is-over), rather than shrinking the room to a strip. */
   function reserveDock(hudH) {
     const box = viewport.style;
     box.top = `${hudH}px`; box.left = ''; box.right = ''; box.bottom = '';
-    dock.classList.remove('is-side');
+    dock.classList.remove('is-side', 'is-over');
     if (!dockOpen() || !dock.firstChild) return;
     const W = el.clientWidth || window.innerWidth;
     const H = (el.clientHeight || window.innerHeight) - hudH;
@@ -281,9 +282,7 @@ export async function sceneScreen(app, params) {
       return;
     }
     dock.classList.remove('is-side');
-    const r = dock.getBoundingClientRect();
-    if (r.top < (window.innerHeight + hudH) / 2) box.top = `${Math.ceil(r.bottom + 6)}px`;
-    else box.bottom = `${Math.ceil(window.innerHeight - r.top + 6)}px`;
+    dock.classList.add('is-over');
   }
 
   function follow() {
@@ -689,9 +688,9 @@ export async function sceneScreen(app, params) {
     paintCues();
   }
 
-  /* The actions panel can be hidden (button or H, remembered in settings), and
-     while it is open it takes its own room beside or above the stage instead
-     of covering the top of the map. */
+  /* The actions panel can be hidden (button or H, remembered in settings).
+     While it is open it takes a side gutter if there is one, and otherwise
+     floats see-through over the map, which keeps its full size. */
   // A function declaration, not a const: fit() can run from the background's
   // onload while the scene is still awaiting its depth data, before this line.
   function dockOpen() { return app.settings.actionsPanel !== false; }
