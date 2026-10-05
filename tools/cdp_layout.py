@@ -65,6 +65,9 @@ PROBE = r"""(() => {
   for (const label of document.querySelectorAll('.pp-hotspot__label')) {
     const r = label.getBoundingClientRect();
     if (!r.width || r.right < 0 || r.left > vw) continue;          // off camera: walked into view later
+    // Not drawn (a far hotspot): it is placed again when it comes into view.
+    const cs = getComputedStyle(label);
+    if (cs.visibility === 'hidden' || Number(getComputedStyle(label.closest('.pp-hotspot') || label).opacity) === 0) continue;
     for (const [name, b] of blockers) {
       const w = Math.min(r.right, b.right) - Math.max(r.left, b.left);
       const hh = Math.min(r.bottom, b.bottom) - Math.max(r.top, b.top);

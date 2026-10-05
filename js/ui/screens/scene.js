@@ -632,20 +632,24 @@ export async function sceneScreen(app, params) {
 
   /** Show each hotspot as much as the player's distance earns (see CUE_RADIUS). */
   let nearSpot = null;
+  let shownKey = '';
   function paintCues(pick = spotForAction()) {
     const near = pick?.ready ? pick.spot : null;
     // The way to the next goal stays on screen at any distance, faintly: one
     // small icon, so the room is never empty of a direction.
     const goal = goalSpot();
+    let shown = '';
     for (const [spot, node] of spotNodes) {
       const [x, y] = scene.nodes[spot.node];
       const out = spot !== near && Math.hypot((x - player.x) * aspect, y - player.y) > CUE_RADIUS;
       node.classList.toggle('is-far', out && spot !== goal);
       node.classList.toggle('is-goal-far', out && spot === goal);
       node.classList.toggle('is-near', spot === near);
+      if (!(out && spot !== goal)) shown += `${spot.id}|`;
     }
-    // The words widen the label: slide it back inside the screen again.
-    if (near !== nearSpot) { nearSpot = near; nudgeLabels(); }
+    // The words widen the label, and a label coming into view was never
+    // placed (far ones are skipped): slide them back inside the screen again.
+    if (near !== nearSpot || shown !== shownKey) { nearSpot = near; shownKey = shown; nudgeLabels(); }
   }
 
   /** Your head-to-head against a member, wins-losses(-draws): "2-1", or '' before the first game. */
