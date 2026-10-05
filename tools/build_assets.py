@@ -167,15 +167,30 @@ def build_postcards():
         save_webp(img.crop((left, 0, w, crop_h)).resize((900, 600), Image.LANCZOS), 'postcards/' + city)
 
 
+# Each piece set: its sheet, then the row and column runs of solid alpha,
+# measured once from the sheet (a few px of margin either side).
+PIECE_SETS = {
+    'pixel': (PIECE_SHEET,
+              [(57, 523, 'w'), (534, 973, 'b')],
+              [(62, 280, 'K'), (318, 532, 'Q'), (566, 780, 'R'), (808, 1012, 'B'), (1020, 1276, 'N'), (1300, 1480, 'P')]),
+    # The round "travel token" pieces: sold in the coin shop (js/data/shop.js).
+    'tokens': ('chess-piece-sheet-alt.png',
+               [(172, 472, 'w'), (557, 856, 'b')],
+               [(43, 272, 'K'), (303, 531, 'Q'), (559, 790, 'R'), (819, 1035, 'B'), (1064, 1282, 'N'), (1311, 1500, 'P')]),
+}
+
+
 def build_pieces():
-    path = src(PIECE_SHEET)
+    for name, (sheet, rows, cols) in PIECE_SETS.items():
+        build_piece_set(name, sheet, rows, cols)
+
+
+def build_piece_set(name, sheet_rel, rows, cols):
+    path = src(sheet_rel)
     if not path:
         return
     sheet = Image.open(path).convert('RGBA')
-    # Column and row runs of solid alpha, measured once from the sheet.
-    rows = [(57, 523, 'w'), (534, 973, 'b')]
-    cols = [(62, 280, 'K'), (318, 532, 'Q'), (566, 780, 'R'), (808, 1012, 'B'), (1020, 1276, 'N'), (1300, 1480, 'P')]
-    out_dir = os.path.join(OUT, 'pieces', 'pixel')
+    out_dir = os.path.join(OUT, 'pieces', name)
     os.makedirs(out_dir, exist_ok=True)
     tallest = 0
     crops = {}
@@ -208,7 +223,7 @@ def build_pieces():
         canvas = Image.new('RGBA', (size, size), (0, 0, 0, 0))
         canvas.paste(piece, ((size - pw) // 2, size - ph - round(size * 0.04)), piece)
         canvas.save(os.path.join(out_dir, code + '.png'))
-        report['written'].append(('pieces/pixel/' + code + '.png', canvas.size))
+        report['written'].append((f'pieces/{name}/{code}.png', canvas.size))
 
 
 def build_board():
@@ -232,6 +247,11 @@ def build_board():
 
 
 def main():
+    if sys.argv[1:] == ['pieces']:          # only the piece sets: python3 tools/build_assets.py pieces
+        build_pieces()
+        for name, size in report['written']:
+            print(f'  wrote {name} {size[0]}x{size[1]}')
+        return
     build_ui()
     sizes = build_scenes()
     build_postcards()

@@ -8,7 +8,7 @@
 export const GAME = Object.freeze({
   title: 'Pawn & Passport',
   subtitle: 'A Chess Career RPG',
-  version: '1.2.4',
+  version: '1.2.5',
   // What "Share" sends (js/ui/share.js): the public build, wherever this one runs.
   url: 'https://hannes423-debug.github.io/pawn-and-passport/',
   saveVersion: 3
@@ -353,6 +353,17 @@ export const COINS = Object.freeze({
   missionComplete: 25
 });
 
+/* ================================================================== shop === */
+/* What coins buy (js/core/shop.js, the Journal's Shop page): looks only, never
+   strength. A Club Trophy's profit (the champion's prize less the fee and the
+   next flight) is 134 coins at the first club and 239 at the last: the first
+   trophy buys any board, the first two the dearest piece set, and the six
+   together everything (860 in all), before stakes and puzzles add more. */
+export const SHOP = Object.freeze({
+  pieces: { tokens: 250, chessnut: 150 },
+  boards: { green: 120, walnut: 80, ocean: 100, slate: 100, mono: 60 }
+});
+
 /* ============================================================== grading === */
 /* Bands in win-probability points lost (0..100), on the 0.00368208 logistic.
    BEST now means the engine's own move (or a move it scores within 0.3). */
@@ -473,4 +484,4 @@ export const BOOK = Object.freeze({
   starPreference: 1.0
 });
 
-export default { GAME, LEVELS, XP, ELO, BOT_ELO, DIFFICULTY, difficultyMode, FOCUS, HINTS, GUIDE, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, MEMBERS, SIM, COINS, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK, PRACTICE };
+export default { GAME, LEVELS, XP, ELO, BOT_ELO, DIFFICULTY, difficultyMode, FOCUS, HINTS, GUIDE, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, MEMBERS, SIM, COINS, SHOP, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK, PRACTICE };

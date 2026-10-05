@@ -25,16 +25,22 @@ import { h } from './dom.js';
 import { ChessBoard2DRenderer, ANIMATION_SPEEDS } from '../chess/render/board2d.js';
 import { ChessInputController } from '../chess/render/inputController.js';
 import { createFx } from './fx.js';
+import { pieceUrl } from '../chess/render/pieceSets.js';
+import { equippedStyle } from '../core/shop.js';
 import { pushHandler, DIRECTIONS, firstFocus, focusEl, inputDevice } from './controls.js';
 
 export function createBoard(app, { orientation = 'w', getFen, getDestinations, getMovableColour, onMove, onCursor = null, isLive = null }) {
+  // The pieces and board bought in the coin shop (js/core/shop.js); 'marble'
+  // is the painted board itself, any other board colours its squares.
+  const style = equippedStyle(app.career);
   const host = h('div');
   const fxLayer = h('div.pp-fx');
-  const frame = h('div.pp-boardframe', null, host, fxLayer);
+  const frame = h('div.pp-boardframe', { dataset: { board: style.board, pieces: style.pieces } }, host, fxLayer);
 
   const renderer = new ChessBoard2DRenderer(host, {
     orientation,
-    pieceSet: 'pixel',
+    pieceSet: style.pieces,
+    ...(style.board === 'marble' ? {} : { theme: style.board }),
     coordinates: app.settings.coordinates,
     animationMs: ANIMATION_SPEEDS[app.settings.pieceAnimation] ?? ANIMATION_SPEEDS.smooth
   });
@@ -45,7 +51,7 @@ export function createBoard(app, { orientation = 'w', getFen, getDestinations, g
       h('h2.pp-h2', { text: 'Promote to' }),
       h('div.pp-row', null, [['q', 'Queen'], ['r', 'Rook'], ['b', 'Bishop'], ['n', 'Knight']].map(([id, label]) =>
         h('button.pp-btn', { type: 'button', onclick: () => close(id) },
-          h('img', { src: `assets/pieces/pixel/${getFen().split(' ')[1]}${id.toUpperCase()}.png`, alt: '', style: { width: '40px' } }), label)))))
+          h('img', { src: pieceUrl(style.pieces, getFen().split(' ')[1], id), alt: '', style: { width: '40px' } }), label)))))
   });
 
   // Publish the square size in px (see the note in css/board.css).

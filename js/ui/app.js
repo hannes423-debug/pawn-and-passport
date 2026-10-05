@@ -43,6 +43,7 @@ export function createApp(root, screens) {
       document.querySelectorAll('.pp-overlay, .pp-dialogue').forEach((el) => el.remove());
       app.dropCoach?.();
       app.currentName = name;
+      app.currentParams = params;
       const token = (app._goToken = (app._goToken || 0) + 1);
       const screen = await factory(app, params);
       // A newer navigation started while this screen was loading: drop this one,
@@ -242,14 +243,26 @@ export function createApp(root, screens) {
       const c = app.career;
       const xp = xpProgress(c);
       const bar = h('header.pp-hud', null,
-        h('div.pp-hud__who', null,
+        h('div.pp-hud__who', { title: `${c.name}, level ${c.level}` },
           h('img', { alt: '', src: portraitUrl(PLAYER_LOOKS[c.avatar]) }),
-          h('div', null, h('div.pp-hud__name', { text: c.name }), h('div.pp-small', { text: `Level ${c.level}` }))),
+          // On a phone the name and "Level" go; the level rides on the portrait.
+          h('span.pp-hud__badge', { 'aria-hidden': 'true', text: c.level }),
+          h('div.pp-hud__id', null, h('div.pp-hud__name', { text: c.name }), h('div.pp-small', { text: `Level ${c.level}` }))),
         h('div.pp-hud__lvl', { title: xp.max ? 'Max level' : `${xp.into} / ${xp.needed} XP` },
-          h('div.pp-small', null, h('span', { text: 'XP' }), h('span', { text: xp.max ? 'MAX' : `${xp.into}/${xp.needed}` })),
+          h('div.pp-small', null, h('span.pp-hud__xpword', { text: 'XP' }), h('span', { text: xp.max ? 'MAX' : `${xp.into}/${xp.needed}` })),
           h('div.pp-meter.pp-meter--xp', null, h('div.pp-meter__fill', { style: { width: `${Math.round(xp.fraction * 100)}%` } }))),
         h('div.pp-hud__stat', { title: 'Elo rating' }, pixelIcon('pawn', { size: 'sm' }), h('b', { text: c.elo })),
-        h('div.pp-hud__stat.pp-hud__coins', { title: c.debt ? `Coins. You owe your sponsor ${c.debt}: it comes out of your next tournament prize.` : 'Coins: tournaments and flights cost them; prize money, members and puzzles pay them' },
+        // The coins open the Shop (the Journal's last page): what they are for.
+        h('button.pp-hud__stat.pp-hud__coins', {
+          type: 'button',
+          title: c.debt ? `Coins. You owe your sponsor ${c.debt}: it comes out of your next tournament prize. Tap for the Shop.` : 'Coins: tournaments and flights cost them; prize money, members and puzzles pay them. Tap for the Shop.',
+          onclick: () => {
+            sfx.click();
+            // From the Journal itself, keep the way back it already had.
+            const back = app.currentName === 'journal' ? app.currentParams?.back : app.backParams();
+            app.go('journal', { tab: 'shop', back });
+          }
+        },
           pixelIcon('coins', { size: 'sm' }), h('b', { text: c.coins ?? 0 }), c.debt ? h('small.pp-hud__debt', { text: ` -${c.debt}` }) : null),
         h('div.pp-hud__stat', { title: 'Maximum Focus' }, pixelIcon('xp', { size: 'sm' }), h('b', { text: maxFocus(c.level) })),
         h('div.pp-hud__stat', { title: 'Club Trophies' }, pixelIcon('trophy', { size: 'sm' }), h('b', { text: `${trophyCount(c)}/6` })),

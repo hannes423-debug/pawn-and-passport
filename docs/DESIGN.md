@@ -441,7 +441,7 @@ XP for `counts.GREAT`, which the classifier never produces: a dead term there.)
 
 **SHOULD finish**
 - ~~Tune scene waypoints after playtesting: some walk lines cross furniture.~~ Obsolete: free walking on the artist's walk masks (v1.1.0).
-- Phone/portrait layout for the match and scene screens (desktop-first, not phone-tested).
+- ~~Phone/portrait layout for the match and scene screens.~~ Done, and reworked from the user's phone screenshots in v1.2.3-v1.2.5 (section 29).
 - ~~The tournament desk fixes the run's tier as soon as it is opened, even on "Not yet".~~ Fixed: the run is created only on "Enter".
 - A short "How to play" page (hotkeys: 1-9 hotspots, M map, J journal, H hint).
 - Draw offers use a simple material/length rule, not the engine.
@@ -815,3 +815,48 @@ line, drill or lesson. Browser: `tools/cdp_campaign.py all` plays the whole
 campaign through the UI from every starting city (with losses, re-entry, a
 lost Star final and a lost Madrid round), `tools/cdp_resilience.py` the
 failure paths, `tools/cdp_layout.py` the 8-viewport matrix.
+
+## 29. Phone pass and the coin shop (v1.2.3-v1.2.5, 2026-10-05)
+
+From the user's own Android screenshots, the first real-phone feedback:
+
+- **Scene actions panel** (v1.2.3): with no side gutter for it (a phone held
+  upright) it used to push the viewport down to a band under it, cropping the
+  room. It now floats over the full-size stage, see-through (`.is-over`).
+- **HUD** (v1.2.5): 114 px tall on an upright phone (three rows), 62 px
+  sideways ("Level 11" wrapped, the goal was cut off). Now 81 px and 43 px:
+  no name or "Level" on a phone (a level badge on the portrait), the XP meter
+  drops its word, and the next goal shares a row with the buttons, clamped to
+  two short lines (`css/layout.css`, "phone HUD").
+- **World map** (v1.2.5): upright, the panel under the map was a fixed 38% of
+  the screen and mostly empty. It is now as tall as its words (map.js measures
+  it into `--sheet`), and the narrow map fills the area's height instead of
+  zooming 1.45x into a short one, which keeps the cities the same size.
+- **Match** (v1.2.5): the opening card on a tapped guide square was pinned
+  under the board, over your card and Hint / Undo; it now goes below those.
+  On a sideways phone (no room above or below) it covered half the board; it
+  now sits in the wider side gutter, narrowed to fit, over the move list.
+  "More" opens with Offer draw and Resign first (they were below the fold)
+  and scrolls itself into view. The stake's coin icon was caught by the
+  portrait rule `.pp-player img` and drawn 36 px over the amount (now `> img`).
+- **Title and settings** (v1.2.4): version and Share on both; Share uses the
+  system sheet, else copies `GAME.url`, else shows it to copy by hand.
+
+**Coin shop** (v1.2.5): the first thing coins buy that is not a fee or a
+flight. Looks only, so it can never make a game easier.
+
+| Item | Coins |
+|---|---|
+| Travel Tokens (pieces, `chess-piece-sheet-alt.png`) | 250 |
+| Chessnut Classic (pieces, Apache-2.0 SVG) | 150 |
+| Tournament Green / Ocean / Slate / Walnut / Newsprint (boards) | 120 / 100 / 100 / 80 / 60 |
+
+A trophy's profit (champion's prize - fee - next flight) is 134 coins at the
+first club and 239 at the last, so the first trophy buys any board, the first
+two the dearest set, and the six all of it; `tests/run.js` holds those three
+rules. A purchase needs the coins in hand and no debt (the sponsor covers fees
+and flights, never looks). `career.shop = { owned, pieces, board }`; old saves
+get the defaults from `migrateCareer`. Boards other than the painted marble
+colour its squares at 92% (`css/board.css`), so a little grain shows through.
+The tip about the shop appears on the map once the player holds 250 coins.
+

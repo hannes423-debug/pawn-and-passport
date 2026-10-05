@@ -37,6 +37,9 @@ import * as Lessons from '../js/core/lessons.js';
 import { LESSONS as LESSON_LIST } from '../js/data/lessons.js';
 import { PRACTICE } from '../js/data/config.js';
 import { createRules as createRulesForChess } from '../js/chess/core/rules.js';
+import * as Shop from '../js/core/shop.js';
+import { SHOP_ITEMS, DEFAULT_STYLE } from '../js/data/shop.js';
+import { PIECE_SETS, BOARD_THEMES } from '../js/chess/render/pieceSets.js';
 
 const createRulesForTest = (fen) => { try { return createRulesForChess(fen); } catch { return null; } };
 import { strengthForElo, profileForOpponent } from '../js/core/difficulty.js';
@@ -1230,6 +1233,53 @@ test('money: the candidate rounds cover the fee, the Star Player pays for the ne
   eq(c.debt, 0); eq(c.coins, run.prize - run.repaid);
   const old = Career.newCareer({ name: 'Old', avatar: 'boy', startClubId: 'nyc' });
   delete old.debt; Career.migrateCareer(old); eq(old.debt, 0, 'old saves owe nothing');
+});
+
+test('shop: every item exists and has its art; prices are fair; buying never makes debt', () => {
+  for (const item of SHOP_ITEMS) {
+    if (item.kind === 'pieces') {
+      const set = PIECE_SETS[item.ref];
+      assert(set, `${item.id}: a piece set`);
+      for (const c of 'wb') for (const t of 'KQRBNP') {
+        assert(existsSync(path.join(ROOT, 'assets/pieces', set.dir, `${c}${t}.${set.ext || 'svg'}`)), `${item.id}: ${c}${t} on disk`);
+      }
+    } else {
+      assert(item.ref === 'marble' || BOARD_THEMES[item.ref], `${item.id}: a board theme`);
+    }
+  }
+  for (const kind of ['pieces', 'board']) eq(SHOP_ITEMS.find((i) => i.kind === kind && i.price === 0)?.ref, DEFAULT_STYLE[kind], `${kind}: the default is free`);
+  // A trophy's profit: the champion's prize less the fee and the next flight.
+  const profit = COINS.entryFee.map((fee) => TOURNAMENT.rounds * COINS.perPointShare * fee + COINS.championShare * fee + COINS.championBonus - fee - COINS.flight);
+  const priced = SHOP_ITEMS.filter((i) => i.price > 0);
+  assert(Math.max(...priced.filter((i) => i.kind === 'board').map((i) => i.price)) <= profit[0], `the first trophy buys any board (${profit[0]})`);
+  assert(Math.max(...priced.map((i) => i.price)) <= profit[0] + profit[1], `the first two buy anything (${profit[0] + profit[1]})`);
+  assert(priced.reduce((sum, i) => sum + i.price, 0) <= profit.reduce((a, b) => a + b, 0), 'six trophies buy the whole shop');
+
+  const c = Career.newCareer({ name: 'Buyer', avatar: 'girl', startClubId: 'vie' });
+  assert(Career.validateCareer(c).length === 0, 'a new career is valid');
+  eq(Shop.equippedStyle(c).pieces, 'pixel'); eq(Shop.equippedStyle(c).board, 'marble');
+  assert(Shop.ownsItem(c, 'pieces:pixel') && Shop.ownsItem(c, 'board:marble'), 'the defaults are owned');
+  const price = SHOP_ITEMS.find((i) => i.id === 'pieces:tokens').price;
+  c.coins = price - 1;
+  const short = Shop.buyItem(c, 'pieces:tokens');
+  eq(short.reason, 'coins'); eq(short.short, 1); eq(c.coins, price - 1, 'a refused purchase costs nothing');
+  c.coins = price; c.debt = 10;
+  eq(Shop.buyItem(c, 'pieces:tokens').reason, 'debt', 'no shopping while the sponsor is owed');
+  c.debt = 0;
+  assert(Shop.buyItem(c, 'pieces:tokens').ok, 'bought');
+  eq(c.coins, 0); eq(c.debt, 0, 'never on credit'); eq(Shop.equippedStyle(c).pieces, 'tokens', 'in use at once');
+  eq(Shop.buyItem(c, 'pieces:tokens').reason, 'owned');
+  eq(Shop.equipItem(c, 'board:green').reason, 'not-owned');
+  assert(Shop.equipItem(c, 'pieces:pixel').ok); eq(Shop.equippedStyle(c).pieces, 'pixel');
+  assert(Shop.equipItem(c, 'pieces:tokens').ok, 'what you bought stays yours');
+  // Old saves have no shop; a broken one is repaired to what it owns.
+  const old = Career.newCareer({ name: 'Old', avatar: 'boy', startClubId: 'nyc' });
+  delete old.shop; Career.migrateCareer(old);
+  eq(old.shop.pieces, 'pixel'); eq(old.shop.owned.length, 0);
+  old.shop = { owned: ['pieces:nope', 'board:walnut', 'board:walnut'], pieces: 'tokens', board: 'walnut' };
+  Shop.shopRecord(old);
+  eq(old.shop.owned.join(), 'board:walnut', 'unknown and repeated items dropped');
+  eq(old.shop.pieces, 'pixel', 'a set it does not own is not in use'); eq(old.shop.board, 'walnut');
 });
 
 test('every club has 12 members who look and sound like their city', () => {

@@ -25,7 +25,9 @@ import { OPENINGS } from '../../data/openings.js';
 import { POSTCARDS, BEYOND_THE_TOUR } from '../../data/postcards.js';
 import { starById } from '../../data/starPlayers.js';
 import { GRADE_META } from '../../core/grading.js';
-import { hasAllPostcards, masteryState, trophyCount, postcardCount, missionProgress, xpProgress, maxFocus, hintPlies, repertoireSlots, equipOpening, unequipOpening, isUnlocked, nextStep } from '../../core/career.js';
+import { hasAllPostcards, masteryState, trophyCount, postcardCount, missionProgress, xpProgress, maxFocus, hintPlies, repertoireSlots, equipOpening, unequipOpening, isUnlocked, nextStep, entryFee } from '../../core/career.js';
+import { ownsItem, isEquipped, buyItem, equipItem, itemsOfKind } from '../../core/shop.js';
+import { pieceUrl, BOARD_THEMES } from '../../chess/render/pieceSets.js';
 
 const pct = (x0, y0, x1, y1) => ({ left: `${x0}%`, top: `${y0}%`, width: `${x1 - x0}%`, height: `${y1 - y0}%` });
 
@@ -70,7 +72,7 @@ export function journalScreen(app, params) {
   const secret = hasAllPostcards(career);
   const tabs = [
     ['passport', 'passport', 'Passport'], ['openings', 'pawn', 'Openings & Cities'],
-    ['postcards', 'postcard', `Postcards ${postcardCount(career)}/6`], ['career', 'trophy', 'Career'],
+    ['postcards', 'postcard', `Postcards ${postcardCount(career)}/6`], ['career', 'trophy', 'Career'], ['shop', 'coins', 'Shop'],
     ...(secret ? [['beyond', 'xp', 'Beyond the Tour']] : [])
   ];
   let tab = params.tab && tabs.some(([id]) => id === params.tab) ? params.tab : 'passport';
@@ -97,7 +99,7 @@ export function journalScreen(app, params) {
     paintTabs();
     wasCompact = compact();
     const pages = wasCompact ? { passport: passportList, openings: openingsList } : { passport, openings };
-    body.replaceChildren(({ ...pages, postcards, career: careerTab, beyond })[tab]());
+    body.replaceChildren(({ ...pages, postcards, career: careerTab, shop, beyond })[tab]());
     if (tab === 'beyond' && !career.secretRevealSeen) { career.secretRevealSeen = true; app.save(); sfx.trophy(); }
   }
 
@@ -270,6 +272,67 @@ export function journalScreen(app, params) {
         const r = career.stars[star.id];
         return h('li', null, h('span', { text: `${star.name} (${c.city})` }), h('b', { text: !r?.met ? 'not met' : r.beaten ? `beaten${r.losses ? ` after ${r.losses} loss${r.losses > 1 ? 'es' : ''}` : ''}` : `met · ${r.losses} loss${r.losses === 1 ? '' : 'es'}` }));
       })));
+  };
+
+  /* The coin shop: piece sets and boards, looks only (js/core/shop.js). */
+  const shop = () => {
+    const coins = career.coins ?? 0;
+    const preview = (item) => {
+      if (item.kind === 'pieces') {
+        return h('div.pp-shop__pieces', { 'aria-hidden': 'true', dataset: { pieces: item.ref } },
+          [['w', 'k'], ['w', 'q'], ['b', 'n'], ['b', 'p']].map(([c, t]) => h('img', { src: pieceUrl(item.ref, c, t), alt: '' })));
+      }
+      if (item.ref === 'marble') {
+        return h('div.pp-shop__board.pp-shop__board--marble', { 'aria-hidden': 'true' }, h('img', { src: 'assets/board/board.webp', alt: '' }));
+      }
+      const theme = BOARD_THEMES[item.ref];
+      return h('div.pp-shop__board', { 'aria-hidden': 'true' },
+        Array.from({ length: 8 }, (_, i) => h('span', { style: { background: (i + Math.floor(i / 4)) % 2 ? theme.dark : theme.light } })));
+    };
+    const action = (item) => {
+      if (isEquipped(career, item.id)) return h('span.pp-shop__inuse', null, pixelIcon('xp', { size: 'sm' }), ' In use');
+      if (ownsItem(career, item.id)) return button('Use', () => { equipItem(career, item.id); app.save(); sfx.click(); paint(); }, { cls: 'pp-btn--small pp-btn--blue' });
+      const short = item.price - coins;
+      const debt = career.debt || 0;
+      return button(`Buy ${item.price}`, () => buy(item), {
+        cls: 'pp-btn--small pp-btn--gold', icon: pixelIcon('coins', { size: 'sm' }), disabled: debt > 0 || short > 0,
+        title: debt > 0 ? `Pay back your sponsor first (${debt} owed)` : short > 0 ? `${short} more coins needed` : `Buy ${item.label} for ${item.price} coins`
+      });
+    };
+    async function buy(item) {
+      const left = coins - item.price;
+      const fee = entryFee(career);
+      const ok = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
+        h('h2.pp-h2', { text: `Buy ${item.label}?` }),
+        h('p', { text: `${item.price} coins. You have ${coins}, which leaves ${left}.` }),
+        left < fee ? h('p.pp-small.pp-muted', { text: `That is less than the next tournament entry fee (${fee}). The sponsor covers fees you cannot pay, and takes it back from your next prize.` }) : null,
+        h('div.pp-row', null,
+          button('Buy', () => close(true), { cls: 'pp-btn--gold', icon: pixelIcon('coins', { size: 'sm' }), autofocus: true }),
+          button('Not now', () => close(false), { back: true }))));
+      if (!ok) return;
+      const r = buyItem(career, item.id);
+      if (!r.ok) { app.toast(r.reason === 'debt' ? 'Pay back your sponsor first.' : r.reason === 'coins' ? `${r.short} more coins needed.` : 'Already yours.'); return; }
+      app.save();
+      sfx.trophy();
+      app.toast(`${item.label} is yours, and in use from your next game.`);
+      const hudCoins = el.querySelector('.pp-hud__coins b');
+      if (hudCoins) hudCoins.textContent = career.coins;
+      paint();
+    }
+    const card = (item) => h('div.pp-shop__item', { class: isEquipped(career, item.id) ? 'is-inuse' : '' },
+      preview(item),
+      h('div.pp-shop__text', null, h('b', { text: item.label }), h('span.pp-small', { text: item.blurb })),
+      h('div.pp-shop__action', null, action(item)));
+    return h('div.pp-panel.pp-modal.pp-modal--wide.pp-shop', { style: { margin: '10px auto' } },
+      h('div.pp-shop__head', null,
+        h('h2.pp-h2', { text: 'Club Shop' }),
+        h('div.pp-shop__purse', null, pixelIcon('coins', { size: 'sm' }), h('b', { text: coins }), ' coins',
+          career.debt ? h('span.pp-hud__debt', { text: ` (owe ${career.debt})` }) : null)),
+      h('p.pp-small.pp-muted', { text: 'Looks only: nothing here changes how a game plays. Coins come from tournament prizes, challenges and puzzles.' }),
+      h('h3.pp-h3', { text: 'Piece sets' }),
+      h('div.pp-shop__grid', null, itemsOfKind('pieces').map(card)),
+      h('h3.pp-h3', { text: 'Boards' }),
+      h('div.pp-shop__grid', null, itemsOfKind('board').map(card)));
   };
 
   const beyond = () => h('div.pp-beyond', null,

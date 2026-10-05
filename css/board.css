@@ -55,6 +55,7 @@
 .cwt-board[data-theme="walnut"] { --light: #e8d7b8; --dark: #a37651; --board-border: #6f4f35; }
 .cwt-board[data-theme="ocean"]  { --light: #cfe4e8; --dark: #4d7f8c; --board-border: #2f5560; }
 .cwt-board[data-theme="mono"]   { --light: #e6e6e6; --dark: #8c8c8c; --board-border: #4a4a4a; }
+.cwt-board[data-theme="green"]  { --light: #eeeed2; --dark: #769656; --board-border: #4b6236; }
 
 .cwt-board[data-interactive="false"] { cursor: default; }
 .cwt-board[data-interactive="true"]  { cursor: pointer; }
@@ -466,6 +467,13 @@
   overflow: visible;
 }
 .pp-boardframe .cwt-sq[data-shade] { background: transparent; }
+/* A board bought in the coin shop: its colours over the painted squares, a
+   touch see-through so the marble's grain still shows (js/ui/board.js). */
+.pp-boardframe:not([data-board="marble"]) .cwt-sq[data-shade="light"] { background: color-mix(in srgb, var(--light) 92%, transparent); }
+.pp-boardframe:not([data-board="marble"]) .cwt-sq[data-shade="dark"] { background: color-mix(in srgb, var(--dark) 92%, transparent); }
+.pp-boardframe:not([data-board="marble"]) .cwt-coord { color: rgba(30, 20, 10, 0.75); }
+/* The vector set is drawn edge to edge: give it the pixel sets' margin. */
+.pp-boardframe[data-pieces="chessnut"] .cwt-piece { background-size: 86% 86%; background-position: 50% 55%; }
 .pp-boardframe .cwt-piece {
   background-size: 96% 96%;
   background-position: 50% 70%;

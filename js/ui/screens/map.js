@@ -86,10 +86,12 @@ export function mapScreen(app) {
     if (!areaW || !areaH) return;
     let w; let h; let top;
     if (areaW / areaH < 1.25) {
-      // Narrow: zoom so the band of latitudes that holds the cities fills the area.
-      h = areaH * 1.45;
+      // Narrow: the whole map fills the area's height and pans sideways. The
+      // panel under it is only as tall as its words, so the area is tall and
+      // the cities come out the size they always were (about 1.45x a 38% panel).
+      h = areaH;
       w = h * RATIO;
-      top = areaH * 0.1 - h * 0.17;
+      top = 0;
     } else {
       w = Math.min(areaW, areaH * RATIO);
       h = w / RATIO;
@@ -137,6 +139,8 @@ export function mapScreen(app) {
 
   const ro = new ResizeObserver(() => layout());
   ro.observe(area);
+  // Upright, the card is a panel under the map (css/layout.css): the map ends where it starts.
+  const sheetRo = new ResizeObserver(() => el.style.setProperty('--sheet', `${Math.ceil(card.offsetHeight) + 16}px`));
 
   async function fly(entry, sceneId) {
     sfx.plane();
@@ -228,6 +232,7 @@ export function mapScreen(app) {
 
   const card = h('div.pp-map__card', null, defaultPanel);
   const el = h('div.pp-screen.pp-map', null, app.hud({ where: 'World map' }), area, card, legend);
+  sheetRo.observe(card);
   const releaseControls = pushHandler({
     name: 'map',
     scope: () => el,
@@ -263,8 +268,12 @@ export function mapScreen(app) {
       return;
     }
     app.coach('map', 'Pick a city to see what waits there, then fly. Every city has its own club, Star Player and opening, in any order you like.', { title: 'World map' });
+    // Once a prize has come in: what else coins are for.
+    if ((career.coins ?? 0) >= 250 && !career.debt) {
+      app.coach('shop', 'Coins also buy new piece sets and boards. Tap your coins in the top bar, or open the Journal\'s Shop page.', { title: 'Club Shop' });
+    }
   }
-  return { el, destroy() { ro.disconnect(); releaseControls(); } };
+  return { el, destroy() { ro.disconnect(); sheetRo.disconnect(); releaseControls(); } };
 }
 
 export default mapScreen;

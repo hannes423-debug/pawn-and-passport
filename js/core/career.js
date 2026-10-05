@@ -21,6 +21,8 @@ import { STAR_PLAYERS, starForClub, starById } from '../data/starPlayers.js';
 import { POSTCARDS } from '../data/postcards.js';
 import { MISSIONS, missionById } from '../data/missions.js';
 import { PUZZLES } from '../data/puzzles.js';
+import { DEFAULT_STYLE } from '../data/shop.js';
+import { shopRecord } from './shop.js';
 
 /* ------------------------------------------------------------- creation -- */
 
@@ -53,6 +55,7 @@ export function newCareer({ name, avatar, startClubId, difficulty = DIFFICULTY.d
     tournaments: {},         // clubId -> the current or last event, see enterTournament
     coins: COINS.start,
     debt: 0,
+    shop: { owned: [], pieces: DEFAULT_STYLE.pieces, board: DEFAULT_STYLE.board },   // see js/core/shop.js
     finale: { unlocked: false, round: 0, opponents: null, results: [], won: false },
     stars: {},               // starId -> { met, beaten, losses }
     stats: {
@@ -188,6 +191,7 @@ export function migrateCareer(career) {
   // v2 -> v3: coins, and the old three-game tournaments restart as real events.
   if (typeof career.coins !== 'number') career.coins = COINS.start;
   if (typeof career.debt !== 'number') career.debt = 0;
+  shopRecord(career);              // v1.2.5: the coin shop
   for (const [clubId, run] of Object.entries(career.tournaments || {})) {
     if (!run || !run.format) delete career.tournaments[clubId];
   }

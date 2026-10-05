@@ -72,8 +72,15 @@ Touch is detected automatically (Settings > Controls > Touch controls: auto / on
 In scenes a joystick walks the waypoint graph and **A** uses the hotspot underfoot,
 or walks to the nearest one. Hotspot labels are tappable too. Matches and puzzles
 switch to a one-column layout in portrait and board-between-rails in landscape;
-a tap on a guide-arrow square shows its opening card. The HUD gets a fullscreen
+a tap on a guide-arrow square shows its opening card, pinned under your own
+card and the Hint / Undo buttons rather than over them. The HUD gets a fullscreen
 button where the browser supports it. Code: `js/ui/touch.js`, `css/touch.css`.
+
+On a phone the status bar is two rows held upright and one sideways (the level
+rides on the portrait as a badge, and the next goal wraps to two short lines
+instead of being cut off); the world map fills the screen above a panel only as
+tall as its words; the scene's actions panel floats see-through over the room
+rather than shrinking it. "More" in a match opens on Offer draw and Resign.
 
 ## Keyboard and gamepad
 
@@ -191,6 +198,17 @@ fewer, a mate actually available this move, the phase, a clock about to flag -
 and adds hysteresis and a 15s dwell so it does not flicker. A quiet positional
 game never leaves the first track; Morphy's Opera Game reaches the last one
 only for the closing queen sacrifice.
+
+## Coin shop
+
+Tap the coins in the status bar (or open the Journal's **Shop** page) to spend
+them on looks: two more piece sets (**Travel Tokens**, sliced from
+`chess-piece-sheet-alt.png` by `python3 tools/build_assets.py pieces`, and the
+Chessnut vector set) and five board colourings over the painted board. Nothing
+changes how a game plays. A purchase needs the coins in hand and no sponsor
+debt; what is bought stays owned and can be switched back and forth. Prices are
+`SHOP` in `js/data/config.js` (860 for everything; one trophy buys any board),
+rules in `js/core/shop.js`, the page in `js/ui/screens/journal.js`.
 
 ## Practice room and openings
 

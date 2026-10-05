@@ -73,5 +73,10 @@ renderer to compare.
       simulated pad, never with a physical controller. A pad press is not a
       "user gesture" to most browsers: with only a pad, the music may wait
       for the first key or click.
-- [ ] Never tested on a real phone (touch controls, layout, audio).
-- [ ] Coins: nothing to buy with them yet.
+- [ ] Never tested on a real phone by us (touch controls, layout, audio). The
+      user plays it on an Android phone now; v1.2.3-v1.2.5 fixed what their
+      screenshots showed (actions panel cropping the scene, a three-row HUD,
+      a mostly empty map panel, the match's opening card and More panel).
+- [x] Coins: the Journal's Shop (v1.2.5) sells two piece sets and five
+      boards, 860 coins in all. Ideas for later: outfits for the player,
+      a cheaper Focus refill, a second board art.

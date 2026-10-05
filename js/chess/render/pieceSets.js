@@ -20,6 +20,17 @@ export const PIECE_SETS = Object.freeze({
     attributionRequired: false,
     note: 'Sliced from the supplied pixel piece sheet by tools/build_assets.py.'
   },
+  tokens: {
+    id: 'tokens',
+    label: 'Travel Tokens',
+    dir: 'tokens',
+    ext: 'png',
+    author: 'Pawn & Passport project art',
+    license: 'project art (see docs/LICENSES.md)',
+    url: null,
+    attributionRequired: false,
+    note: 'Sliced from chess-piece-sheet-alt.png by tools/build_assets.py. Sold in the coin shop.'
+  },
   chessnut: {
     id: 'chessnut',
     label: 'Chessnut',
@@ -54,7 +65,8 @@ export const BOARD_THEMES = Object.freeze({
   slate:  { id: 'slate',  label: 'Slate',  light: '#c9d3e0', dark: '#5d6b80', border: '#39445a' },
   walnut: { id: 'walnut', label: 'Walnut', light: '#e8d7b8', dark: '#a37651', border: '#6f4f35' },
   ocean:  { id: 'ocean',  label: 'Ocean',  light: '#cfe4e8', dark: '#4d7f8c', border: '#2f5560' },
-  mono:   { id: 'mono',   label: 'Mono',   light: '#e6e6e6', dark: '#8c8c8c', border: '#4a4a4a' }
+  mono:   { id: 'mono',   label: 'Mono',   light: '#e6e6e6', dark: '#8c8c8c', border: '#4a4a4a' },
+  green:  { id: 'green',  label: 'Green',  light: '#eeeed2', dark: '#769656', border: '#4b6236' }
 });
 
 export const DEFAULT_BOARD_THEME = 'slate';

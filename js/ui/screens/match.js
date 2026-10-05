@@ -154,10 +154,12 @@ export function matchScreen(app, params) {
     paintGuide();
   }, { cls: 'pp-btn--small' });
   const moreBody = h('div.pp-col.pp-match__morebody', { hidden: true });
-  const moreBtn = h('button.pp-match__more', { type: 'button', 'aria-expanded': 'false', text: 'More: guide, notes, draw, resign',
+  const moreBtn = h('button.pp-match__more', { type: 'button', 'aria-expanded': 'false', text: 'More: draw, resign, guide, notes',
     onclick: () => {
       moreBody.hidden = !moreBody.hidden;
       moreBtn.setAttribute('aria-expanded', String(!moreBody.hidden));
+      // On a phone the panel opens below the fold: bring its buttons into view.
+      if (!moreBody.hidden) requestAnimationFrame(() => moreBody.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
     } });
   const right = h('aside.pp-match__right', null,
     hintCard,
@@ -167,13 +169,16 @@ export function matchScreen(app, params) {
     h('div.pp-panel.pp-col.pp-match__tools', null,
       moreBtn,
       moreBody));
-  /* The folded options, opened by moreBtn. */
+  /* The folded options, opened by moreBtn: the game's own buttons first, so
+     they are on screen the moment it opens; the explanation last. */
+  const gameRow = h('div.pp-row.pp-match__gamebtns');
   moreBody.append(
+      gameRow,
       h('div.pp-row.pp-match__toggles', null, guideBtn, notesBtn),
-      h('div.pp-small.pp-muted', { text: `Blue arrows come from your equipped openings, as deep as you know them (a mastered opening keeps guiding after the book ends). Free, no Focus. ${tapWord() === 'tap' ? 'Tap' : 'Hover'} a suggested square for details.` }),
+      h('div.pp-small.pp-muted', { text: `Blue arrows: your equipped openings, as deep as you know them. Free, no Focus. ${tapWord() === 'tap' ? 'Tap' : 'Hover'} a suggested square for its notes.` }),
       h('div.pp-small', null, h('b', { text: `Repertoire ${(career.equipped || []).length}/${repertoireSlots(career.level)}: ` }),
-        (career.equipped || []).map((id) => `${openingById(id).name} ${career.openings[id] ?? 0}%`).join(', ') || 'none (equip openings in the Journal)'),
-      h('div.pp-row', null,
+        (career.equipped || []).map((id) => `${openingById(id).name} ${career.openings[id] ?? 0}%`).join(', ') || 'none (equip openings in the Journal)'));
+  gameRow.append(
         button('Offer draw', async () => {
           if (finished) return;
           const first = opponent.name.split(' ')[0];
@@ -190,7 +195,7 @@ export function matchScreen(app, params) {
             h('h2.pp-h2', { text: 'Resign this game?' }),
             h('div.pp-row', null, button('Resign', () => close(true), { cls: 'pp-btn--red' }), button('Keep playing', () => close(false)))));
           if (ok) match.resign();
-        }, { cls: 'pp-btn--small pp-btn--red' })));
+        }, { cls: 'pp-btn--small pp-btn--red' }));
 
   const el = h('div.pp-screen.pp-match', null, left, h('main.pp-match__board', null, board.frame), right, tip);
 
@@ -357,12 +362,32 @@ export function matchScreen(app, params) {
       }
     }
     if (e.pointerType === 'touch' || e.pointerType === 'cursor') {
-      // A finger covers whatever sits beside it: pin the card clear of the board instead.
+      // A finger covers whatever sits beside it: pin the card clear of the board
+      // instead. Below the board on a phone held upright are your card and the
+      // Hint / Undo buttons: the card goes under those, over the move list.
       const rect = board.host.getBoundingClientRect();
-      const w = tip.offsetWidth; const hgt = tip.offsetHeight;
+      tip.style.width = '';
+      let w = tip.offsetWidth; let hgt = tip.offsetHeight;
       const above = rect.top - hgt - 8;
+      const under = Math.max(rect.bottom, ...[left.querySelector('.pp-match__me'), left.querySelector('.pp-match__focus')]
+        .map((n) => n?.getBoundingClientRect()).filter((r) => r && r.height && r.top >= rect.bottom - 1).map((r) => r.bottom)) + 6;
+      if (above < 8 && under + hgt > innerHeight - 8) {
+        // Sideways phone: no room above or below, so beside the board, in the
+        // wider gutter (over a side panel), narrowed to fit it.
+        const frameRect = board.frame.getBoundingClientRect();
+        const rightGap = innerWidth - frameRect.right - 12;
+        const leftGap = frameRect.left - 12;
+        const gap = Math.max(rightGap, leftGap);
+        if (gap >= 200) {
+          tip.style.width = `${Math.min(w, gap)}px`;
+          w = tip.offsetWidth; hgt = tip.offsetHeight;
+          tip.style.left = `${rightGap >= leftGap ? frameRect.right + 4 : frameRect.left - 4 - w}px`;
+          tip.style.top = `${Math.max(8, Math.min(innerHeight - hgt - 8, rect.top + (rect.height - hgt) / 2))}px`;
+          return;
+        }
+      }
       tip.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, rect.left + (rect.width - w) / 2))}px`;
-      tip.style.top = `${above >= 8 ? above : Math.min(innerHeight - hgt - 8, rect.bottom + 8)}px`;
+      tip.style.top = `${above >= 8 ? above : Math.max(8, Math.min(innerHeight - hgt - 8, under))}px`;
       return;
     }
     const pad = 16;
