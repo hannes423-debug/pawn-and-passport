@@ -183,6 +183,19 @@ function withMembers(base) {
   return { ...base, nodes, hotspots };
 }
 
+/** env(safe-area-inset-*) in px: what the iPhone's bars and notch cover. */
+function safeInsets() {
+  const probe = h('div', { style: { position: 'fixed', visibility: 'hidden', pointerEvents: 'none',
+    paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)',
+    paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' } });
+  document.body.append(probe);
+  const cs = getComputedStyle(probe);
+  const px = (v) => parseFloat(v) || 0;
+  const out = { top: px(cs.paddingTop), bottom: px(cs.paddingBottom), left: px(cs.paddingLeft), right: px(cs.paddingRight) };
+  probe.remove();
+  return out;
+}
+
 export async function sceneScreen(app, params) {
   const career = app.career;
   const scene = withMembers(sceneById(params.sceneId) || sceneById(clubById(career.location.clubId)?.scenes.exterior) || sceneById('nyc-ext'));
@@ -297,8 +310,12 @@ export async function sceneScreen(app, params) {
   /* A label centred on a spot near the edge of a narrow (portrait) stage
      hangs off the screen: slide the label, not the arrow, back inside. */
   function nudgeLabels() {
-    const limit = el.getBoundingClientRect();
-    const vp = viewport.getBoundingClientRect();
+    // The screen, less the iPhone's status bar, home bar and notch sides.
+    const safe = safeInsets();
+    const box = el.getBoundingClientRect();
+    const limit = { left: box.left + safe.left, right: box.right - safe.right };
+    const port = viewport.getBoundingClientRect();
+    const vp = { top: Math.max(port.top, box.top + safe.top), bottom: Math.min(port.bottom, box.bottom - safe.bottom) };
     const controls = [...viewport.querySelectorAll('.pp-pad__stick, .pp-pad__action')]
       .filter((c) => c.getBoundingClientRect().width && getComputedStyle(c.parentElement).display !== 'none')
       .map((c) => c.getBoundingClientRect());
@@ -1291,6 +1308,10 @@ export async function sceneScreen(app, params) {
 
   /* ---------------------------------------------------------- arrival -- */
   window.addEventListener('resize', fit);
+  // The HUD can change height after the first fit (fonts arriving, a longer
+  // goal, more coins): the stage must start below it, or labels hide under it.
+  const hudRo = hudBar ? new ResizeObserver(() => fit()) : null;
+  hudRo?.observe(hudBar);
   // The dock and HUD settle after the first fit (fonts, wrapping): re-fit so the
   // stage and the label nudges match the room they really leave.
   const settle = typeof ResizeObserver === 'function' ? new ResizeObserver(() => fit()) : null;
@@ -1355,6 +1376,7 @@ export async function sceneScreen(app, params) {
       pad.destroy();
       viewportObserver.disconnect();
       window.removeEventListener('resize', fit);
+      hudRo?.disconnect();
       settle?.disconnect();
       releaseControls();
     }

@@ -186,7 +186,7 @@ img, canvas { image-rendering: pixelated; }
 .pp-title__item:disabled { color: rgba(59, 39, 22, 0.45); cursor: not-allowed; }
 .pp-title__item span:first-child { width: 1.2em; line-height: 0; text-align: center; }
 /* Share and the version, together in the bottom-right corner of the art. */
-.pp-title__footer { position: absolute; right: 1.2%; bottom: 1.6%; display: flex; align-items: center; gap: 0.7em; font-size: clamp(11px, 1.1vw, 17px); }
+.pp-title__footer { position: absolute; right: max(1.2%, env(safe-area-inset-right)); bottom: max(1.6%, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 0.7em; font-size: clamp(11px, 1.1vw, 17px); }
 .pp-title__share {
   display: inline-flex; align-items: center; gap: 0.4em; min-height: 2.1em; padding: 0.15em 0.8em;
   background: linear-gradient(#f7e7c3, #ead3a0); border: 2px solid #8a6437; border-radius: 4px; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
