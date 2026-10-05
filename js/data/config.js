@@ -8,7 +8,9 @@
 export const GAME = Object.freeze({
   title: 'Pawn & Passport',
   subtitle: 'A Chess Career RPG',
-  version: '1.2.3',
+  version: '1.2.4',
+  // What "Share" sends (js/ui/share.js): the public build, wherever this one runs.
+  url: 'https://hannes423-debug.github.io/pawn-and-passport/',
   saveVersion: 3
 });
 

@@ -185,7 +185,15 @@ img, canvas { image-rendering: pixelated; }
 .pp-title__item:hover:not(:disabled), .pp-title__item:focus-visible { background: linear-gradient(#ffd46a, #f0a93a); outline: none; }
 .pp-title__item:disabled { color: rgba(59, 39, 22, 0.45); cursor: not-allowed; }
 .pp-title__item span:first-child { width: 1.2em; line-height: 0; text-align: center; }
-.pp-title__version { position: absolute; right: 1%; bottom: 1%; color: rgba(255, 246, 220, 0.75); font-size: clamp(9px, 0.9vw, 13px); text-shadow: 0 1px 0 #000; }
+/* Share and the version, together in the bottom-right corner of the art. */
+.pp-title__footer { position: absolute; right: 1.2%; bottom: 1.6%; display: flex; align-items: center; gap: 0.7em; font-size: clamp(11px, 1.1vw, 17px); }
+.pp-title__share {
+  display: inline-flex; align-items: center; gap: 0.4em; min-height: 2.1em; padding: 0.15em 0.8em;
+  background: linear-gradient(#f7e7c3, #ead3a0); border: 2px solid #8a6437; border-radius: 4px; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+  font: inherit; font-weight: 700; color: #3b2716; cursor: pointer;
+}
+.pp-title__share:hover, .pp-title__share:focus-visible { background: linear-gradient(#ffd46a, #f0a93a); outline: none; }
+.pp-title__version { color: #fff6dc; font-weight: 700; text-shadow: 0 1px 0 #000, 0 0 4px #000; white-space: nowrap; }
 .pp-title__continue-note { position: absolute; left: 62%; top: 60.5%; font-size: clamp(9px, 0.95vw, 14px); color: #fff6dc; text-shadow: 0 2px 0 #000; }
 
 /* ---------------------------------------------------------------- create -- */
@@ -336,6 +344,7 @@ img, canvas { image-rendering: pixelated; }
 .pp-overlay > .pp-panel, .pp-overlay > .pp-modal { margin: auto; }
 .pp-modal { width: min(620px, 100%); }
 .pp-modal--wide { width: min(980px, 100%); }
+.pp-share__url { width: 100%; font-size: 16px; padding: 6px 8px; }
 .pp-toasts { position: fixed; top: 64px; right: 12px; z-index: 90; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 .pp-toast { background: var(--navy); color: var(--paper); border: 3px solid var(--gold); border-radius: 8px; padding: 8px 12px; font-weight: 700; box-shadow: var(--shadow); animation: pp-toast 300ms ease-out; max-width: 320px; }
 @keyframes pp-toast { from { transform: translateX(40px); opacity: 0; } }

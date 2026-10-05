@@ -36,7 +36,7 @@
    pad is in use every :focus draws the same ring. */
 
 :root[data-input="gamepad"] .pp-btn:focus { outline: 3px solid var(--blue); outline-offset: 2px; }
-:root[data-input="gamepad"] .pp-title__item:focus { background: linear-gradient(#ffd46a, #f0a93a); outline: none; }
+:root[data-input="gamepad"] .pp-title__item:focus, :root[data-input="gamepad"] .pp-title__share:focus { background: linear-gradient(#ffd46a, #f0a93a); outline: none; }
 :root[data-input="gamepad"] .pp-pin:focus .pp-pin__flag { transform: translateY(-3px); outline: 3px solid var(--blue); }
 /* The flag carries a pin's ring; the browser's own box around the marker is noise. */
 .pp-pin:focus, .pp-pin:focus-visible { outline: none; }

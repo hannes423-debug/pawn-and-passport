@@ -12,6 +12,7 @@ import { pixelIcon } from '../icons.js';
 import { sfx } from '../audio.js';
 import { GAME } from '../../data/config.js';
 import { clubById } from '../../data/clubs.js';
+import { shareGame } from '../share.js';
 import * as Save from '../../core/save.js';
 
 export function titleScreen(app) {
@@ -57,7 +58,11 @@ export function titleScreen(app) {
         ? app.go('journal', { back: { screen: 'title', params: {} } })
         : app.go('ending', { creditsOnly: true })))),
     career ? h('div.pp-title__continue-note', { text: `${career.name} · Lv ${career.level} · ${clubById(career.location.clubId)?.city || 'Madrid'}` }) : null,
-    h('div.pp-title__version', { text: `v${GAME.version}` }));
+    // Version and Share, one strip in the corner (bottom centre on a tall window).
+    h('div.pp-title__footer', null,
+      h('button.pp-title__share', { type: 'button', title: 'Share the game with a friend', onclick: () => { sfx.click(); shareGame(app); }, onmouseenter: () => sfx.hover() },
+        pixelIcon('postcard', { size: 'sm' }), h('span', { text: 'Share' })),
+      h('span.pp-title__version', { text: `v${GAME.version}`, title: `${GAME.title} version ${GAME.version}` })));
 
   const el = h('div.pp-screen.pp-title', null, stage);
   return { el };

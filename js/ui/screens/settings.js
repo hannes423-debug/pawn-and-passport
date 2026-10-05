@@ -14,6 +14,7 @@ import { GAME, difficultyMode } from '../../data/config.js';
 import { difficultyPicker } from '../difficultyPicker.js';
 import { pixelIcon } from '../icons.js';
 import { showControls } from '../controlsHelp.js';
+import { shareGame } from '../share.js';
 
 export function settingsScreen(app, params) {
   const back = params.back || { screen: 'title', params: {} };
@@ -78,7 +79,7 @@ export function settingsScreen(app, params) {
         if (!ok) return;
         app.settings = { ...Save.DEFAULT_SETTINGS }; app.applySettings(); app.go('settings', params);
       }, { cls: 'pp-btn--small' })),
-    h('p.pp-small.pp-muted', { text: `${GAME.title}: ${GAME.subtitle} v${GAME.version}. Saves use the ${Save.SAVE_PREFIX} prefix.` }));
+    h('p.pp-small.pp-muted', { text: `Saves use the ${Save.SAVE_PREFIX} prefix.` }));
 
   // The notebook art has painted sliders; a parchment sheet covers them.
   for (const page of [left, right]) {
@@ -86,8 +87,13 @@ export function settingsScreen(app, params) {
     page.style.borderRadius = '6px';
     page.style.top = '12%';
   }
-  const book = h('div.pp-book.pp-book--settings', { style: { marginTop: '16px' } }, left, right);
-  const el = h('div.pp-screen.pp-journal', null, h('div', { style: { position: 'absolute', inset: '0', display: 'grid', placeItems: 'center' } }, book));
+  const book = h('div.pp-book.pp-book--settings', null, left, right);
+  /* Under the book, never inside its scrolling pages: the version and Share
+     are in view the moment the notebook opens, title screen or mid-game. */
+  const about = h('footer.pp-about', null,
+    h('span.pp-about__name', null, h('b', { text: GAME.title }), ` v${GAME.version}`),
+    button('Share', () => { sfx.click(); shareGame(app); }, { cls: 'pp-btn--small pp-about__share', title: 'Share the game with a friend', icon: pixelIcon('postcard', { size: 'sm' }) }));
+  const el = h('div.pp-screen.pp-journal.pp-settings', null, h('div.pp-settings__wrap', null, book), about);
   return { el };
 }
 
