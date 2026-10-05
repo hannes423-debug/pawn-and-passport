@@ -11,6 +11,23 @@ never modified.
 
 **Play it:** https://hannes423-debug.github.io/pawn-and-passport/ (GitHub Pages, served from `main`).
 
+## Screenshots
+
+Played on a phone (v1.2.x). Click one for the full size.
+
+<table>
+  <tr>
+    <td align="center" width="33%"><a href="docs/screenshots/01-vienna-club.jpg"><img src="docs/screenshots/01-vienna-club.jpg" alt="Outside the Vienna Chess Club: club members to talk to, the joystick and the A button" width="240"></a><br><sub>Vienna Chess Club</sub></td>
+    <td align="center" width="33%"><a href="docs/screenshots/02-world-map.jpg"><img src="docs/screenshots/02-world-map.jpg" alt="The world map with London, Vienna, Istanbul and the locked Madrid finale" width="240"></a><br><sub>World map</sub></td>
+    <td align="center" width="33%"><a href="docs/screenshots/03-city-card.jpg"><img src="docs/screenshots/03-city-card.jpg" alt="Vienna's city card: the club, its opening and its Star Player" width="240"></a><br><sub>City card</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="docs/screenshots/04-match-opening-guide.jpg"><img src="docs/screenshots/04-match-opening-guide.jpg" alt="A match against Tobias Wagner with the opening guide's blue arrow suggesting Bc4 in the Italian Game" width="240"></a><br><sub>Opening guide in a match</sub></td>
+    <td align="center"><a href="docs/screenshots/05-victory.jpg"><img src="docs/screenshots/05-victory.jpg" alt="The Victory card: Elo, XP and the coin stake, then the score breakdown and move grades" width="240"></a><br><sub>Victory and score breakdown</sub></td>
+    <td align="center"><a href="docs/screenshots/06-central-park.jpg"><img src="docs/screenshots/06-central-park.jpg" alt="Central Park in New York, a casual venue with chess tables" width="240"></a><br><sub>Central Park, New York</sub></td>
+  </tr>
+</table>
+
 ## Run it
 
 ```bash
