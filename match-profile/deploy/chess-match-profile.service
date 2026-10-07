@@ -1,0 +1,31 @@
+# systemd unit for Chess Match Profile on the Raspberry Pi 5.
+#
+#   sudo cp deploy/chess-match-profile.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now chess-match-profile
+#   tailscale funnel --bg 3100          # public HTTPS -> 127.0.0.1:3100
+#
+# Assumes the repo is checked out (sparse, match-profile/ only) at
+# /home/pi/pawn-and-passport and `npm ci --omit=dev` has been run in match-profile/.
+
+[Unit]
+Description=Chess Match Profile
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/pawn-and-passport/match-profile
+EnvironmentFile=/home/pi/pawn-and-passport/match-profile/.env
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+RestartSec=5
+# Hardening: the app writes only its database folder.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/pi/pawn-and-passport/match-profile/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

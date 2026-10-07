@@ -28,6 +28,13 @@ Played on a phone (v1.2.x). Click one for the full size.
   </tr>
 </table>
 
+## Also in this repo: Chess Match Profile
+
+`match-profile/` is a separate app (its own `package.json`, tests and docs):
+a small server that collects people's chess games and turns them into Player
+Profile JSON for future Pawn & Passport opponents. Nothing in the game loads
+it. See `match-profile/README.md`.
+
 ## Run it
 
 ```bash

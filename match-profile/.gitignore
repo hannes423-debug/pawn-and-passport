@@ -1,0 +1,7 @@
+# Never commit: real players' data, secrets, or what an export produced.
+node_modules/
+.env
+data/*.db
+data/*.db-*
+exports/
+*.log
