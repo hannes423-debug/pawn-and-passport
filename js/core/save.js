@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   textSpeed: 'normal',           // slow | normal | fast
   touchControls: 'auto',         // auto | on | off: joystick, phone layout, tap wording
   actionsPanel: true,            // the scene's actions panel (H or its Hide button)
+  sceneZoom: 'zoom',             // zoom | fit: landscape scenes zoomed in with a following camera, or the whole room
   padLayout: 'auto'              // auto | xbox | playstation | nintendo: which pad button accepts (js/ui/controls.js)
 });
 

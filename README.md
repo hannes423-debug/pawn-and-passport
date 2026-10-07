@@ -81,6 +81,9 @@ rides on the portrait as a badge, and the next goal wraps to two short lines
 instead of being cut off); the world map fills the screen above a panel only as
 tall as its words; the scene's actions panel floats see-through over the room
 rather than shrinking it. "More" in a match opens on Offer draw and Resign.
+On a landscape screen the room is zoomed in (up to 1.4x) and the camera follows
+the player up and down; Settings > Controls > Scene view switches to the whole
+room.
 
 ## Keyboard and gamepad
 

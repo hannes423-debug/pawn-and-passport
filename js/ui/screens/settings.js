@@ -37,6 +37,7 @@ export function settingsScreen(app, params) {
     row('Coordinates', toggle('coordinates')),
     h('h2.pp-h2', { text: 'Controls' }),
     row('Touch controls', select('touchControls', [['auto', 'Auto (on for touch screens)'], ['on', 'Always on'], ['off', 'Off']]), 'Walking joystick, action button and the phone layout.'),
+    row('Scene view', select('sceneZoom', [['zoom', 'Zoomed in (the camera follows you)'], ['fit', 'Whole room']]), 'On a wide screen: a larger room that scrolls as you walk, or all of it at once with dark bands either side.'),
     row('Gamepad layout', select('padLayout', [['auto', 'Auto (read from the controller)'], ['xbox', 'Xbox: A accepts, B goes back'], ['playstation', 'PlayStation: Cross accepts, Circle goes back'], ['nintendo', 'Nintendo: A (right) accepts, B (bottom) goes back']]),
       'Only needed if the game shows the wrong buttons for your controller.'),
     h('div.pp-row', { style: { marginBottom: '10px' } },

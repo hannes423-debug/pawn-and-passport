@@ -873,3 +873,20 @@ the window's shape (css/pap.css and css/layout.css, "title"):
 Sources: `title-background.png` and `title-background-wide.png`; rebuild
 just these with `python3 tools/build_assets.py ui ui/title-bg ui/title-bg-wide`.
 
+**Scene zoom (v1.2.7, 2026-10-07).** From the user's phone screenshot: on a
+landscape window the room was fitted to the height, leaving dark bands of
+up to 30% either side. It is now shown larger and the camera follows the
+player up and down as well as sideways (js/ui/screens/scene.js, SCENE_ZOOM):
+
+| Window | Zoom over "whole room in view" | Room height on screen |
+|---|---|---|
+| Phone on its side | as much as leaves the joystick and A button a 124 px band each, 1.3x-1.5x (1000x450: 1.39x) | about 72-77% |
+| Desktop, laptop, tablet | up to 1.4x, never wider than the window (1440x900 fills the width) | about 71-76% |
+| Ultra-wide | 1.4x, bands stay (the art has no more width to show) | 71% |
+| Phone upright | unchanged: full height, the camera pans sideways | 100% |
+
+An open actions panel keeps its column and the room zooms into the rest.
+Settings > Controls > Scene view: "Whole room" brings back the old fit.
+Labels wholly off camera, above or below, are left alone (placed when they
+come into view), as off-camera ones to the sides always were.
+

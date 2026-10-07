@@ -47,6 +47,12 @@ import { pushHandler, DIRECTIONS, firstFocus, focusEl, stickVector } from '../co
 import { prompt } from '../prompts.js';
 
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
+/* A landscape window (phone on its side, desktop) is wider than the art at
+   full height: rather than leave dark bands either side, the room is shown
+   larger and the camera follows the player up and down too. Up to this much
+   larger than "whole room in view", never wider than the window. Settings >
+   Controls > Scene view turns it off ('fit'). */
+const SCENE_ZOOM = { phone: [1.3, 1.5], desktop: 1.4, controlsBand: 124 };
 const WALK_SPEED = 33.6;         // percent of the stage height per second (42 until 2026-09-25: too brisk)
 
 /* What a hotspot is FOR decides how its label looks (css: .pp-hotspot.is-*). */
@@ -249,9 +255,21 @@ export async function sceneScreen(app, params) {
   const hudBar = el.firstChild;
   /* On a window much narrower than the art (a phone held upright) the scene
      fills the height and a camera follows the player sideways, instead of
-     shrinking the room into a thin strip. */
+     shrinking the room into a thin strip. On a window wider than the art
+     (landscape, desktop) the room is zoomed into the side bands (SCENE_ZOOM)
+     and the camera follows up and down. `camera` is on whenever the stage is
+     larger than the viewport either way. */
   let camera = false;
   let stageW = 0;
+  const zoomLimit = (vw, whole) => {
+    if (app.settings.sceneZoom === 'fit') return 1;
+    if (Math.min(window.innerWidth, window.innerHeight) >= 600) return SCENE_ZOOM.desktop;
+    // A phone on its side: as large as leaves the joystick and the A button a
+    // band each, so they never sit on the room (between the two limits).
+    const [lo, hi] = SCENE_ZOOM.phone;
+    const room = document.documentElement.dataset.touch === 'true' ? (vw - 2 * SCENE_ZOOM.controlsBand) / whole : hi;
+    return Math.max(lo, Math.min(hi, room));
+  };
   const fit = () => {
     // The HUD is shorter on phones and wraps to two rows in portrait.
     const hudH = hudBar?.offsetHeight || 0;
@@ -259,10 +277,11 @@ export async function sceneScreen(app, params) {
     reserveDock(hudH);
     const vw = viewport.clientWidth || window.innerWidth;
     const vh = viewport.clientHeight || (window.innerHeight - 56);
-    camera = vh * aspect > vw * 1.3;
-    const w = camera ? vh * aspect : Math.min(vw, vh * aspect);
+    const whole = vh * aspect;                       // the whole room's height in view
+    const w = whole > vw * 1.3 ? whole : Math.max(Math.min(vw, whole), Math.min(vw, whole * zoomLimit(vw, whole)));
     stageW = w;
     stageH = w / aspect;
+    camera = stageW > vw + 0.5 || stageH > vh + 0.5;
     stage.style.width = `${w}px`;
     stage.style.height = `${stageH}px`;
     viewport.classList.toggle('is-camera', camera);
@@ -288,10 +307,8 @@ export async function sceneScreen(app, params) {
     const side = dock.getBoundingClientRect();
     const gutter = W - H * aspect;
     if (side.width + 16 <= gutter && side.bottom <= window.innerHeight) {
-      // Only as far right as the column needs: centred otherwise (the touch stick lives in that gutter too).
-      const x0 = Math.ceil(Math.max(side.right + 8, gutter / 2));
-      box.left = `${x0}px`;
-      box.right = `${Math.max(0, Math.floor(gutter - x0))}px`;
+      // The column keeps its strip; the room zooms into the rest (fit()).
+      box.left = `${Math.ceil(side.right + 8)}px`;
       return;
     }
     dock.classList.remove('is-side');
@@ -302,9 +319,12 @@ export async function sceneScreen(app, params) {
     if (!camera) { stage.style.transform = ''; return; }
     const who = actorList.find((a) => a.player);
     const vw = viewport.clientWidth;
-    const target = vw / 2 - ((who ? who.x : 50) / 100) * stageW;
-    const x = Math.max(vw - stageW, Math.min(0, target));
-    stage.style.transform = `translate3d(${Math.round(x)}px, 0, 0)`;
+    const vh = viewport.clientHeight;
+    // Each axis: centred when the stage fits it, else on the player, held at the edges.
+    const axis = (view, size, at) => (size <= view ? (view - size) / 2 : Math.max(view - size, Math.min(0, view / 2 - at)));
+    const x = axis(vw, stageW, ((who ? who.x : 50) / 100) * stageW);
+    const y = axis(vh, stageH, ((who ? who.y : 50) / 100) * stageH - (who?.height || 0) / 2);
+    stage.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
   }
 
   /* A label centred on a spot near the edge of a narrow (portrait) stage
@@ -342,7 +362,7 @@ export async function sceneScreen(app, params) {
       let dx = 0;
       let dy = 0;
       // Off camera entirely: leave it where it is rather than pin it to the edge.
-      if (r.right < limit.left || r.left > limit.right) return true;
+      if (r.right < limit.left || r.left > limit.right || r.bottom < vp.top || r.top > vp.bottom) return true;
       if (r.left < limit.left + pad) dx = limit.left + pad - r.left;
       else if (r.right > limit.right - pad) dx = limit.right - pad - r.right;
       // A label near the top edge of the art would tuck under the HUD; an
