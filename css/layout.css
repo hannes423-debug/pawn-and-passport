@@ -359,9 +359,29 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
 
 /* ================================================================ title == */
 .pp-title__stage { container-type: size; }
-.pp-title__item { font-size: clamp(10px, 3.9cqh, 26px); white-space: nowrap; overflow: hidden; }
-.pp-title__footer { font-size: clamp(11px, 2.4cqh, 20px); }
+/* The row of four: as large as the art allows, never wider than its share of the row. */
+.pp-title__item { font-size: clamp(10px, min(3.9cqh, 1.7cqw), 40px); white-space: nowrap; overflow: hidden; }
+.pp-title__continue-note { font-size: clamp(11px, 2.4cqh, 26px); }
+.pp-title__footer { font-size: clamp(11px, 2.4cqh, 26px); }
 .pp-title__logo, .pp-title__logo-sub { display: none; }
+
+/* As wide as a phone on its side (2.17:1): the travel desk, its logo and four
+   menu slots painted; the real buttons sit exactly over the slots, measured
+   in percent of title-background-wide.png (1846x852). */
+@media (min-aspect-ratio: 197/100) {
+  .pp-title__stage { width: min(100vw, calc(100dvh * 1846 / 852)); aspect-ratio: 1846 / 852; background-image: url('../assets/ui/title-bg-wide.webp'); }
+  .pp-title__menu { left: 38.03%; top: 51.53%; bottom: auto; width: 22.32%; height: 34.39%; transform: none; display: block; }
+  .pp-title__item {
+    position: absolute; left: 0; width: 100%; height: 22.87%;
+    justify-content: flex-start; gap: 6%; padding: 0 0 0 6%; border-radius: 8px; box-shadow: none;
+    font-size: clamp(10px, 3.9cqh, 40px);
+  }
+  .pp-title__item:nth-child(1) { top: 0; }
+  .pp-title__item:nth-child(2) { top: 25.6%; }
+  .pp-title__item:nth-child(3) { top: 50.85%; }
+  .pp-title__item:nth-child(4) { top: 76.79%; }
+  .pp-title__continue-note { left: 61.2%; top: 60%; bottom: auto; transform: none; padding: 1px 6px; font-size: clamp(10px, 2.8cqh, 26px); }
+}
 
 /* A window taller than the art: the portrait title art (no painted logo or
    menu) fills the screen. The logo sits over the wall map at the top and the
@@ -384,15 +404,15 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
   }
   .pp-title__logo-sub { display: block; position: absolute; left: 50%; transform: translateX(-50%); top: calc(max(3.5dvh, calc(env(safe-area-inset-top) + 8px)) + min(80vw, 440px) * 0.5); width: min(66vw, 360px); }
   .pp-title__menu {
-    position: absolute; left: 50%; top: 40dvh; transform: translateX(-50%);
+    position: absolute; left: 50%; top: 40dvh; bottom: auto; transform: translateX(-50%);
     width: min(74vw, 340px); height: auto; display: flex; flex-direction: column; gap: 1.6dvh;
   }
   .pp-title__item {
-    position: static; width: 100%; height: auto; min-height: min(58px, 6.6dvh); padding: 0 20px; gap: 16px;
+    position: static; flex: none; justify-content: flex-start; width: 100%; height: auto; min-height: min(58px, 6.6dvh); padding: 0 20px; gap: 16px;
     font-size: min(22px, 2.7dvh); border-width: 3px; border-radius: 8px; box-shadow: 0 5px 0 rgba(0, 0, 0, 0.45);
   }
   .pp-title__continue-note {
-    position: absolute; left: 50%; top: calc(40dvh + 4 * min(58px, 6.6dvh) + 3 * 1.6dvh + 14px); transform: translateX(-50%);
+    position: absolute; left: 50%; top: calc(40dvh + 4 * min(58px, 6.6dvh) + 3 * 1.6dvh + 14px); bottom: auto; transform: translateX(-50%); white-space: normal;
     width: min(86vw, 420px); font-size: 17px; text-align: center; padding: 4px 10px; border-radius: 6px; background: rgba(20, 12, 6, 0.6);
   }
   .pp-title__footer {

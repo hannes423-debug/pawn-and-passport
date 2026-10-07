@@ -166,25 +166,26 @@ img, canvas { image-rendering: pixelated; }
   aspect-ratio: 1672 / 941;
   background: url('../assets/ui/title-bg.webp') center / cover no-repeat;
 }
-/* The four menu slots painted in the art, measured in percent of the image. */
-.pp-title__menu { position: absolute; left: 38.3%; top: 53.6%; width: 23%; height: 26%; }
+/* 16:9 and squarer windows: the travellers (title-bg: logo painted, no menu),
+   and the menu a row of real buttons along the bottom, over the table map.
+   As wide as a phone on its side, the travel desk with four painted slots
+   takes over (css/layout.css, min-aspect-ratio 197/100). */
+.pp-title__menu { position: absolute; left: 50%; bottom: 11%; transform: translateX(-50%); width: 74%; height: 8.5%; display: flex; gap: 1.4%; }
 .pp-title__item {
-  position: absolute; left: 0; width: 100%; height: 21%;
-  display: flex; align-items: center; gap: 6%;
-  padding-left: 7%;
+  position: relative; flex: 1 1 0; min-width: 0; height: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 0.45em;
+  padding: 0 0.6em;
   background: linear-gradient(#f7e7c3, #ead3a0);
-  border: 2px solid #8a6437; border-radius: 4px;
+  border: 2px solid #8a6437; border-radius: 6px; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
   font-family: var(--font-body); font-weight: 700; color: #3b2716;
   font-size: clamp(11px, 1.55vw, 26px);
   cursor: pointer; text-align: left;
 }
-.pp-title__item:nth-child(1) { top: 0; }
-.pp-title__item:nth-child(2) { top: 26.5%; }
-.pp-title__item:nth-child(3) { top: 53%; }
-.pp-title__item:nth-child(4) { top: 79%; }
 .pp-title__item:hover:not(:disabled), .pp-title__item:focus-visible { background: linear-gradient(#ffd46a, #f0a93a); outline: none; }
 .pp-title__item:disabled { color: rgba(59, 39, 22, 0.45); cursor: not-allowed; }
-.pp-title__item span:first-child { width: 1.2em; line-height: 0; text-align: center; }
+.pp-title__item span:first-child { flex: none; width: 1.2em; line-height: 0; text-align: center; }
+/* The icons grow and shrink with the words. */
+.pp-title__item img { width: 1.2em; height: 1.2em; }
 /* Share and the version, together in the bottom-right corner of the art. */
 .pp-title__footer { position: absolute; right: max(1.2%, env(safe-area-inset-right)); bottom: max(1.6%, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 0.7em; font-size: clamp(11px, 1.1vw, 17px); }
 .pp-title__share {
@@ -194,7 +195,11 @@ img, canvas { image-rendering: pixelated; }
 }
 .pp-title__share:hover, .pp-title__share:focus-visible { background: linear-gradient(#ffd46a, #f0a93a); outline: none; }
 .pp-title__version { color: #fff6dc; font-weight: 700; text-shadow: 0 1px 0 #000, 0 0 4px #000; white-space: nowrap; }
-.pp-title__continue-note { position: absolute; left: 62%; top: 60.5%; font-size: clamp(9px, 0.95vw, 14px); color: #fff6dc; text-shadow: 0 2px 0 #000; }
+.pp-title__continue-note {
+  position: absolute; left: 50%; bottom: 21.5%; transform: translateX(-50%); white-space: nowrap;
+  padding: 2px 10px; border-radius: 6px; background: rgba(20, 12, 6, 0.6);
+  font-size: clamp(11px, 1.1vw, 17px); color: #fff6dc; text-shadow: 0 2px 0 #000;
+}
 
 /* ---------------------------------------------------------------- create -- */
 

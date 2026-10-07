@@ -860,3 +860,16 @@ get the defaults from `migrateCareer`. Boards other than the painted marble
 colour its squares at 92% (`css/board.css`), so a little grain shows through.
 The tip about the shop appears on the map once the player holds 250 coins.
 
+**Title art (v1.2.6, 2026-10-07).** The user supplied two new title pictures;
+the old one had a typo painted in it ("EXPLARE"). Which one shows depends on
+the window's shape (css/pap.css and css/layout.css, "title"):
+
+| Window | Art | Menu |
+|---|---|---|
+| Taller than 13:10 (phone upright) | `title-bg-portrait` (unchanged) | real buttons in a column, logo drawn by the game |
+| 13:10 to 1.97:1 (desktop, tablet, 640x360) | `title-bg`: the two travellers, logo painted | a row of four real buttons along the bottom, over the table map |
+| 1.97:1 and wider (phone on its side, ultra-wide) | `title-bg-wide`: the travel desk, logo and four slots painted (1846x852) | real buttons exactly over the painted slots |
+
+Sources: `title-background.png` and `title-background-wide.png`; rebuild
+just these with `python3 tools/build_assets.py ui ui/title-bg ui/title-bg-wide`.
+

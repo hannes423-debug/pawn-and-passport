@@ -143,7 +143,7 @@ test('every scene hotspot node exists and is reachable from spawn', () => {
 test('every scene image and art asset exists on disk', () => {
   for (const scene of Object.values(SCENES)) assert(existsSync(path.join(ROOT, scene.image)), scene.image);
   for (const p of POSTCARDS) assert(existsSync(path.join(ROOT, p.image)), p.image);
-  for (const f of ['assets/ui/title-bg.webp', 'assets/ui/world-map.webp', 'assets/board/board.webp', 'assets/pieces/pixel/wK.png']) {
+  for (const f of ['assets/ui/title-bg.webp', 'assets/ui/title-bg-wide.webp', 'assets/ui/world-map.webp', 'assets/board/board.webp', 'assets/pieces/pixel/wK.png']) {
     assert(existsSync(path.join(ROOT, f)), f);
   }
 });

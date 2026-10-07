@@ -31,7 +31,12 @@ OUT = os.path.join(ROOT, 'assets')
 
 # published name -> (source path relative to ROOT, max width)
 UI = {
+    # The title (js/ui/screens/title.js): the travellers, logo painted, no menu
+    # (16:9 and squarer windows: the game draws the menu as a row) ...
     'ui/title-bg': ('title-background.png', 1672),
+    # ... and for windows as wide as a phone on its side (2.17:1), the travel
+    # desk with the logo and four menu slots painted (real buttons go over them).
+    'ui/title-bg-wide': ('title-background-wide.png', 1846),
     # The portrait (phone held upright) title: no painted logo or menu, the game draws those.
     'ui/title-bg-portrait': ('title-background-portrait.png', 1024),
     'ui/logo': ('logo-pawn-and-passport.png', 1200),
@@ -247,6 +252,13 @@ def build_board():
 
 
 def main():
+    if sys.argv[1:2] == ['ui'] and len(sys.argv) > 2:   # some UI art only: python3 tools/build_assets.py ui ui/title-bg ...
+        for name in sys.argv[2:]:
+            rel, max_w = UI[name]
+            save_webp(Image.open(src(rel)).convert('RGBA'), name, max_w)
+        for name, size in report['written']:
+            print(f'  wrote {name} {size[0]}x{size[1]}')
+        return
     if sys.argv[1:] == ['pieces']:          # only the piece sets: python3 tools/build_assets.py pieces
         build_pieces()
         for name, size in report['written']:
