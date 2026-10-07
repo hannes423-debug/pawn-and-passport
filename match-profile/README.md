@@ -7,8 +7,8 @@ Player Profile JSON that Pawn & Passport will later use to build opponents.
 No LLM is involved anywhere: every number comes from counted events in
 stored games.
 
-Status: **milestone 1 of 9** (skeleton: config, database, migrations,
-health check). The spec is the Claude Docs page "Chess Match Profile - v1
+Status: **milestone 2 of 9**: skeleton, plus accounts, sessions, password
+reset, roles, the master-user command and consent. The spec is the Claude Docs page "Chess Match Profile - v1
 spec for Claude Code"; choices it left open are in `docs/DECISIONS.md`.
 
 ## Run it
@@ -23,6 +23,24 @@ npm run migrate        # apply pending migrations without starting the server
 
 Node.js 20.12 or later. Settings come from the environment or a `.env` file
 in this folder; `deploy/.env.example` lists them all.
+
+## Accounts and the master user
+
+Email and password (argon2id, at least 10 characters). Sessions are
+server-side: a random 256-bit cookie (HttpOnly, SameSite=Lax, Secure outside
+dev), stored hashed, 30 days sliding, replaced at sign-in and on a password
+change. Every state-changing request carries the session's CSRF token.
+Sign-in, sign-up and reset are rate-limited per IP and per email.
+
+The master account (sees chess data and consent states, never emails) is
+made only from the command line, and running it again is safe:
+
+```bash
+MASTER_EMAIL=you@example.com MASTER_PASSWORD='a long passphrase' npm run create-master
+```
+
+Without `SMTP_HOST`, password-reset links are printed on the server console.
+Consent types, who sees what and the reset rules: `docs/PRIVACY.md`.
 
 ## Deploy (Raspberry Pi 5)
 
@@ -50,6 +68,9 @@ publishes this repo's `main`, so anything committed here is public.
 | fastify | MIT | HTTP server |
 | @fastify/static | MIT | serving `public/` |
 | better-sqlite3 | MIT | SQLite |
+| @fastify/cookie | MIT | session cookie |
+| argon2 | MIT | password hashing |
+| nodemailer | MIT-0 | reset email over SMTP |
 | supertest (dev) | MIT | HTTP tests |
 
 Stockfish (GPLv3) will run as a separate server process and is never

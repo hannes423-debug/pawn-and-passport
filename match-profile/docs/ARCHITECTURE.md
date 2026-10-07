@@ -1,4 +1,4 @@
-# Architecture (draft, milestone 1)
+# Architecture (draft, milestone 2)
 
 Chess Match Profile collects chess games from real people and turns them
 into a deterministic, versioned Player Profile JSON for Pawn & Passport's
@@ -29,8 +29,23 @@ browser (public/, vanilla JS)  --HTTPS-->  Tailscale Funnel  -->  Node (Fastify,
   and CLI commands are thin wrappers, so analysis, profiles and exports run
   without the web server.
 
-Built so far: config, database and migrations, `/api/health`, a placeholder
-front page. Everything else is listed in the spec's milestones.
+Built so far: config, database and migrations, `/api/health`; accounts,
+sessions and password reset (`src/auth/`), consent (`src/consent/`), the
+master's player list (`src/admin/`, through `src/players/directory.js`), and
+the frontend's sign-up, sign-in, reset and settings screens (`public/`).
+
+## Requests
+
+1. An `onRequest` hook (`src/auth/guard.js`) reads the session cookie,
+   attaches `request.auth` and checks the CSRF token on state-changing
+   requests made with a session.
+2. Route guards (`requireAuth`, `requirePlayer`, `requireMaster`) run before
+   body validation, so a signed-out request is always a 401.
+3. Handlers call plain functions (`accounts.js`, `consent/index.js`, ...) and
+   throw `AppError(status, code, message)`; one error handler turns those
+   into `{ error, message }`.
+4. `test/authz.test.js` walks every registered route: each is either on the
+   short public list or answers 401 without a session.
 
 ## Data: raw versus derived
 

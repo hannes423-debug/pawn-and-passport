@@ -55,6 +55,11 @@ export function loadConfig(env = process.env) {
     logLevel: env.LOG_LEVEL || (nodeEnv === 'test' ? 'silent' : 'info'),
     stockfishPath: env.STOCKFISH_PATH || null,
     analysisConcurrency: int(env, 'ANALYSIS_CONCURRENCY', 1, { min: 1, max: 4 }),
+    // argon2id cost: OWASP's minimum profile (19 MiB, 2 passes, 1 lane); tests
+    // use the cheapest settings argon2 allows.
+    passwordHash: nodeEnv === 'test'
+      ? { memoryCost: 1024, timeCost: 1, parallelism: 1 }
+      : { memoryCost: 19456, timeCost: 2, parallelism: 1 },
     // Unset SMTP: password-reset links are logged to the server console instead.
     smtp: smtpHost ? {
       host: smtpHost,

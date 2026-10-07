@@ -5,34 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <title>Chess Match Profile</title>
-  <style>
-    :root { --bg: #f6f3ee; --fg: #1f1a14; --muted: #6b6258; --card: #fff; --line: #e2dbd1; }
-    @media (prefers-color-scheme: dark) { :root { --bg: #16130f; --fg: #f1ebe2; --muted: #a59a8d; --card: #221d17; --line: #3a322a; } }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.5 system-ui, sans-serif;
-      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
-    main { max-width: 560px; margin: 0 auto; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-    .muted { color: var(--muted); }
-  </style>
+  <link rel="stylesheet" href="/app.css">
 </head>
 <body>
   <main>
-    <h1>Chess Match Profile</h1>
-    <div class="card">
-      <p>Play chess, import your Lichess games, and see a profile of how you play.</p>
-      <p class="muted" id="status">Checking the server…</p>
-    </div>
+    <header class="top"><a href="#/">Chess Match Profile</a><nav id="nav" class="row"></nav></header>
+    <div id="view" aria-live="polite"></div>
   </main>
-  <script type="module">
-    const status = document.getElementById('status');
-    try {
-      const res = await fetch('/api/health');
-      const h = await res.json();
-      status.textContent = h.status === 'ok' ? `Server ${h.version} is up. Sign-up opens in the next release.` : 'The server is up but its database is not answering.';
-    } catch {
-      status.textContent = 'The server is not reachable.';
-    }
-  </script>
+  <noscript>Chess Match Profile needs JavaScript.</noscript>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>
