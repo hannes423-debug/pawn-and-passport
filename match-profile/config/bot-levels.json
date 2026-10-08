@@ -1,0 +1,13 @@
+{
+  "_comment": "Levels are labels, not ratings: the UI shows 'Level 3', never an Elo. skill = Stockfish 'Skill Level' (0-20); nodes = the search budget per move (a node limit with one thread gives the same move every time). Changing a level does not change finished games: each stores its bot_level and PGN.",
+  "levels": [
+    { "level": 1, "label": "Level 1", "skill": 0,  "nodes": 2000 },
+    { "level": 2, "label": "Level 2", "skill": 2,  "nodes": 5000 },
+    { "level": 3, "label": "Level 3", "skill": 4,  "nodes": 10000 },
+    { "level": 4, "label": "Level 4", "skill": 7,  "nodes": 25000 },
+    { "level": 5, "label": "Level 5", "skill": 10, "nodes": 60000 },
+    { "level": 6, "label": "Level 6", "skill": 13, "nodes": 150000 },
+    { "level": 7, "label": "Level 7", "skill": 16, "nodes": 400000 },
+    { "level": 8, "label": "Level 8", "skill": 20, "nodes": 1000000 }
+  ]
+}

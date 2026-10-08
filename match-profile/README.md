@@ -7,8 +7,9 @@ Player Profile JSON that Pawn & Passport will later use to build opponents.
 No LLM is involved anywhere: every number comes from counted events in
 stored games.
 
-Status: **milestone 2 of 9**: skeleton, plus accounts, sessions, password
-reset, roles, the master-user command and consent. The spec is the Claude Docs page "Chess Match Profile - v1
+Status: **milestone 3 of 9: playable.** Accounts, consent, and games
+against Stockfish at 8 levels with clocks, on phone and desktop. Analysis
+and profiles come next. The spec is the Claude Docs page "Chess Match Profile - v1
 spec for Claude Code"; choices it left open are in `docs/DECISIONS.md`.
 
 ## Run it
@@ -23,6 +24,30 @@ npm run migrate        # apply pending migrations without starting the server
 
 Node.js 20.12 or later. Settings come from the environment or a `.env` file
 in this folder; `deploy/.env.example` lists them all.
+
+## Stockfish
+
+Games need a native Stockfish on the server; the app talks to it over UCI
+and never ships it to the browser. On the Pi or a Debian/Ubuntu laptop:
+
+```bash
+sudo apt install stockfish
+echo 'STOCKFISH_PATH=/usr/games/stockfish' >> .env
+```
+
+Without it the site runs but cannot start games. `npm test` uses stand-in
+engines; `STOCKFISH_PATH=/usr/games/stockfish npm test` also checks the real
+one.
+
+## Playing
+
+Pick a level (1-8, labels rather than ratings), a colour and a clock
+(none, 10+0, 5+3, 15+10). The server owns the game: it checks every move,
+keeps the clocks, asks Stockfish for its reply and records both. A game
+survives a reload or a sleeping phone; one game is open at a time. Finished
+games get a PGN with `[CMPSource "chess_match_profile"]` and
+`[CMPBotLevel "N"]`. Details in `docs/DECISIONS.md`, timing in
+`docs/ANALYSIS.md`.
 
 ## Accounts and the master user
 
@@ -71,7 +96,10 @@ publishes this repo's `main`, so anything committed here is public.
 | @fastify/cookie | MIT | session cookie |
 | argon2 | MIT | password hashing |
 | nodemailer | MIT-0 | reset email over SMTP |
+| chess.js | BSD-2-Clause | move rules and PGN (server only) |
+| Chessnut pieces (`public/board/pieces/`) | Apache-2.0 | piece images; licence and NOTICE included |
+| Board code (`public/board/`) | Pawn & Passport's own | the 2D board, copied from the game |
 | supertest (dev) | MIT | HTTP tests |
 
-Stockfish (GPLv3) will run as a separate server process and is never
-shipped to the browser.
+Stockfish (GPLv3) runs as a separate server process (`STOCKFISH_PATH`); the
+app does not link it and never ships it to the browser.

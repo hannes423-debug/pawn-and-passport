@@ -10,6 +10,7 @@ import request from 'supertest';
 import { loadConfig, loadJson } from '../../src/config.js';
 import { openDatabase, migrate } from '../../src/db/index.js';
 import { buildApp } from '../../src/server.js';
+import { scriptedEngine } from './engines.js';
 
 export const PASSWORD = 'correct horse battery';
 
@@ -21,15 +22,16 @@ function looseAuth() {
   return auth;
 }
 
-export async function testApp(env = {}, { auth = looseAuth() } = {}) {
+export async function testApp(env = {}, { auth = looseAuth(), playEngine = scriptedEngine(), ended = [] } = {}) {
   const config = loadConfig({ NODE_ENV: 'test', ...env });
   const db = openDatabase(':memory:');
   migrate(db);
   const mail = [];
   const clock = { t: Date.parse('2026-10-07T12:00:00Z'), advance(ms) { this.t += ms; } };
-  const app = buildApp({ config, db, auth, mailer: { kind: 'test', send: async (m) => { mail.push(m); } }, now: () => new Date(clock.t) });
+  const app = buildApp({ config, db, auth, mailer: { kind: 'test', send: async (m) => { mail.push(m); } }, now: () => new Date(clock.t),
+    playEngine, onGameEnded: (id) => ended.push(id), sweepMs: 0 });
   await app.ready();
-  return { app, db, config, mail, clock, close: async () => { await app.close(); db.close(); } };
+  return { app, db, config, mail, clock, ended, close: async () => { await app.close(); db.close(); } };
 }
 
 export async function register(t, { email, username, password = PASSWORD, consents = {}, ...rest }) {

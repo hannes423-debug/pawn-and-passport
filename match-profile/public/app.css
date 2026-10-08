@@ -55,3 +55,58 @@ table.history { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 table.history th, table.history td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: top; }
 .history-wrap { overflow-x: auto; }
 a { color: var(--accent); }
+:root { --font-body: system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+/* ------------------------------------------------------------- new game -- */
+.newgame { gap: 14px; }
+fieldset.choices { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+fieldset.choices legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
+fieldset.choices input { position: absolute; opacity: 0; pointer-events: none; }
+fieldset.choices label {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 6px 12px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--bg); cursor: pointer; font-weight: 600;
+}
+fieldset.choices input:checked + label { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+fieldset.choices input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ----------------------------------------------------------------- game -- */
+body.is-game main { max-width: 600px; }
+.player-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; padding: 4px 2px; }
+.clock { font: 700 1.25rem/1 ui-monospace, "SF Mono", Menlo, monospace; padding: 6px 10px; border-radius: 6px; background: var(--card); border: 1px solid var(--line); min-width: 4.5em; text-align: center; }
+.clock:empty { display: none; }
+.clock.running { background: var(--fg); color: var(--bg); }
+.clock.running.low { background: var(--danger); color: #fff; }
+/* Upright: Stockfish's bar, the board (full width), your bar, then the rest. */
+.game { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "opp" "board" "me" "info"; }
+.player-bar.opp { grid-area: opp; }
+.player-bar.me { grid-area: me; }
+.game-board { grid-area: board; }
+.game-info { grid-area: info; min-width: 0; }
+.board.cwt-board {
+  --board-size: min(calc(100vw - 32px), calc(100dvh - 300px), 560px);
+  --board-floor: 0px;
+  margin: 0 auto;
+}
+/* Wide: the board takes the height on the left; bars, status and moves stack beside it. */
+@media (orientation: landscape) and (min-width: 700px) {
+  body.is-game main { max-width: 1000px; }
+  .game {
+    grid-template-columns: auto minmax(220px, 1fr); column-gap: 20px;
+    grid-template-areas: "board opp" "board me" "board info"; grid-template-rows: auto auto 1fr; align-items: start;
+  }
+  .board.cwt-board { --board-size: min(calc(100dvh - 110px), 60vw, 640px); margin: 0; }
+  .player-bar.me { border-top: 1px solid var(--line); }
+}
+.status { min-height: 1.5em; margin: 8px 0; font-weight: 600; }
+.game-actions { margin-bottom: 8px; }
+button.danger { color: var(--danger); }
+.result h2 { margin-top: 0; }
+details.moves summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; }
+ol.movelist { margin: 0; padding-left: 2.2em; columns: 2; column-gap: 24px; font-variant-numeric: tabular-nums; }
+ol.movelist li span { display: inline-block; min-width: 4.5em; }
+dialog.promote { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); color: var(--fg); padding: 16px; }
+dialog.promote::backdrop { background: rgba(0, 0, 0, 0.45); }
+dialog.promote button img { width: 48px; height: 48px; }
+dialog.promote .cancel { margin-top: 10px; width: 100%; }
+dialog.promote .row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+dialog.promote .row button { padding: 4px; }

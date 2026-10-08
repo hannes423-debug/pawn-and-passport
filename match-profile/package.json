@@ -1,6 +1,6 @@
 {
   "name": "chess-match-profile",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Collects chess games from real people and turns them into deterministic, versioned Player Profile JSON for Pawn & Passport opponents.",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "migrate": "node src/db/migrate.js",
-    "test": "node --test",
+    "test": "node --test test/*.test.js",
     "create-master": "node src/cli/create-master.js"
   },
   "license": "UNLICENSED",
@@ -20,6 +20,7 @@
     "@fastify/static": "^10.1.5",
     "argon2": "^0.45.1",
     "better-sqlite3": "^13.0.3",
+    "chess.js": "^1.4.0",
     "fastify": "^5.12.5",
     "nodemailer": "^10.0.15"
   },

@@ -81,3 +81,47 @@ line of reasoning each. Newest at the bottom of each milestone.
   `X-Forwarded-For`, so a client cannot dodge per-IP limits by writing its
   own. To check on the Pi: if Funnel turns out not to send the header, every
   request looks like 127.0.0.1 and the per-IP limits are shared by everyone.
+
+## Milestone 3: play (2026-10-08)
+
+- **Board: Pawn & Passport's own 2D board**, copied once into `public/board/`
+  (renderer, input controller, CSS) rather than the chess trainer's board or
+  cm-chessboard: it is the owner's code, already handles tap-to-move, drag,
+  promotion and Black's orientation, and copying it means a change to the
+  game can never break this app. Its one dependency on chess.js (reading a
+  FEN) was replaced by `public/board/fen.js`, so **the browser loads no chess
+  rules at all**: the server sends the legal moves and each move's position.
+- **Pieces: Chessnut (Apache-2.0)**, with its licence and NOTICE shipped
+  beside the SVGs, rather than the game's pixel pieces (whose provenance is
+  unrecorded) or its other art.
+- **Bot levels** (`config/bot-levels.json`): Skill Level 0, 2, 4, 7, 10, 13,
+  16, 20 with node budgets from 2,000 to 1,000,000. Node limits, not time
+  limits, so a level plays the same on a laptop and a Pi; levels show as
+  "Level N" only. Level 8 answered in under 3 s on the dev container.
+- **Live clocks are their own table** (`live_games`, migration 002), deleted
+  when the game ends, so `games_raw` holds only what a game is. Each move's
+  remaining time is in `moves_raw.clock_ms` and the PGN's `[%clk]` comments.
+- **Clock rule**: a side's time runs from when it got the move to when its
+  move is recorded on the server (network delay counts against the player;
+  `docs/ANALYSIS.md`). A move that arrives after the flag fell is not
+  recorded. **A flag against a side that cannot mate is a draw**, as on
+  Lichess: a king alone, or king and one minor piece.
+- **One game in progress per player**; starting another answers 409 with the
+  open game's id, and the home screen offers "Resume" instead.
+- **Moves carry the expected ply**, so a double tap or a second tab gets
+  409 `out_of_sync` with the current state instead of playing twice; a
+  per-game lock serialises everything that changes a game.
+- **If Stockfish fails**, the player's move stays recorded and the game waits:
+  the state says `engineError`, the screen offers "Ask again"
+  (`POST /api/games/:id/continue`), and reopening the game asks automatically.
+- **Flags and abandonment are settled lazily and by a sweep**: any read of a
+  game settles it, and a 5-minute timer ends flagged games and untimed games
+  with no move for 24 hours (`*`, `abandoned`, not a loss).
+- **PGN headers**: the seven-tag roster, UTCDate/UTCTime, TimeControl
+  (`-` or `600+0`), Termination (`normal`, `time forfeit`, `abandoned`), and
+  `CMPSource`, `CMPBotLevel`, `CMPGameId`, `CMPEnded`. The exact reason
+  (checkmate, resignation, ...) is in `games_raw.termination`.
+- **Analysis queuing is a hook for now**: a finished game calls
+  `onGameEnded(gameId)`; milestone 4 makes it queue the game at high priority.
+- **`npm test` names its files** (`test/*.test.js`): with no arguments
+  `node --test` also ran `test/fixtures/fake-uci.js`, which waits for input.

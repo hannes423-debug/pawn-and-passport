@@ -9,6 +9,8 @@
  * Every request is JSON; state-changing ones carry the session's CSRF token.
  */
 
+import { newGameCard, gameScreen } from './game.js';
+
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const state = { session: null, consentTypes: null };
@@ -34,7 +36,7 @@ async function api(method, url, body) {
   if (method !== 'GET' && state.session?.csrfToken) headers['x-csrf-token'] = state.session.csrfToken;
   const res = await fetch(url, { method, headers, credentials: 'same-origin', body: body === undefined ? undefined : JSON.stringify(body) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw Object.assign(new Error(data.message || 'Something went wrong. Try again.'), { code: data.error, status: res.status });
+  if (!res.ok) throw Object.assign(new Error(data.message || 'Something went wrong. Try again.'), { code: data.error, status: res.status, data });
   return data;
 }
 
@@ -81,7 +83,7 @@ async function signOut() {
 
 /* ------------------------------------------------------------ screens -- */
 
-function home() {
+async function home() {
   if (!state.session.signedIn) {
     return [h('h1', {}, 'Your chess, measured'),
       h('div', { class: 'card' },
@@ -90,8 +92,9 @@ function home() {
   }
   const s = state.session;
   if (!s.player) return [h('h1', {}, 'Master account'), h('p', { class: 'muted' }, 'The admin dashboard arrives in a later release.')];
+  const play = await newGameCard({ h, api, go }).catch((err) => h('div', { class: 'card' }, h('h2', {}, 'Play Stockfish'), h('p', { class: 'error' }, err.message)));
   return [h('h1', {}, `Hello, ${s.player.username}`),
-    h('div', { class: 'card' }, h('h2', {}, 'Play'), h('p', { class: 'muted' }, 'Games against Stockfish arrive in the next release.')),
+    play,
     h('div', { class: 'card' }, h('h2', {}, 'Your data'), h('p', {}, 'Choose what your games may be used for in ', h('a', { href: '#/settings' }, 'Settings'), '.'))];
 }
 
@@ -210,19 +213,30 @@ async function settings() {
 
 /* ------------------------------------------------------------- router -- */
 
+let leaving = null;      // the open screen's clean-up (the game's clock and board)
+
 async function route() {
   if (!state.session) await refreshSession();
+  leaving?.();
+  leaving = null;
   const hash = location.hash || '#/';
   const resetMatch = /^#\/reset\/([A-Za-z0-9_-]{20,100})$/.exec(hash);
+  const gameMatch = /^#\/game\/([0-9a-f-]{36})$/.exec(hash);
+  document.body.classList.toggle('is-game', !!gameMatch);
   let screen;
   try {
     if (resetMatch) screen = reset(resetMatch[1]);
-    else screen = await ({ '#/': home, '#/register': register, '#/login': login, '#/forgot': forgot, '#/settings': settings }[hash] || home)();
+    else if (gameMatch) {
+      if (!state.session.signedIn) { go('#/login'); return; }
+      const g = await gameScreen({ h, api, go }, gameMatch[1]);
+      leaving = g.destroy;
+      screen = g.nodes;
+    } else screen = await ({ '#/': home, '#/register': register, '#/login': login, '#/forgot': forgot, '#/settings': settings }[hash] || home)();
   } catch (err) {
-    screen = [h('h1', {}, 'Something went wrong'), h('p', { class: 'error' }, err.message)];
+    screen = [h('h1', {}, 'Something went wrong'), h('p', { class: 'error' }, err.message), h('a', { href: '#/', class: 'button' }, 'Home')];
   }
   view.replaceChildren(...screen);
-  view.querySelector('input')?.focus({ preventScroll: true });
+  if (!gameMatch) view.querySelector('input:not([type=radio])')?.focus({ preventScroll: true });
 }
 
 window.addEventListener('hashchange', route);

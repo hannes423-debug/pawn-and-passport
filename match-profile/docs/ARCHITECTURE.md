@@ -1,4 +1,4 @@
-# Architecture (draft, milestone 2)
+# Architecture (draft, milestone 3)
 
 Chess Match Profile collects chess games from real people and turns them
 into a deterministic, versioned Player Profile JSON for Pawn & Passport's
@@ -29,10 +29,28 @@ browser (public/, vanilla JS)  --HTTPS-->  Tailscale Funnel  -->  Node (Fastify,
   and CLI commands are thin wrappers, so analysis, profiles and exports run
   without the web server.
 
-Built so far: config, database and migrations, `/api/health`; accounts,
+Built so far: games against Stockfish (`src/games/`, `src/engine/`,
+`public/game.js`, `public/board/`); config, database and migrations, `/api/health`; accounts,
 sessions and password reset (`src/auth/`), consent (`src/consent/`), the
 master's player list (`src/admin/`, through `src/players/directory.js`), and
 the frontend's sign-up, sign-in, reset and settings screens (`public/`).
+
+## A game
+
+1. `POST /api/games` creates the `games_raw` row (open) and its `live_games`
+   clock row; if the player is Black, Stockfish moves first.
+2. `POST /api/games/:id/moves { uci, ply }` takes the game's lock, settles
+   any flag, rebuilds the position from `moves_raw` with chess.js, checks the
+   move, records it with its clock, then asks the play engine for a reply
+   (`src/engine/uci.js`: one Stockfish process, requests queued, each one
+   `ucinewgame` / `position` / `go nodes N`) and records that too.
+3. Mate, stalemate, insufficient material, threefold repetition, fifty moves,
+   resignation, a flag, or 24 hours without a move (untimed) end the game:
+   result, termination and PGN are written, `ended_at` freezes the raw rows
+   (SQLite triggers), the clock row is deleted and `onGameEnded` fires.
+4. The browser shows what the server sends: the position after each move and
+   the legal moves. `public/game.js` drives Pawn & Passport's board
+   (`public/board/`), which loads no chess rules of its own.
 
 ## Requests
 
