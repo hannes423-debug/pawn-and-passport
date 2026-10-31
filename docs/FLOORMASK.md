@@ -106,6 +106,7 @@ Output: `js/data/sceneLayersFloor.js` and `assets/layers-floor/*.webp`.
     python3 tools/dev/door_probe.py SCENE x0 y0 x1 y1 [step]      # every spot of one small area
     python3 tools/dev/ceiling_view.py SCENE      # what counts as ceiling
     python3 tools/dev/floor_audit.py [scene]     # the Vienna-era audit: masks, regions, test players
+    python3 tools/dev/hidden_map.py [scene]      # every standable spot coloured by how much of a player is hidden
 
 After painting a floor mask or delivering a new layer: add the scene to the
 table below (masks), then run floor_depth.py and leak_check.py.
@@ -172,6 +173,18 @@ Still open, for a person (or a floor mask) to decide:
   wen-venue (34 px at 4.6 %, 45.0 %): the worst remaining spots.
 - The grey (unsure) parts of every floor mask are treated as footprint, as
   before. Painting them is the next step wherever something still looks wrong.
+
+2026-10-31 (user: "the rug hides the player, and the floor at the doorways",
+London club): `hidden_map.py` over every scene found floor drawn into the
+layer in five scenes, now OBJECTS entries with line None: the lon-int entrance
+mat, its two side doorways and the staircase's wooden sides; the vie-int
+Tournament Hall dais steps; the mad-int stage steps; the nyc-venue terrace
+stairs. The lon-venue arch's inner pillars were 99 (always in front) and hid a
+player standing in front of their bases: now at their foot (33.2). Mostly
+hidden spots: lon-int 311 -> 44 (the rest behind potted plants), mad-int
+84 -> 56, vie-int 144 -> 126, nyc-venue 854 -> 807, lon-venue 1438 -> 1377.
+The other red patches the map shows are a player rightly behind something
+(signs, gates, trees, walls).
 
 The previous renderer (js/data/sceneLayers.js) is still built and checked:
 `L` in the game or `?depth=legacy` compares the two anywhere.

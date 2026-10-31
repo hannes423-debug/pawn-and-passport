@@ -785,8 +785,27 @@ OBJECTS = {
     'lon-venue': [
         # the Covent Garden gateway hangs over the player: sign and inner pillars always in front
         ('gate-sign', 'poly', (39.5, 1.8, 60.3, 12.5), 99),
-        ('gate-pillar-w', 'poly', (41, 12, 45.2, 33), 99),
-        ('gate-pillar-e', 'poly', (54.8, 12, 59, 33), 99),
+        # the inner pillars stand on the floor: a player in front of their bases
+        # (user, 2026-10-31) was hidden by them when they were 99
+        ('gate-pillar-w', 'poly', (41, 12, 45.2, 33), 33.2),
+        ('gate-pillar-e', 'poly', (54.8, 12, 59, 33), 33.2),
+    ],
+    'lon-int': [
+        # user, 2026-10-31 (phone screenshots): the entrance mat and the floor
+        # round it, the floor in the two side doorways of the hall and the flat
+        # wooden sides of the staircase are floor drawn into the layer: they hid
+        # a player standing on them
+        ('entry-floor', 'poly', [(44.1, 84), (55.9, 84), (55.9, 90.5), (57.4, 90.5),
+                                 (57.4, 96.5), (42.6, 96.5), (42.6, 90.5), (44.1, 90.5)], None),
+        ('door-office', 'poly', (33.3, 60.1, 35.5, 64.35), None),
+        ('door-study', 'poly', (64.65, 60.1, 66.85, 64.35), None),
+        ('stair-side-w', 'poly', (46.9, 39.6, 47.75, 55.5), None),
+        ('stair-side-e', 'poly', (52.2, 39.6, 53.1, 55.5), None),
+    ],
+    'nyc-venue': [
+        # the terrace stairs: the risers are floor (they drew lines across a player on the steps)
+        ('stairs-w', 'poly', [(7.1, 46), (15.7, 46), (15.7, 57), (14.3, 57), (14.3, 69), (7.1, 69)], None),
+        ('stairs-e', 'poly', [(85.0, 46), (93.0, 46), (93.0, 69), (85.9, 69), (85.9, 57), (85.0, 57)], None),
     ],
     'vie-ext': [
         # the gazebo stands on its platform's front edge; the statue inside on its pedestal
@@ -808,6 +827,8 @@ OBJECTS = {
         ('balustrade-e', 'poly', (54.7, 12.5, 58.2, 30.4), 'rows'),
         ('newel-w', 'poly', (41.9, 22, 44.3, 34), 33.6),
         ('newel-e', 'poly', (55.7, 22, 58.1, 34), 33.6),
+        # the Tournament Hall dais steps under the map: floor (user, 2026-10-31 audit)
+        ('dais-steps', 'poly', (77.3, 26.4, 85.4, 31.6), None),
     ],
     'ist-ext': [
         # the olive trees' crowns overlap the cypresses and beds behind them
@@ -849,6 +870,8 @@ OBJECTS = {
     'mad-int': [
         # the entrance steps at the very bottom: floor
         ('steps-entry', 'poly', (45.2, 80.5, 54.8, 97), None),
+        # the steps up to the stage, between the two lamp posts: floor (2026-10-31 audit)
+        ('stage-steps', 'poly', (46.2, 28.8, 53.8, 33.0), None),
     ],
     'wen-int': [
         # stairs and floor lettering never hide anybody
