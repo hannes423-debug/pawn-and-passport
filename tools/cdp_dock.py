@@ -8,8 +8,10 @@ tools/cdp_dock.py - the scene's actions panel never covers the map, and hides.
 
 Per viewport x scene:
   cover    the OPEN panel overlaps the visible stage (stage rect clipped to the
-           viewport) - on a phone this hid the Tournament / Upstairs labels
-  top      the stage's top edge is cut off (not in camera mode's sideways pan)
+           viewport) while it is a column - on a phone this hid the Tournament /
+           Upstairs labels. A floating see-through panel (.is-over, always while
+           the room is zoomed to fill the window, v1.2.8) may cover it.
+  top      the stage's top edge is cut off (not when the camera follows)
   hide     the Hide button / H key does not collapse the panel, or the stage
            does not grow back to use the freed room
   keep     the hidden state is not remembered on the next scene
@@ -36,7 +38,7 @@ PROBE = r"""(() => {
   const vis = { l: Math.max(stage.left, vp.left), t: Math.max(stage.top, vp.top), r: Math.min(stage.right, vp.right), b: Math.min(stage.bottom, vp.bottom) };
   const p = panel.offsetParent ? panel.getBoundingClientRect() : null;
   const cover = p ? Math.max(0, Math.min(p.right, vis.r) - Math.max(p.left, vis.l)) * Math.max(0, Math.min(p.bottom, vis.b) - Math.max(p.top, vis.t)) : 0;
-  return JSON.stringify({ open: !!p, collapsed: dock.classList.contains('is-collapsed'), cover: Math.round(cover),
+  return JSON.stringify({ open: !!p, over: dock.classList.contains('is-over'), collapsed: dock.classList.contains('is-collapsed'), cover: Math.round(cover),
     coverPct: Math.round(1000 * cover / Math.max(1, (vis.r - vis.l) * (vis.b - vis.t))) / 10,
     stageTop: Math.round(stage.top), vpTop: Math.round(vp.top), stageH: Math.round(stage.height), vpH: Math.round(vp.height),
     camera: document.querySelector('.pp-scene__viewport').classList.contains('is-camera') });
@@ -83,9 +85,9 @@ def run_viewport(spec, failures):
                 shot(f"{sid}-open")
                 if not a["open"]:
                     fail(f"{sid}: panel not open by default")
-                if a["cover"] > 0:
+                if a["cover"] > 0 and not a["over"]:
                     fail(f"{sid}: open panel covers {a['coverPct']}% of the visible stage ({a['cover']} px)")
-                if a["stageTop"] < a["vpTop"] - 1:
+                if a["stageTop"] < a["vpTop"] - 1 and not a["camera"]:
                     fail(f"{sid}: stage top cut off ({a['stageTop']} < {a['vpTop']})")
                 c.eval("document.querySelector('.pp-scene__toggle').click()")
                 b = probe()
@@ -108,9 +110,9 @@ def run_viewport(spec, failures):
             else:
                 r = probe()
                 shot(f"{sid}-open")
-                if r["cover"] > 0:
+                if r["cover"] > 0 and not r["over"]:
                     fail(f"{sid}: open panel covers {r['coverPct']}% of the visible stage")
-                if r["stageTop"] < r["vpTop"] - 1:
+                if r["stageTop"] < r["vpTop"] - 1 and not r["camera"]:
                     fail(f"{sid}: stage top cut off")
                 print(f"  {spec:>11} {sid:<10} open cover {r['coverPct']}%  stageH {r['stageH']}{'  camera' if r['camera'] else ''}")
     finally:

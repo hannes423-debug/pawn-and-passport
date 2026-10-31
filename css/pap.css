@@ -247,6 +247,14 @@ img, canvas { image-rendering: pixelated; }
   border-bottom: 3px solid var(--wood);
   color: var(--paper);
 }
+/* Over a zoomed scene or the map: no bar, the icons and numbers float on the
+   art, outlined so they read over any picture. */
+.pp-hud.pp-hud--float {
+  background: none; border-bottom: 0;
+  text-shadow: -1px -1px 0 #1a0f08, 1px -1px 0 #1a0f08, -1px 1px 0 #1a0f08, 1px 1px 0 #1a0f08, 0 2px 3px rgba(0, 0, 0, 0.6);
+}
+.pp-hud--float .pp-btn--ghost { background: rgba(24, 14, 8, 0.62); border-color: rgba(243, 227, 191, 0.7); }
+.pp-hud--float .pp-ico, .pp-hud--float .pp-hud__who img { filter: drop-shadow(0 0 1px #1a0f08) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
 .pp-hud__who { display: flex; align-items: center; gap: 8px; }
 .pp-hud__who img { width: 40px; height: 40px; }
 .pp-hud__name { font-family: var(--font-pixel); font-size: 11px; }

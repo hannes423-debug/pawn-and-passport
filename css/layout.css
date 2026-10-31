@@ -316,6 +316,8 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
 
 /* ================================================================== map == */
 .pp-map__area { position: absolute; left: 0; right: 0; top: var(--hud-h, 56px); bottom: 0; overflow: hidden; }
+/* Covered by the map (map.js layout()): it runs under the floating HUD too. */
+.pp-map.is-cover .pp-map__area { top: 0; }
 .pp-map__area.is-pannable { touch-action: none; cursor: grab; }
 .pp-map__area > .pp-map__stage { left: 0; width: auto; aspect-ratio: auto; transform: none; will-change: transform; }
 .pp-map__card {

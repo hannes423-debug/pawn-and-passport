@@ -75,61 +75,57 @@ export function mapScreen(app) {
 
   /* ------------------------------------------------------ zoom and pan -- */
   const RATIO = 1672 / 941;
-  let panX = 0;
-  let size = { w: 0, h: 0, areaW: 0 };
+  // A phone held upright keeps its panel under the map (css/layout.css); any
+  // other window is COVERED by the map, no sea-blue bands: the HUD floats on
+  // it and the player drags to see what is cut off, sideways or up and down.
+  const sheetQuery = window.matchMedia('(orientation: portrait) and (max-width: 820px)');
+  let pan = { x: 0, y: 0 };
+  let size = { w: 0, h: 0, areaW: 0, areaH: 0 };
   let panning = null;
   let dragged = false;
 
   function layout() {
+    const cover = !sheetQuery.matches;
+    el.classList.toggle('is-cover', cover);
+    hud?.classList.toggle('pp-hud--float', cover);
     const areaW = area.clientWidth;
     const areaH = area.clientHeight;
     if (!areaW || !areaH) return;
-    let w; let h; let top;
-    if (areaW / areaH < 1.25) {
-      // Narrow: the whole map fills the area's height and pans sideways. The
-      // panel under it is only as tall as its words, so the area is tall and
-      // the cities come out the size they always were (about 1.45x a 38% panel).
-      h = areaH;
-      w = h * RATIO;
-      top = 0;
-    } else {
-      w = Math.min(areaW, areaH * RATIO);
-      h = w / RATIO;
-      top = (areaH - h) / 2;
-    }
-    size = { w, h, areaW };
+    // Upright the whole map fills the area's height and pans sideways (the
+    // cities come out the size they always were); otherwise it covers the area.
+    const w = cover ? Math.max(areaW, areaH * RATIO) : areaH * RATIO;
+    size = { w, h: w / RATIO, areaW, areaH };
     stage.style.width = `${w}px`;
-    stage.style.height = `${h}px`;
-    stage.style.top = `${top}px`;
-    area.classList.toggle('is-pannable', w > areaW + 1);
-    panTo(panX, false);
+    stage.style.height = `${size.h}px`;
+    stage.style.top = '0px';
+    area.classList.toggle('is-pannable', w > areaW + 1 || size.h > areaH + 1);
+    panTo(pan, false);
   }
 
-  function clampPan(x) {
-    if (size.w <= size.areaW) return (size.areaW - size.w) / 2;
-    return Math.max(size.areaW - size.w, Math.min(0, x));
-  }
-  function panTo(x, animate = true) {
-    panX = clampPan(x);
+  // Each axis: centred when the map fits it, else held at the edges.
+  const clampAxis = (v, view, len) => (len <= view ? (view - len) / 2 : Math.max(view - len, Math.min(0, v)));
+  function panTo(to, animate = true) {
+    pan = { x: clampAxis(to.x, size.areaW, size.w), y: clampAxis(to.y, size.areaH, size.h) };
     stage.style.transition = animate ? 'transform 450ms ease' : 'none';
-    stage.style.transform = `translate3d(${panX}px, 0, 0)`;
+    stage.style.transform = `translate3d(${pan.x}px, ${pan.y}px, 0)`;
   }
   function centreOn(pin, animate = true) {
     if (!size.w) return;
-    panTo(size.areaW / 2 - (pin.x / 100) * size.w, animate);
+    panTo({ x: size.areaW / 2 - (pin.x / 100) * size.w, y: size.areaH / 2 - (pin.y / 100) * size.h }, animate);
   }
 
   area.addEventListener('pointerdown', (e) => {
     if (!area.classList.contains('is-pannable')) return;
-    panning = { id: e.pointerId, x: e.clientX, start: panX };
+    panning = { id: e.pointerId, x: e.clientX, y: e.clientY, start: pan };
     dragged = false;
   });
   area.addEventListener('pointermove', (e) => {
     if (!panning || e.pointerId !== panning.id) return;
     const dx = e.clientX - panning.x;
-    if (!dragged && Math.abs(dx) < 6) return;
+    const dy = e.clientY - panning.y;
+    if (!dragged && Math.hypot(dx, dy) < 6) return;
     if (!dragged) { dragged = true; area.setPointerCapture?.(e.pointerId); }
-    panTo(panning.start + dx, false);
+    panTo({ x: panning.start.x + dx, y: panning.start.y + dy }, false);
   });
   const endPan = (e) => { if (panning && e.pointerId === panning.id) panning = null; };
   area.addEventListener('pointerup', endPan);
@@ -231,7 +227,8 @@ export function mapScreen(app) {
       pixelIcon(finaleOpen ? 'crown' : 'lock', { size: 'sm' }), h('span', { text: finaleOpen ? ' Grand Finale: OPEN' : ' Grand Finale: locked' })));
 
   const card = h('div.pp-map__card', null, defaultPanel);
-  const el = h('div.pp-screen.pp-map', null, app.hud({ where: 'World map' }), area, card, legend);
+  const hud = app.hud({ where: 'World map' });
+  const el = h('div.pp-screen.pp-map', null, hud, area, card, legend);
   sheetRo.observe(card);
   const releaseControls = pushHandler({
     name: 'map',

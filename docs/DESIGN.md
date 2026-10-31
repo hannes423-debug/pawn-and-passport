@@ -890,3 +890,18 @@ Settings > Controls > Scene view: "Whole room" brings back the old fit.
 Labels wholly off camera, above or below, are left alone (placed when they
 come into view), as off-camera ones to the sides always were.
 
+**Fill the window (v1.2.8, 2026-10-31).** From the user's desktop
+screenshot: no dark bands at all. Superseded the zoom table above:
+
+- Scenes: the room always covers the scene area (the larger of "full
+  width" and "full height"); the camera follows on whichever axis overflows.
+  Ultra-wide shows about the middle half of the room's height.
+- The HUD has no bar over a zoomed scene or the covered map
+  (`.pp-hud--float`): icons and numbers float on the art, outlined; labels
+  are nudged below it.
+- The actions panel always floats see-through (`.is-over`) while zoomed; a
+  side column would leave a dark strip. "Whole room" keeps the old column.
+- World map: covers the window in landscape and pans both ways (drag);
+  a phone held upright keeps its panel under the map.
+- Touch controls on a phone held sideways sit on the room now.
+

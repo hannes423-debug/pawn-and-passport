@@ -47,12 +47,6 @@ import { pushHandler, DIRECTIONS, firstFocus, focusEl, stickVector } from '../co
 import { prompt } from '../prompts.js';
 
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
-/* A landscape window (phone on its side, desktop) is wider than the art at
-   full height: rather than leave dark bands either side, the room is shown
-   larger and the camera follows the player up and down too. Up to this much
-   larger than "whole room in view", never wider than the window. Settings >
-   Controls > Scene view turns it off ('fit'). */
-const SCENE_ZOOM = { phone: [1.3, 1.5], desktop: 1.4, controlsBand: 124 };
 const WALK_SPEED = 33.6;         // percent of the stage height per second (42 until 2026-09-25: too brisk)
 
 /* What a hotspot is FOR decides how its label looks (css: .pp-hotspot.is-*). */
@@ -253,32 +247,26 @@ export async function sceneScreen(app, params) {
   /* ---------------------------------------------------------- layout -- */
   let stageH = 600;
   const hudBar = el.firstChild;
-  /* On a window much narrower than the art (a phone held upright) the scene
-     fills the height and a camera follows the player sideways, instead of
-     shrinking the room into a thin strip. On a window wider than the art
-     (landscape, desktop) the room is zoomed into the side bands (SCENE_ZOOM)
-     and the camera follows up and down. `camera` is on whenever the stage is
-     larger than the viewport either way. */
+  /* The room always fills the scene viewport, no dark bands: a window
+     narrower than the art (a phone held upright) shows the full height and
+     the camera follows the player sideways; a wider one (landscape, desktop,
+     ultra-wide) shows the full width and the camera follows up and down.
+     Settings > Controls > Scene view 'fit' shows the whole room instead.
+     `camera` is on whenever the stage is larger than the viewport. */
   let camera = false;
   let stageW = 0;
-  const zoomLimit = (vw, whole) => {
-    if (app.settings.sceneZoom === 'fit') return 1;
-    if (Math.min(window.innerWidth, window.innerHeight) >= 600) return SCENE_ZOOM.desktop;
-    // A phone on its side: as large as leaves the joystick and the A button a
-    // band each, so they never sit on the room (between the two limits).
-    const [lo, hi] = SCENE_ZOOM.phone;
-    const room = document.documentElement.dataset.touch === 'true' ? (vw - 2 * SCENE_ZOOM.controlsBand) / whole : hi;
-    return Math.max(lo, Math.min(hi, room));
-  };
+  const zoomed = () => app.settings.sceneZoom !== 'fit';
   const fit = () => {
     // The HUD is shorter on phones and wraps to two rows in portrait.
     const hudH = hudBar?.offsetHeight || 0;
     if (hudH) el.style.setProperty('--hud-h', `${hudH}px`);
-    reserveDock(hudH);
+    // Zoomed, the room runs under the HUD too: its icons float over the art, no bar.
+    hudBar?.classList.toggle('pp-hud--float', zoomed());
+    reserveDock(zoomed() ? 0 : hudH);
     const vw = viewport.clientWidth || window.innerWidth;
     const vh = viewport.clientHeight || (window.innerHeight - 56);
     const whole = vh * aspect;                       // the whole room's height in view
-    const w = whole > vw * 1.3 ? whole : Math.max(Math.min(vw, whole), Math.min(vw, whole * zoomLimit(vw, whole)));
+    const w = zoomed() || whole > vw * 1.3 ? Math.max(vw, whole) : Math.min(vw, whole);
     stageW = w;
     stageH = w / aspect;
     camera = stageW > vw + 0.5 || stageH > vh + 0.5;
@@ -295,19 +283,22 @@ export async function sceneScreen(app, params) {
   /* Room for the open actions panel: a column beside the stage when the side
      gutter is wide enough for it (landscape phone, wide desktop). Otherwise the
      stage keeps the whole screen and the panel floats over it, see-through
-     (css/pap.css .is-over), rather than shrinking the room to a strip. */
+     (css/pap.css .is-over), rather than shrinking the room to a strip. While
+     the room is zoomed to fill the window the panel always floats: a column
+     would leave a dark strip beside the room. */
   function reserveDock(hudH) {
     const box = viewport.style;
     box.top = `${hudH}px`; box.left = ''; box.right = ''; box.bottom = '';
     dock.classList.remove('is-side', 'is-over');
     if (!dockOpen() || !dock.firstChild) return;
+    if (zoomed()) { dock.classList.add('is-over'); return; }
     const W = el.clientWidth || window.innerWidth;
     const H = (el.clientHeight || window.innerHeight) - hudH;
     dock.classList.add('is-side');                       // measure it as a column first
     const side = dock.getBoundingClientRect();
     const gutter = W - H * aspect;
     if (side.width + 16 <= gutter && side.bottom <= window.innerHeight) {
-      // The column keeps its strip; the room zooms into the rest (fit()).
+      // The column keeps its strip; the room fits the rest (fit()).
       box.left = `${Math.ceil(side.right + 8)}px`;
       return;
     }
@@ -335,7 +326,9 @@ export async function sceneScreen(app, params) {
     const box = el.getBoundingClientRect();
     const limit = { left: box.left + safe.left, right: box.right - safe.right };
     const port = viewport.getBoundingClientRect();
-    const vp = { top: Math.max(port.top, box.top + safe.top), bottom: Math.min(port.bottom, box.bottom - safe.bottom) };
+    // A floating HUD (zoomed) sits on the art: labels stay below it.
+    const hudBottom = hudBar?.classList.contains('pp-hud--float') ? hudBar.getBoundingClientRect().bottom : 0;
+    const vp = { top: Math.max(port.top, hudBottom, box.top + safe.top), bottom: Math.min(port.bottom, box.bottom - safe.bottom) };
     const controls = [...viewport.querySelectorAll('.pp-pad__stick, .pp-pad__action')]
       .filter((c) => c.getBoundingClientRect().width && getComputedStyle(c.parentElement).display !== 'none')
       .map((c) => c.getBoundingClientRect());

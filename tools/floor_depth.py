@@ -82,6 +82,8 @@ CEIL_RIM = 4           # px: the ceiling's side outline joins it (sideways only;
 SMOOTH_R = 4           # px: a dip (a line lower than on BOTH sides) narrower than 2*SMOOTH_R+1 is filled...
 DIP_TOL = 1.0          # ...when it is at most this many character heights lower: columns of one object a
                        # little apart (uneven walk-mask edges) split a player between them into thin stripes
+BED_BACK = 0.5         # character heights: a 'bed' px over floor stands at the footprint below it only when
+                       # that is this near the bed's back edge (a bush over the floor behind); else at its own row
 LEGACY_JS = os.path.join(ROOT, 'js', 'data', 'sceneLayers.js')
 OUT_JS = os.path.join(ROOT, 'js', 'data', 'sceneLayersFloor.js')
 SHOTS = os.path.join(ROOT, 'tools', 'shots', 'floor')
@@ -373,7 +375,14 @@ def depth(scene, opaque, walk, floor, actor_h, art=None, pruned=None):
                 for y in range(H - 1, -1, -1):
                     nxt = np.where(walk[y], nxt, y)
                     top[y] = nxt
-                row = np.maximum(ys, np.minimum(top[ys, xs], H - 1))
+                below = np.minimum(top[ys, xs], H - 1)
+                # Only what rises above the footprint's BACK edge: the bed's
+                # side outline (1-2 px on walkable ground) reached the bed's
+                # bottom border instead and drew a stripe over a player
+                # standing beside the bed.
+                foot = ys[~walk[ys, xs]]
+                back = foot.min() if foot.size else H
+                row = np.where(below <= back + BED_BACK * actor_h * H, np.maximum(ys, below), ys)
             base[ys, xs] = np.minimum(99.0, (row + bo.SIDE_D * actor_h * H) / H * 100)
             kinds[m] = K_OBJECT
         else:
@@ -387,7 +396,7 @@ def depth(scene, opaque, walk, floor, actor_h, art=None, pruned=None):
 def sources(scene):
     folder = os.path.join(ROOT, bo.CITY_DIR[scene[:3]])
     md5 = lambda p: hashlib.md5(open(p, 'rb').read()).hexdigest()[:12]
-    rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box2', STEP, 'ceil3', CEIL_RIM, 'pruned-floor1', 'attach3', ATTACH_MAX, 'hints2', 'walltop1', MIN_FOOT, WALLTOP_GAP, CEILING.get(scene), RING, RING_ALPHA, 'dip3', SMOOTH_R, DIP_TOL, 'binup1',
+    rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box2', STEP, 'ceil3', CEIL_RIM, 'pruned-floor1', 'attach3', ATTACH_MAX, 'hints2', 'walltop1', MIN_FOOT, WALLTOP_GAP, CEILING.get(scene), RING, RING_ALPHA, 'dip3', SMOOTH_R, DIP_TOL, 'binup1', 'bedback1', BED_BACK,
                   fm.K, fm.L_WEIGHT, fm.T_FLOOR, fm.T_NOT, bo.GRID, bo.ALPHA, bo.BIN, bo.SPECK,
                   bo.WARP.get(scene), bo.HINTS.get(scene), bo.OBJECTS.get(scene)))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
