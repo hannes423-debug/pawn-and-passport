@@ -70,8 +70,10 @@ entry sets a region's depth: a ground line, `None` (floor, never in front),
 99 (always in front), `'rows'` (a side wall or handrail: each row where it
 is) or `'bed'` (a flower bed seen from above). Kinds: `poly` (polygon or
 rect), `foliage` (cut from the art by leaf colour, mask kept in
-`tools/object-masks/`), `add` (an object the layer leaves out, cut from the
-art by its difference from the floor round it).
+`tools/object-masks/`), `cut` (an upright thing in front of others, a potted
+cone or a lamp over a bush, cut from the art along its outline by a watershed;
+mask kept there too, docs/FLOORMASK.md), `add` (an object the layer leaves
+out, cut from the art by its difference from the floor round it).
 
 Artist reports 2026-09-29 (v1.1.10) became entries in: nyc-ext, lon-ext,
 lon-venue, vie-ext, vie-int, ist-ext, ist-int, ist-up, che-ext, wen-ext,

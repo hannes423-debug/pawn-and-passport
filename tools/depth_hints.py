@@ -265,8 +265,11 @@ HINTS = {
         ('lamp-path-w2', (26.8, 54, 29.8, 63.5), 63, (27.5, 60.5, 29.2, 62)),
         ('lamp-path-e1', (70.3, 54, 73.3, 63.5), 63, (70.8, 60.5, 72.6, 62)),
         ('lamp-path-e2', (74.5, 54, 77.5, 63.5), 63, (75, 60.5, 76.8, 62)),
-        ('gate-w', (37, 66, 42.5, 84), 83, None),
-        ('gate-e', (57.5, 66, 63, 84), 83, None),
+        # the open gates end at their free-end posts (x 41.26-41.88 / 58.19-58.81, columns 597-606 / 842-851):
+        # wider, the hint took the hedge beside each post to the gate's line and
+        # drew it over Hector's and Dev's heads (user, 2026-11-01)
+        ('gate-w', (37, 66, 41.95, 84), 83, None),
+        ('gate-e', (58.2, 66, 63, 84), 83, None),
         ('pillar-w', (30.5, 56.5, 38, 88), 87.5, (31.5, 84, 37.5, 87.5)),
         ('pillar-e', (62, 56.5, 69.5, 88), 87.5, (62.5, 84, 68.5, 87.5)),
         ('pot-gate-w1', (28.8, 77, 32.5, 86.5), 86, (29.2, 84, 32, 86)),
@@ -734,6 +737,11 @@ HINTS = {
 #                   kept in tools/object-masks/<scene>-<id>.png (delete to re-cut)
 #   kind 'poly':    shape = [(x, y), ...] polygon, or a rect (x0, y0, x1, y1); the layer's pixels inside it
 #   kind 'fill':    shape = polygon the layer leaves out (half an umbrella), drawn whole
+#   kind 'cut':     shape = (rect, [seed rects], [bg rects]): an upright thing drawn in
+#                   front of others (a cone tree in its pot against a hedge, a lamp over a
+#                   bush), cut from the art along its outline by a watershed from the
+#                   seeds (inside it) against the rect's surround and the bg rects;
+#                   kept in tools/object-masks/<scene>-<id>.png (delete to re-cut)
 #   kind 'add':     shape = rect: an object the layer leaves out (a lamp on open floor),
 #                   cut from the art inside the rect by its difference from the floor round it
 #   base: ground line (percent of the scene height); 99 = always in front
@@ -748,7 +756,12 @@ HINTS = {
 # All coordinates are percent of the scene.
 OBJECTS = {
     'nyc-ext': [
-        ('street-tree-w', 'foliage', ((8.0, 79.4, 5.2, 6.4), (7.46, 82.8, 8.29, 86.6)), 87.0),
+        # (user, 2026-11-01) the street tree's leaf-colour cut missed its shaded lower
+        # leaves, which stayed always in front: drawn over a player on the sidewalk in
+        # front of the tree. Cut along its outline now (kind 'cut')
+        ('street-tree-w', 'cut', ((2.55, 71.5, 12.8, 87.4), [(7.5, 82.8, 8.3, 86.6), (5.0, 75.0, 10.5, 81.5), (3.4, 74.5, 4.3, 79.5),
+                                                              (4.0, 82.5, 7.0, 85.0), (8.8, 82.5, 11.0, 85.0)],
+                                  [(2.9, 71.5, 12.8, 72.8), (11.2, 72.8, 12.8, 79.0)]), 87.0),
         # the terrace umbrella tables: umbrella, table and chairs at the chairs' foot
         # (column by column the umbrellas came out striped)
         ('terrace-1', 'poly', [(79.5, 35.8), (88, 35.8), (88, 41), (83.4, 41), (83.4, 47), (79.5, 47)], 46.6),
@@ -758,6 +771,50 @@ OBJECTS = {
         # Club Principles: a sign on posts, not floor; the strip between it and the
         # bench + knight statue behind is walkable, so it stands at its posts' foot
         ('sign-principles', 'poly', (10.2, 44.8, 17.9, 57), 57),
+        # (user, 2026-11-01, phone screenshots) the potted cones, the bushes and the
+        # lamps in front of them were cut into columns at different depths (a tree
+        # in front of a player at one column, behind them at the next; the terrace
+        # cone's pot took the umbrella table's line and hid a player in front of
+        # it; the west bush took its lamp's hint and hid a player on the path in
+        # front of it). Each is cut along its outline and stands at its foot; a
+        # lamp comes after the bush it stands in front of.
+        ('cone-terr-n1', 'cut', ((76.8, 29.5, 80.0, 38.2), [(78.2, 31.5, 78.8, 34.5), (77.9, 35.2, 79.1, 37.2)],
+                                 [(76.8, 29.5, 77.5, 33.0)]), 37.8),
+        ('cone-terr-n2', 'cut', ((83.2, 29.8, 86.2, 37.6), [(84.5, 31.5, 85.0, 34.5), (84.2, 35.4, 85.4, 36.4)],
+                                 [(83.6, 37.0, 86.2, 37.6)]), 37.3),
+        ('cone-terr-mid', 'cut', ((76.8, 42.2, 80.2, 52.0), [(78.3, 44, 78.9, 48), (77.8, 49, 79.3, 51.2)]), 51.6),
+        ('cone-terr-s', 'cut', ((81.0, 51.0, 84.8, 62.2), [(82.6, 53, 83.1, 58), (82.0, 59, 83.8, 61.3)],
+                                [(84.5, 57.5, 84.8, 62.2)]), 62.0),
+        ('cone-terr-bed', 'cut', ((73.8, 44.6, 77.6, 54.0), [(75.4, 47, 76.0, 51.5)], [(73.8, 52.5, 77.6, 54.0)]), 55.0),
+        ('bush-terr', 'cut', ((73.8, 50.5, 80.0, 60.8), [(75.5, 52.5, 78.5, 55.5), (77.2, 56, 79.0, 59.8), (74.3, 56.5, 75.0, 60.0)],
+                              [(75.4, 56.6, 76.6, 60.8)]), 60.6),
+        # the leaves round each lamp's top fell between the two cuts and took the lamp's
+        # hint: a tuft drawn over the head of a player in front of the bush
+        ('bush-terr-lamp', 'poly', (74.8, 55.0, 77.1, 57.6), 60.6),
+        ('lamp-terr', 'cut', ((74.8, 55.2, 77.1, 61.6), [(75.6, 57.8, 76.3, 59.8), (75.3, 56.4, 76.5, 57.0), (75.75, 60.0, 76.15, 61.4),
+                                                         (75.8, 55.45, 75.95, 56.1)]), 63.0),
+        ('cone-bench-w', 'cut', ((21.8, 43.5, 26.0, 51.6), [(23.6, 45.5, 24.2, 50.5)],
+                                 [(21.8, 43.8, 22.8, 46.0), (25.0, 43.8, 25.9, 45.5)]), 51.6),
+        ('bush-w', 'cut', ((20.4, 50.2, 26.2, 60.8), [(21.5, 52, 25, 55), (21.0, 56, 22.6, 59.8), (24.9, 56, 25.6, 59.5)],
+                           [(23.4, 56.6, 24.2, 60.8)]), 60.6),
+        ('bush-w-lamp', 'poly', (22.8, 54.6, 25.0, 57.6), 60.6),
+        ('lamp-w', 'cut', ((22.8, 55.0, 25.0, 61.9), [(23.5, 56.0, 24.1, 61.7), (23.7, 55.45, 23.9, 55.9)],
+                           [(24.6, 55.0, 25.0, 57.0), (24.0, 55.0, 25.0, 55.8), (22.8, 55.0, 23.35, 55.8)]), 63.0),
+        ('pot-bush-w', 'cut', ((28.6, 49.4, 31.8, 58.4), [(29.6, 51, 30.8, 55), (29.4, 56, 31.0, 57.8)]), 58.1),
+        ('pot-bush-e', 'cut', ((68.3, 50.8, 71.4, 57.8), [(69.3, 52.5, 70.5, 55.0), (69.0, 56.0, 70.6, 57.2)],
+                               [(67.9, 52.0, 68.4, 56.5), (68.3, 50.8, 69.0, 51.3)]), 57.5),
+        # the sidewalk: each street lamp's post was split down the middle (the fence's
+        # line in one half, always-in-front in the other) and the east tree's hint
+        # took the fence behind it to the tree's line, in front of a player walking
+        # the sidewalk. The fence stands at its foot, the tree, the lamps and the
+        # sign and banner hung on the east lamp at theirs
+        ('streetlamp-w', 'cut', ((0.3, 55.0, 4.8, 86.0), [(1.4, 57.8, 2.8, 61.0), (1.72, 62.5, 2.66, 85.5)],
+                                 [(0.3, 64.5, 1.2, 70.0), (3.1, 64.5, 4.8, 73.5), (0.3, 73.5, 1.5, 82.0), (3.0, 73.5, 4.8, 82.0)]), 95.0),
+        ('fence-se', 'poly', (81.9, 69.0, 93.4, 85.5), 85.2),
+        ('street-tree-e', 'cut', ((83.5, 72.6, 91.2, 93.6), [(86.9, 86.0, 87.5, 92.5), (85.0, 76.0, 89.5, 83.0)],
+                                  [(89.8, 72.6, 91.2, 74.6), (83.5, 72.6, 85.0, 74.5)]), 93.0),
+        ('streetlamp-e', 'cut', ((91.0, 57.0, 98.8, 95.2), [(96.4, 61.5, 97.8, 64.5), (96.6, 65.0, 97.45, 94.0), (92.0, 66.8, 95.5, 68.0),
+                                                            (93.8, 72.5, 95.6, 86.5)], [(98.6, 66, 98.8, 90), (91.0, 57.0, 95.0, 64.5)]), 95.0),
     ],
     'lon-ext': [
         # flower beds, their flat grass borders and the side hedges: plan view
@@ -835,6 +892,39 @@ OBJECTS = {
         # hid a player standing between the two: it stands where the cap hides it
         ('hedge-pillar-w', 'poly', (26.4, 37.4, 28.6, 42.3), 44.0),
         ('hedge-pillar-e', 'poly', (71.4, 37.4, 73.6, 42.3), 44.0),
+        # (user, 2026-11-01) the potted cones were cut into columns at different
+        # depths: the north-east urn's cone stood at 47-51 and its urn at 54, so a
+        # player between the two lines had the urn drawn over them and the cone
+        # behind them. Each pot and its plant is cut along its outline and stands
+        # at the pot's foot
+        ('cone-pillar-w', 'cut', ((27.5, 42.0, 30.7, 50.6), [(28.8, 43.5, 29.3, 47.5), (28.3, 48.2, 29.9, 50.0)]), 50.3),
+        ('cone-path-w', 'cut', ((34.4, 45.6, 37.7, 55.0), [(35.8, 47.5, 36.4, 52.0), (35.3, 52.5, 37.0, 54.3)]), 54.9),
+        ('cone-door-w', 'cut', ((38.5, 36.6, 41.6, 50.7), [(39.8, 38.5, 40.3, 47.0), (39.4, 47.8, 40.8, 50.0)],
+                                [(38.5, 44.0, 38.9, 50.7)]), 50.3),
+        ('pot-door-w', 'cut', ((43.8, 39.2, 46.3, 47.5), [(44.9, 40.5, 45.3, 44.5), (44.5, 45.3, 45.8, 47.0)],
+                               [(43.8, 44.0, 44.15, 47.5)]), 47.3),
+        ('pot-door-e', 'cut', ((53.8, 39.2, 56.1, 47.5), [(54.8, 40.5, 55.2, 44.5), (54.4, 45.3, 55.6, 47.0)],
+                               [(55.85, 44.0, 56.1, 47.5)]), 47.3),
+        ('cone-door-e', 'cut', ((58.7, 36.6, 61.7, 50.7), [(60.0, 38.5, 60.5, 47.0), (59.6, 47.8, 61.0, 50.0)],
+                                [(61.35, 47.0, 61.7, 50.7)]), 50.5),
+        ('cone-path-e', 'cut', ((62.1, 45.6, 65.5, 55.2), [(63.6, 47.5, 64.1, 52.0), (63.0, 52.5, 64.8, 54.5)]), 54.9),
+        ('cone-pillar-e', 'cut', ((69.6, 42.4, 72.6, 50.8), [(70.9, 43.8, 71.3, 47.5), (70.4, 48.2, 71.8, 50.1)]), 50.2),
+        ('urn-cone-ne', 'cut', ((75.8, 39.5, 80.2, 52.0), [(77.6, 41.5, 78.3, 49.0), (77.0, 48.8, 78.9, 51.0)],
+                                [(75.8, 49.5, 76.6, 52.0), (79.3, 49.5, 80.2, 52.0)]), 51.6),
+        ('cone-urn-low-e', 'cut', ((76.0, 51.0, 79.3, 60.2), [(77.4, 52.5, 77.9, 56.5), (77.0, 57.5, 78.4, 59.5)]), 59.8),
+        ('pot-gazebo-w', 'cut', ((10.7, 38.2, 13.9, 47.0), [(11.8, 41.5, 12.8, 44.0), (11.6, 44.8, 12.9, 46.5)],
+                                 [(13.6, 38.2, 13.9, 44.5), (10.7, 38.2, 11.0, 42.0)]), 46.9),
+        ('pot-gazebo-e', 'cut', ((21.1, 38.2, 24.3, 47.0), [(22.2, 41.5, 23.2, 44.0), (22.0, 44.8, 23.3, 46.5)],
+                                 [(21.1, 38.2, 21.4, 44.5), (24.0, 38.2, 24.3, 42.0), (21.1, 46.0, 21.7, 47.0)]), 46.9),
+        # the bushes either side of the west bench stand with it
+        ('bush-bench-wl', 'cut', ((9.8, 47.6, 13.4, 53.0), [(11.0, 49.0, 12.3, 52.0)],
+                                  [(13.0, 49.5, 13.4, 53.0), (9.8, 52.4, 13.4, 53.0)]), 52.5),
+        ('bush-bench-wr', 'cut', ((20.6, 47.6, 23.8, 53.0), [(21.5, 49.0, 23.0, 52.0)],
+                                  [(20.6, 49.5, 21.0, 53.0), (20.6, 52.4, 23.8, 53.0)]), 52.5),
+        # the terrace's urn and its cone (the cone had the hedge's line behind it);
+        # after the tables, which overlap the urn's right edge
+        ('urn-cone-terr', 'cut', ((78.4, 28.4, 82.6, 42.0), [(79.9, 30.5, 80.5, 36.0), (79.4, 37.6, 81.6, 40.6)],
+                                  [(78.4, 28.4, 79.6, 30.2), (78.4, 28.4, 79.0, 33.0), (81.9, 28.4, 82.6, 34.0)]), 41.1),
     ],
     'vie-int': [
         # the grand staircase: the handrails run down beside the steps (each row

@@ -84,6 +84,8 @@ GRID = (300, 225)          # js/core/freeWalk.js GRID
 ALPHA = 128                # layer alpha that counts as opaque
 BIN = 0.2                  # ground lines are floored to this many percent: one slice per band
 SPECK = 12                 # opaque specks smaller than this (px) are dropped
+CUT_RING = 6               # px: the ring round an OBJECTS 'cut' rect that is surely not the thing
+CUT_GROW = 1               # px: a cut takes this much of its outline too (the watershed splits the dark rim of a post)
 FOOT = 12                  # px: a run is walked under when most of its lowest FOOT px are walkable
 LINTEL = 0.9               # a hanging run with no hint: its line is this many character heights below it
 UNIFY_R = 0.5              # character heights: how far along an object its front line carries (unify)
@@ -458,6 +460,44 @@ def object_mask(scene, oid, ell, seed, opaque):
     return out
 
 
+def cut_mask(scene, oid, rect, seeds, bgs=()):
+    """The cut of one OBJECTS 'cut' entry (bool, art size): tools/object-masks/<scene>-<oid>.png,
+    made on first use (delete it to re-cut). An upright thing drawn in front of
+    others (a cone tree in its pot against a hedge, a lamp over a bush): a
+    watershed on the art from markers, the seed rects (inside the thing)
+    against a ring round the rect and the bg rects (what stands behind it), so
+    the cut follows the outline the artist drew round it. Only the art decides,
+    not either build's layer: both builds get the same cut (the layer is
+    applied where the cut is used)."""
+    path = os.path.join(HERE, 'object-masks', f'{scene}-{oid}.png')
+    if os.path.exists(path):
+        return np.asarray(Image.open(path).convert('L')) > 127
+    art = np.asarray(Image.open(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')).convert('RGB'))
+    H, W = art.shape[:2]
+    px = lambda r: (int(round(r[0] / 100 * W)), int(round(r[1] / 100 * H)), int(round(r[2] / 100 * W)), int(round(r[3] / 100 * H)))
+    x0, y0, x1, y1 = px(rect)
+    X0, Y0, X1, Y1 = max(0, x0 - CUT_RING), max(0, y0 - CUT_RING), min(W, x1 + CUT_RING), min(H, y1 + CUT_RING)
+    markers = np.ones((Y1 - Y0, X1 - X0), np.int32)                      # 1: not it
+    markers[y0 - Y0:y1 - Y0, x0 - X0:x1 - X0] = 0                       # 0: the watershed decides
+    for r in bgs:
+        a, b, c, d = px(r)
+        markers[max(0, b - Y0):max(0, d - Y0), max(0, a - X0):max(0, c - X0)] = 1
+    for r in seeds:
+        a, b, c, d = px(r)
+        markers[max(0, b - Y0):max(0, d - Y0), max(0, a - X0):max(0, c - X0)] = 2
+    ws = cv2.watershed(cv2.cvtColor(np.ascontiguousarray(art[Y0:Y1, X0:X1]), cv2.COLOR_RGB2BGR), markers)
+    cut = ndimage.binary_fill_holes(ws == 2)
+    # rounding forward, like the build's soft-edge ring: the watershed runs through
+    # the middle of an outline, and a post's dark rim left out stood behind a
+    # player the post itself covered (two thin lines down a street lamp)
+    cut = ndimage.binary_dilation(cut, iterations=CUT_GROW) & (markers != 1)
+    out = np.zeros((H, W), bool)
+    out[Y0:Y1, X0:X1] = cut
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    Image.fromarray(out.astype(np.uint8) * 255).save(path)
+    return out
+
+
 def poly_mask(pts, W, H):
     img = Image.new('L', (W, H), 0)
     ImageDraw.Draw(img).polygon([(x / 100 * W, y / 100 * H) for x, y in pts], fill=255)
@@ -471,6 +511,8 @@ def objects(scene, opaque):
     for oid, kind, shape, line in OBJECTS.get(scene, []):
         if kind == 'foliage':
             m = object_mask(scene, oid, shape[0], shape[1], opaque)
+        elif kind == 'cut':      # an upright thing in front of others, cut along its outline
+            m = cut_mask(scene, oid, *shape)
         elif kind == 'add':      # the cut from the art, and whatever of the layer is in the rect
             m = add_mask(np.asarray(Image.open(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')).convert('RGB')), shape)
             x0, y0, x1, y1 = shape
@@ -865,14 +907,27 @@ def walk_rows(walk):
     return rle
 
 
+def mask_hashes(scene):
+    """md5 of each cached object mask the scene's OBJECTS read ('foliage', 'cut'): a re-cut
+    mask is a changed input (a 'cut' one with CUT_RING and CUT_GROW, which made it). Both builds
+    stamp their sources after the depth pass, when a deleted mask has been cut again."""
+    md5 = lambda path: hashlib.md5(open(path, 'rb').read()).hexdigest()[:12]
+    out = []
+    for o in OBJECTS.get(scene, []):
+        path = os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png')
+        if o[1] == 'foliage' and os.path.exists(path):
+            out.append(md5(path))
+        elif o[1] == 'cut' and os.path.exists(path):
+            out.append(('cut', CUT_RING, CUT_GROW, md5(path)))
+    return out
+
+
 def sources(scene):
     """What a scene's data is made from: both guides, its hints and this file's tunables."""
     folder = os.path.join(ROOT, CITY_DIR[scene[:3]])
     md5 = lambda path: hashlib.md5(open(path, 'rb').read()).hexdigest()[:12]
     tun = repr((GRID, ALPHA, BIN, SPECK, FOOT, LINTEL, UNIFY_R, UNIFY_HOLD, UNIFY_FAR, 'unify6', OVER, SIDE_LEN, SIDE_D, SIDE_R, SIDE_W, 'rows2', STACK_GAP, DOOR_W, 'door4', DOOR_SIDE, 'rests1', 'walltop2', 'speck2', sorted(HAND_CLEANED), WALLTOP_GAP, WALLTOP_PART, PLANT.pattern, PLANT_REACH, WARP.get(scene), HINTS.get(scene)))
-    cuts = [md5(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png')) for o in OBJECTS.get(scene, [])
-            if o[1] == 'foliage' and os.path.exists(os.path.join(HERE, 'object-masks', f'{scene}-{o[0]}.png'))]
-    tun += repr((OBJECTS.get(scene), cuts))
+    tun += repr((OBJECTS.get(scene), mask_hashes(scene)))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
             'occlusion': md5(os.path.join(folder, f'{scene}-occlusion.png')),
             'art': md5(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')),

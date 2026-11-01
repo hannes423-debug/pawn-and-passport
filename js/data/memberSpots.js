@@ -92,22 +92,22 @@ export const MEMBER_SPOTS = {
  "nyc-ext": {
   "nyc-dev": {
    "at": [
-    58.21,
-    75.5
+    56,
+    77
    ],
    "stand": [
-    58.21,
-    78.83
+    56,
+    80.33
    ],
    "dir": "down"
   },
   "nyc-hector": {
    "at": [
-    42.47,
+    44,
     77
    ],
    "stand": [
-    42.47,
+    44,
     80.33
    ],
    "dir": "down"

@@ -146,6 +146,40 @@ leak_check counts every gap these open as a leak (it scores against the
 layer's alpha), so it rose in every scene by design. Judge changes with
 door_probe renders of the old build (a git worktree of HEAD) beside the new.
 
+## Upright things cut along their outline (v1.2.11, 2026-11-01)
+
+From the user's nyc-ext and vie-ext phone screenshots: potted cones, bushes,
+lamps and street trees cut into columns at different depths (a cone in front
+of a player at one column and behind them at the next; a pot drawn over a
+player's legs while its cone stayed behind them), two club members drawn
+behind the open gates.
+
+- New OBJECTS kind `'cut'` (both builds): `(rect, [seed rects], [bg rects])`.
+  A watershed on the art from the seeds (inside the thing) against the rect's
+  surround (CUT_RING px) and the bg rects (what stands behind it), grown
+  CUT_GROW px so a post keeps its dark rim. The art alone decides, so both
+  builds get one cut; kept in `tools/object-masks/<scene>-<id>.png`, hashed
+  into both builds' source stamps (delete one to re-cut, then rebuild).
+  Each cut stands at its pot's (or post's) foot; a lamp comes after the bush
+  it stands in front of, and the leaves round its top go to the bush.
+- nyc-ext: 16 cuts (terrace cones and bush, lamps, the west bench cone and
+  bush, both potted bushes, both street lamps and street trees); the sidewalk
+  fence stands at its foot (85.2), not at the east tree's line. The gate hints
+  stopped at the gates' free-end posts: wider, they gave the hedge beside each
+  post the gate's line, drawn over Hector's and Dev's heads. Both members also
+  stand in the passage between the gates now (place-members.mjs PINS: a full
+  re-run of that tool moves most members, since memberSpots.js predates the
+  current walk masks, so only these two were changed).
+- vie-ext: 15 cuts (every potted cone and urn in the courtyard and on the
+  terrace, the pots at the gazebo, the bushes beside the west bench).
+- Measured against v1.2.10: mostly hidden spots nyc-ext 529 -> 446, vie-ext
+  382 -> 397 (players right behind the terrace urn are now behind its cone too);
+  leak px nyc-ext 57,569 -> 57,728, vie-ext 90,856 -> 91,091.
+
+Note for readers of a line map: a slice whose line no standable feet row can
+tell apart from 99 (nobody can stand in front of it within reach) is SNAPPED
+to 99 (`bo.slices`); 99 in a slice dump is not always "hangs in front".
+
 ## Results
 
 Measured 2026-09-30 on every standable spot of the game's own walk grid (a

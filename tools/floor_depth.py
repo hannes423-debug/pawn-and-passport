@@ -422,6 +422,8 @@ def sources(scene):
     rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box2', STEP, 'ceil3', CEIL_RIM, 'pruned-floor2', PRUNED_SLACK, 'attach3', ATTACH_MAX, 'hints2', 'walltop1', MIN_FOOT, WALLTOP_GAP, CEILING.get(scene), RING, RING_ALPHA, 'dip3', SMOOTH_R, DIP_TOL, 'binup1', 'bedback1', BED_BACK, 'pave6', 'pavein1', 'gapin1', 'iron3', DARK_GAP, DARK_SHADE, 'shadow1', SHADOW_CHROMA, SHADOW_MIN, 'gap3', 'flow2', fm.FLOW_MAX, fm.FLOW_ALPHA, GAP_ALPHA, PAVE_MIN, PAVE_RIM, PAVE_REF, PAVE_T, PAVE_MARGIN, PAVE_DIFF,
                   fm.K, fm.L_WEIGHT, fm.T_FLOOR, fm.T_NOT, bo.GRID, bo.ALPHA, bo.BIN, bo.SPECK,
                   bo.WARP.get(scene), bo.HINTS.get(scene), bo.OBJECTS.get(scene)))
+    if bo.mask_hashes(scene):                        # the cached object masks it reads (none: as before)
+        rules += repr(bo.mask_hashes(scene))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
             'floormask': md5(fm.floor_path(scene)),
             'occlusion': md5(fm.original_path(scene)),

@@ -34,7 +34,14 @@ const OUT = path.join(ROOT, 'js/data/memberSpots.js');
 const PINS = {
   // vie-venue's walk mask (2026-09-25) leaves the close-up cafe little open
   // floor: Can keeps the spot by the counter that the search can no longer fit.
-  'vie-can': [67.85, 48]
+  'vie-can': [67.85, 48],
+  // nyc-ext (user, 2026-11-01): the search stood Dev behind the open east gate
+  // and Hector against the west gate's end post, drawn behind the bars and
+  // the hedge: they stand in the passage between the gates, in plain view.
+  // (A full re-run moves most members: memberSpots.js predates the current
+  // walk masks. These two were applied to it on their own.)
+  'nyc-dev': [56, 77],
+  'nyc-hector': [44, 77]
 };
 
 function imageAspects() {
