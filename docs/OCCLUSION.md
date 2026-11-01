@@ -68,7 +68,8 @@ plant, a sign over a doorway) one column takes ONE ground line; and flat
 things (short grass, floor logos, stairs) read as standing ones. An OBJECTS
 entry sets a region's depth: a ground line, `None` (floor, never in front),
 99 (always in front), `'rows'` (a side wall or handrail: each row where it
-is) or `'bed'` (a flower bed seen from above). Kinds: `poly` (polygon or
+is), `'bed'` (a flower bed seen from above), `'paving'` (floor the layer drew,
+picked by colour) or `'gaps'` (the floor between a gate's bars). Kinds: `poly` (polygon or
 rect), `foliage` (cut from the art by leaf colour, mask kept in
 `tools/object-masks/`), `cut` (an upright thing in front of others, a potted
 cone or a lamp over a bush, cut from the art along its outline by a watershed;

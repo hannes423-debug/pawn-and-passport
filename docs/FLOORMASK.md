@@ -180,6 +180,34 @@ Note for readers of a line map: a slice whose line no standable feet row can
 tell apart from 99 (nobody can stand in front of it within reach) is SNAPPED
 to 99 (`bo.slices`); 99 in a slice dump is not always "hangs in front".
 
+## Chennai, and the player never vanishes (v1.2.12, 2026-11-01)
+
+From the user's che-ext and che-int phone screenshots: a player behind an open
+gate leaf with only the head showing, a player gone behind a palm, a player in
+a study doorway hidden by the wall south of it.
+
+- che-ext: the open gate leaves were drawn solid in their lower half (the floor
+  between the bars too). New OBJECTS line `'gaps'` (floor_depth.py only): inside
+  the shape, px no darker than GAPS_DARK under the visible floor round it and
+  within GAPS_HUE of its hue are never drawn, and the soft-edge ring may not
+  close them again. The two lower palms are `'cut'` objects at the trunk's foot
+  (65.6): each trunk was always in front (a stripe down a player on the path in
+  front of it) and the crown over the stone pillar took the pillar's line (86).
+- che-int: the cap of the low wall south of each study doorway, and the lintel
+  strip joining it to the wall north of it, stand at 66.6, the doorway's first
+  row: a player in the doorway is in front of its jambs (the user's rule).
+- X-ray (js/ui/screens/scene.js, `XRAY`): a player behind the palm crown or the
+  gate is behind it, rightly, and was lost there. Wherever a depth slice is drawn
+  in front of the player, that part of them is drawn again over it at 45 %
+  opacity (`.pp-xray`, z 2100, from the atlas and the slices on the stage, the
+  same stacking rule). Nothing changes where the player is in the open. The
+  canvas is not a `.pp-actor`: the test drivers take the last one as the player.
+- Measured against v1.2.11: mostly hidden spots che-ext 1223 -> 1216, che-int
+  124 -> 102; leak px che-ext 168,152 -> 169,604 (the gaps opened count as leaks),
+  che-int 7,826 -> 6,840. The che-ext red patches left are a player rightly
+  behind the gate arch sign, the porch sign and the palm crowns: the x-ray shows
+  them there.
+
 ## Results
 
 Measured 2026-09-30 on every standable spot of the game's own walk grid (a

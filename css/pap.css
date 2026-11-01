@@ -249,12 +249,20 @@ img, canvas { image-rendering: pixelated; }
 }
 /* Over a zoomed scene or the map: no bar, the icons and numbers float on the
    art, outlined so they read over any picture. */
+/* A 2 px outline all round (every offset up to 2 px: a 1 px stroke of the pixel
+   font would leave a gap at 1 px with the 2 px copies alone), then a soft shadow. */
 .pp-hud.pp-hud--float {
   background: none; border-bottom: 0;
-  text-shadow: -1px -1px 0 #1a0f08, 1px -1px 0 #1a0f08, -1px 1px 0 #1a0f08, 1px 1px 0 #1a0f08, 0 2px 3px rgba(0, 0, 0, 0.6);
+  --ol: #1a0f08;
+  text-shadow:
+    -1px -1px 0 var(--ol), 0 -1px 0 var(--ol), 1px -1px 0 var(--ol), -1px 0 0 var(--ol), 1px 0 0 var(--ol), -1px 1px 0 var(--ol), 0 1px 0 var(--ol), 1px 1px 0 var(--ol),
+    -2px -2px 0 var(--ol), -1px -2px 0 var(--ol), 0 -2px 0 var(--ol), 1px -2px 0 var(--ol), 2px -2px 0 var(--ol),
+    -2px -1px 0 var(--ol), 2px -1px 0 var(--ol), -2px 0 0 var(--ol), 2px 0 0 var(--ol), -2px 1px 0 var(--ol), 2px 1px 0 var(--ol),
+    -2px 2px 0 var(--ol), -1px 2px 0 var(--ol), 0 2px 0 var(--ol), 1px 2px 0 var(--ol), 2px 2px 0 var(--ol),
+    0 3px 4px rgba(0, 0, 0, 0.6);
 }
 .pp-hud--float .pp-btn--ghost { background: rgba(24, 14, 8, 0.62); border-color: rgba(243, 227, 191, 0.7); }
-.pp-hud--float .pp-ico, .pp-hud--float .pp-hud__who img { filter: drop-shadow(0 0 1px #1a0f08) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
+.pp-hud--float .pp-ico, .pp-hud--float .pp-hud__who img { filter: drop-shadow(0 0 1px #1a0f08) drop-shadow(0 0 1px #1a0f08) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
 .pp-hud__who { display: flex; align-items: center; gap: 8px; }
 .pp-hud__who img { width: 40px; height: 40px; }
 .pp-hud__name { font-family: var(--font-pixel); font-size: 11px; }
@@ -316,6 +324,7 @@ img, canvas { image-rendering: pixelated; }
 .pp-scene__stage > img.pp-scene__bg { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: auto; user-select: none; -webkit-user-drag: none; }
 .pp-scene__actors { position: absolute; inset: 0; pointer-events: none; }
 .pp-actor { position: absolute; transform: translate(-50%, -92%); image-rendering: pixelated; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.35)); }
+.pp-xray { position: absolute; transform: translate(-50%, -92%); image-rendering: pixelated; opacity: 0.45; pointer-events: none; }
 .pp-actor__shadow { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; background: rgba(0, 0, 0, 0.3); }
 .pp-hotspot {
   position: absolute; transform: translate(-50%, -100%);
@@ -877,6 +886,10 @@ body:has(.pp-dialogue) .pp-coach, body:has(.pp-overlay) .pp-coach, body:has(.pp-
 /* The painted board: its top-left four by two squares, cut from the art. */
 .pp-shop__board--marble { display: block; position: relative; }
 .pp-shop__board--marble img { position: absolute; width: 260%; left: -30%; top: -54.5%; max-width: none; }
-button.pp-hud__coins { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 4px; }
+/* The coins are a button (tap: the shop): browsers reset a button's text-shadow and
+   letter-spacing, and a 'font: inherit' here beat .pp-hud__stat's size and weight, so
+   the number came out bigger, thinner and without the outline the other stats have. */
+button.pp-hud__coins { color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 4px;
+  text-shadow: inherit; letter-spacing: inherit; }
 button.pp-hud__coins:focus-visible b { text-decoration: underline; }
 @media (hover: hover) { button.pp-hud__coins:hover b { text-decoration: underline; } }

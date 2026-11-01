@@ -124,6 +124,8 @@ const fits = (size, d) => !size || (size[0] === d.atlasSize[0] && size[1] === d.
    ?depth=legacy switches to the previous renderer (and back), live, for the
    rest of the session. Walking is identical in both: same walk grid. */
 const DEPTH_DEFAULT = 'floor';     // 'legacy' puts everybody back on the previous renderer
+const XRAY = true;                 // the player shows faintly through whatever stands in front (paintXray)
+const XRAY_Z = 2100;               // over every slice (a slice's z is at most 2 * 990)
 let depthMode = (() => {
   try {
     const q = new URLSearchParams(location.search).get('depth');
@@ -390,14 +392,19 @@ export async function sceneScreen(app, params) {
     canvas.className = player ? 'pp-actor is-player' : 'pp-actor';
     const shadow = h('div.pp-actor__shadow');
     actors.append(shadow, canvas);
+    // The player's x-ray (paintXray): the parts of them something stands in front of.
+    // Its own class, not .pp-actor (the test drivers take the last .pp-actor as the player)
+    const xray = player ? document.createElement('canvas') : null;
+    if (xray) { xray.className = 'pp-xray'; xray.hidden = true; xray.style.zIndex = String(XRAY_Z); actors.append(xray); }
     const actor = {
-      look, x, y, dir, frame: 0, walking: false, canvas, shadow, player,
+      look, x, y, dir, frame: 0, walking: false, canvas, shadow, player, xray,
       resize() {
         // Characters stand about a tenth of the scene tall; close-up scenes
         // set their own measured height (scenes.js actorHeight).
         const height = Math.max(40, Math.round(stageH * ACTOR_H));
         canvas.height = height;
         canvas.width = Math.round(height * CELL.W / CELL.H);
+        if (xray) { xray.width = canvas.width; xray.height = canvas.height; }
         shadow.style.width = `${canvas.width * 0.55}px`;
         shadow.style.height = `${canvas.width * 0.16}px`;
         this.height = height;
@@ -411,6 +418,7 @@ export async function sceneScreen(app, params) {
         shadow.style.left = `${this.x}%`; shadow.style.top = `${this.y}%`;
         // Odd: a character level with a slice's ground line stands in front of it.
         canvas.style.zIndex = String(Math.round(this.y * 10) * 2 + 1);
+        if (xray) paintXray(this);
       }
     };
     actorList.push(actor);
@@ -446,6 +454,44 @@ export async function sceneScreen(app, params) {
     if (look) makeActor(look, npc.at, { dir: npc.dir || 'down' });
   }
 
+  /* X-RAY (user, 2026-11-01: the player vanished behind a palm crown, an open
+     gate, the wall south of a doorway). Where a depth slice is drawn in front
+     of the player, that part of them is drawn again, faintly, over it: the
+     depth stays right and the player is never lost. Only the hidden px: where
+     nothing covers the player the x-ray is empty. Same stacking rule as the
+     stage (a slice covers a character whose feet are above its ground line). */
+  let depthSet = null;
+  let atlasImg = null;
+  function paintXray(a) {
+    const g = a.xray;
+    if (!g) return;
+    const ctx = g.getContext('2d');
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0, 0, g.width, g.height);
+    g.style.left = a.canvas.style.left; g.style.top = a.canvas.style.top;
+    if (!XRAY || !depthSet || !atlasImg || !stageW || !g.width) { g.hidden = true; return; }
+    const cw = g.width; const ch = g.height;
+    const left = (a.x / 100) * stageW - cw / 2;      // .pp-actor: translate(-50%, -92%)
+    const top = (a.y / 100) * stageH - 0.92 * ch;
+    const z = Math.round(a.y * 10) * 2 + 1;
+    ctx.imageSmoothingEnabled = false;
+    let covered = false;
+    for (const [base, x, y, pw, ph, ax, ay, w, hgt] of depthSet.slices) {
+      if (Math.round(base * 10) * 2 <= z) continue;
+      const sx = (x / 100) * stageW - left; const sy = (y / 100) * stageH - top;
+      const sw = (pw / 100) * stageW; const sh = (ph / 100) * stageH;
+      if (sx >= cw || sy >= ch || sx + sw <= 0 || sy + sh <= 0) continue;
+      ctx.drawImage(atlasImg, ax, ay, w, hgt, sx, sy, sw, sh);
+      covered = true;
+    }
+    if (covered) {
+      ctx.globalCompositeOperation = 'source-in';     // the player, only where a slice is
+      ctx.drawImage(a.canvas, 0, 0);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    g.hidden = !covered;
+  }
+
   /* Depth layers: the artist's occlusion layer, cut into slices by ground line
      (tools/build_occlusion.py). Each slice sits in the actors layer at its own
      z, so a character is drawn behind every slice whose ground line is lower
@@ -454,6 +500,10 @@ export async function sceneScreen(app, params) {
   const freeMode = !!layers;
   const grid = freeMode ? walkGridFor(scene.id, layers, aspect, ACTOR_H) : null;
   function drawDepth(set) {
+    depthSet = set;
+    const img = new Image();
+    img.onload = () => { if (depthSet === set) { atlasImg = img; if (player) paintXray(player); } };
+    img.src = set.atlas;
     for (const old of actors.querySelectorAll('.pp-prop')) old.remove();
     const [AW, AH] = set.atlasSize;
     const pct = (a, size, whole) => (whole === size ? 0 : (a / (whole - size)) * 100);

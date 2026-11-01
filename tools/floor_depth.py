@@ -95,6 +95,8 @@ SHADOW_MIN = 30        # px: ...over an area this big, 3+ px thick, open to the 
 PAVE_MIN = 8           # px: smaller bits are not worth a hole
 PAVE_DIFF = 12.0       # ...and the layer's OWN px there at least this far from the art's (it drew something else)
 PRUNED_SLACK = 2       # px: how far off the pruned layer may sit before its absence means 'floor'
+GAPS_DARK = 40.0       # Lab L (0-255): a 'gaps' px is floor seen between bars when no darker than this under the floor...
+GAPS_HUE = 25.0        # ...and this near its hue (Lab a/b; the floor between bars is in their shade): iron is far darker
 BED_BACK = 0.5         # character heights: a 'bed' px over floor stands at the footprint below it only when
                        # that is this near the bed's back edge (a bush over the floor behind); else at its own row
 LEGACY_JS = os.path.join(ROOT, 'js', 'data', 'sceneLayers.js')
@@ -386,6 +388,14 @@ def depth(scene, opaque, walk, floor, actor_h, art=None, pruned=None):
             base[m] = np.nan
             kinds[m] = K_DECAL
             continue
+        if line == 'gaps':
+            # a gate leaf drawn solid: the floor seen between its bars is never
+            # drawn, and the soft-edge ring must not close it again (a decal)
+            m = m & gaps_in(art, m, walk & ~opaque)
+            base[m] = np.nan
+            kinds[m] = K_DECAL
+            decals = decals | m
+            continue
         if line is None:
             base[m] = np.nan
             kinds[m] = K_DECAL
@@ -424,6 +434,8 @@ def sources(scene):
                   bo.WARP.get(scene), bo.HINTS.get(scene), bo.OBJECTS.get(scene)))
     if bo.mask_hashes(scene):                        # the cached object masks it reads (none: as before)
         rules += repr(bo.mask_hashes(scene))
+    if any(o[3] == 'gaps' for o in bo.OBJECTS.get(scene, [])):
+        rules += repr(('gaps1', GAPS_DARK, GAPS_HUE))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
             'floormask': md5(fm.floor_path(scene)),
             'occlusion': md5(fm.original_path(scene)),
@@ -440,6 +452,19 @@ def paving_in(art, shape, walk):
         return np.zeros_like(shape)
     pick = shape & (fm.colour_distance(lab, fm.colour_model(lab, ring)) < PAVE_T)
     return ndimage.binary_opening(pick, structure=np.ones((2, 2)))
+
+
+def gaps_in(art, shape, seen):
+    """Px of `shape` that are the floor seen between bars (an OBJECTS 'gaps' entry): no darker
+    than GAPS_DARK under the floor visible round the shape (`seen`), and of its hue. Iron is
+    much darker, so the bars and the posts keep every px; only the gaps open."""
+    lab = cv2.cvtColor(art, cv2.COLOR_RGB2LAB).astype(np.float32)
+    ring = ndimage.binary_dilation(shape, iterations=PAVE_REF) & seen & ~shape
+    if ring.sum() < 20:
+        return np.zeros_like(shape)
+    ref = np.median(lab[ring], axis=0)
+    hue = np.hypot(lab[..., 1] - ref[1], lab[..., 2] - ref[2])
+    return shape & (lab[..., 0] >= ref[0] - GAPS_DARK) & (hue < GAPS_HUE)
 
 
 def layer_rgb(scene, W, H):

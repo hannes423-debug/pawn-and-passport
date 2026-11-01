@@ -752,7 +752,11 @@ HINTS = {
 #         behind that row;
 #         'bed' = a flower bed: the same over its blocked footprint (its flat
 #         grass border and low hedges), while anything rising above the
-#         footprint (a bush) stands at the footprint's back edge
+#         footprint (a bush) stands at the footprint's back edge;
+#         'paving' = floor the layer drew, picked by the floor's colour inside the
+#         shape (floor_depth.py only); 'gaps' = a gate leaf drawn solid: the floor
+#         seen between its bars, picked by lightness (iron is far darker), is never
+#         drawn (floor_depth.py only)
 # All coordinates are percent of the scene.
 OBJECTS = {
     'nyc-ext': [
@@ -950,6 +954,37 @@ OBJECTS = {
         # the upper palms stand in the beds; their crowns hang over the floor behind the beds
         ('palm-nw', 'poly', [(15.5, 19.8), (26.2, 19.8), (26.2, 33.5), (21.2, 33.5), (21.2, 45), (19.4, 45), (19.4, 33.5), (15.5, 33.5)], 44.6),
         ('palm-ne', 'poly', [(84.5, 19.8), (73.8, 19.8), (73.8, 33.5), (78.8, 33.5), (78.8, 45), (80.6, 45), (80.6, 33.5), (84.5, 33.5)], 44.6),
+        # (user, 2026-11-01) the lower palms: each trunk was always in front (a stripe
+        # down a player on the path in front of it) and the crown over the stone
+        # pillar beside it took the pillar's line. Crown and trunk, cut along their
+        # outline, stand at the trunk's foot in the bed
+        ('palm-low-e', 'cut', ((75.2, 45.0, 87.4, 66.4),
+                               [(81.4, 58.5, 81.9, 65.2), (79.0, 50.0, 84.5, 53.5), (81.0, 46.5, 82.0, 49.5), (77.0, 51.5, 78.5, 53.5),
+                                (84.6, 51.8, 86.0, 54.5), (82.4, 55.0, 83.6, 58.2), (79.4, 55.0, 80.4, 58.0)],
+                               [(75.2, 45.0, 79.5, 46.7), (84.0, 45.0, 87.4, 46.6), (75.2, 54.8, 76.8, 58.5), (77.2, 59.8, 80.9, 66.4),
+                                (82.4, 60.8, 84.7, 66.4), (85.25, 58.8, 86.3, 66.4), (85.25, 45.0, 86.3, 47.3), (86.6, 45.0, 87.4, 66.4),
+                                (85.6, 47.3, 86.0, 51.0)]), 65.6),
+        ('palm-low-w', 'cut', ((12.6, 45.0, 24.8, 66.4),
+                               [(18.1, 58.5, 18.6, 65.2), (15.5, 50.0, 21.0, 53.5), (18.0, 46.5, 19.0, 49.5), (21.5, 51.5, 23.0, 53.5),
+                                (14.0, 51.8, 15.4, 54.5), (16.4, 55.0, 17.6, 58.2), (19.6, 55.0, 20.6, 58.0)],
+                               [(20.5, 45.0, 24.8, 46.7), (12.6, 45.0, 16.0, 46.6), (23.2, 54.8, 24.8, 58.5), (19.1, 59.8, 22.8, 66.4),
+                                (15.3, 60.8, 17.6, 66.4), (13.7, 58.8, 14.75, 66.4), (13.7, 45.0, 14.75, 47.3), (12.6, 45.0, 13.4, 66.4),
+                                (13.95, 47.3, 14.35, 51.0)]), 65.6),
+        # the open gate leaves were drawn solid in their lower half: a player behind
+        # a leaf lost everything below the head. The floor between the bars is open
+        # ('gaps', floor_depth.py only: picked by lightness, the bars are iron)
+        ('gate-gaps-w', 'poly', [(40.15, 70.5), (43.45, 70.5), (43.45, 79.3), (44.4, 79.3), (44.4, 80.0), (40.15, 80.0)], 'gaps'),
+        ('gate-gaps-e', 'poly', [(56.45, 70.5), (58.45, 70.5), (58.45, 80.0), (55.3, 80.0), (55.3, 79.3), (56.45, 79.3)], 'gaps'),
+    ],
+    'che-int': [
+        # (user, 2026-11-01) the study doorways either side of the lobby: the cap of
+        # the low wall south of each opening (and the lintel strip joining it to the
+        # wall north of it) hid a player standing in the doorway. A player in the
+        # doorway is in front of its jambs (user rule, docs/FLOORMASK.md)
+        ('door-cap-w', 'poly', (30.0, 67.2, 33.45, 71.3), 66.6),
+        ('door-lintel-w', 'poly', (31.1, 65.8, 32.1, 67.25), 66.6),
+        ('door-cap-e', 'poly', (66.55, 67.2, 70.05, 71.3), 66.6),
+        ('door-lintel-e', 'poly', (67.85, 65.8, 68.95, 67.25), 66.6),
     ],
     'wen-ext': [
         # the lantern posts: the lantern hangs over the path, the post stands at its foot
