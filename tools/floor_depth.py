@@ -95,6 +95,7 @@ SHADOW_MIN = 30        # px: ...over an area this big, 3+ px thick, open to the 
 PAVE_MIN = 8           # px: smaller bits are not worth a hole
 PAVE_DIFF = 12.0       # ...and the layer's OWN px there at least this far from the art's (it drew something else)
 PRUNED_SLACK = 2       # px: how far off the pruned layer may sit before its absence means 'floor'
+ROUND_EPS = 1e-3       # bins: a line within this of a bin (float32 noise) is ON it when rounding up
 GAPS_DARK = 40.0       # Lab L (0-255): a 'gaps' px is floor seen between bars when no darker than this under the floor...
 GAPS_HUE = 25.0        # ...and this near its hue (Lab a/b; the floor between bars is in their shade): iron is far darker
 BED_BACK = 0.5         # character heights: a 'bed' px over floor stands at the footprint below it only when
@@ -316,9 +317,18 @@ def depth(scene, opaque, walk, floor, actor_h, art=None, pruned=None):
     # finer than the shoe strip buys nothing and costs a depth piece per step,
     # and rounding forward can only make a thing cover a little more, never
     # show feet over it
+    # ...but never past where the piece meets the floor (its contact row, to the
+    # bin): a step of 0.8 % carried a flower bed meeting the floor at 46.04 to
+    # 46.4, over a player standing on the paving in front of it at 46.2 (user,
+    # che-ext, 2026-11-01). Its front face stands at the contact row, as the
+    # rule above says (min(row + h, c))
     rowish = (kinds == K_BOX) | (kinds == K_STRIP)
     q = max(bo.BIN, np.ceil(STEP * A / H * 100 / bo.BIN) * bo.BIN)
-    base[rowish] = np.minimum(np.ceil(base[rowish] / q - 1e-6) * q, np.maximum(base[rowish], 99.0))
+    ys, xs = np.nonzero(rowish)
+    v = base[ys, xs].astype(np.float64)
+    meets = np.array(contact, np.float64)[piece[ys, xs]] / H * 100
+    cap = np.ceil(meets / bo.BIN - ROUND_EPS) * bo.BIN
+    base[ys, xs] = np.minimum(np.minimum(np.ceil(v / q - ROUND_EPS) * q, np.maximum(cap, v)), 99.0)
     # FLOOR DRAWN INTO THE LAYER (the tiles running into a doorway between the
     # jamb and the ceiling, stair treads): a hanging piece (no footprint of its
     # own) on walkable floor that the PRUNED layer erased is floor. The prune
@@ -429,7 +439,7 @@ def depth(scene, opaque, walk, floor, actor_h, art=None, pruned=None):
 def sources(scene):
     folder = os.path.join(ROOT, bo.CITY_DIR[scene[:3]])
     md5 = lambda p: hashlib.md5(open(p, 'rb').read()).hexdigest()[:12]
-    rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box2', STEP, 'ceil3', CEIL_RIM, 'pruned-floor2', PRUNED_SLACK, 'attach3', ATTACH_MAX, 'hints2', 'walltop1', MIN_FOOT, WALLTOP_GAP, CEILING.get(scene), RING, RING_ALPHA, 'dip3', SMOOTH_R, DIP_TOL, 'binup1', 'bedback1', BED_BACK, 'pave6', 'pavein1', 'gapin1', 'iron3', DARK_GAP, DARK_SHADE, 'shadow1', SHADOW_CHROMA, SHADOW_MIN, 'gap3', 'flow2', fm.FLOW_MAX, fm.FLOW_ALPHA, GAP_ALPHA, PAVE_MIN, PAVE_RIM, PAVE_REF, PAVE_T, PAVE_MARGIN, PAVE_DIFF,
+    rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box3', STEP, 'ceil3', CEIL_RIM, 'pruned-floor2', PRUNED_SLACK, 'attach3', ATTACH_MAX, 'hints2', 'walltop1', MIN_FOOT, WALLTOP_GAP, CEILING.get(scene), RING, RING_ALPHA, 'dip3', SMOOTH_R, DIP_TOL, 'binup2', ROUND_EPS, 'bedback1', BED_BACK, 'pave6', 'pavein1', 'gapin1', 'iron3', DARK_GAP, DARK_SHADE, 'shadow1', SHADOW_CHROMA, SHADOW_MIN, 'gap3', 'flow2', fm.FLOW_MAX, fm.FLOW_ALPHA, GAP_ALPHA, PAVE_MIN, PAVE_RIM, PAVE_REF, PAVE_T, PAVE_MARGIN, PAVE_DIFF,
                   fm.K, fm.L_WEIGHT, fm.T_FLOOR, fm.T_NOT, bo.GRID, bo.ALPHA, bo.BIN, bo.SPECK,
                   bo.WARP.get(scene), bo.HINTS.get(scene), bo.OBJECTS.get(scene)))
     if bo.mask_hashes(scene):                        # the cached object masks it reads (none: as before)
@@ -643,9 +653,12 @@ def build(scene, actor_h, legacy):
     # (2 px) back up the picture: a door jamb meeting the floor at 64.397 was
     # drawn at 64.2, behind a player whose feet were at 64.3, and the player
     # showed through it as a thin line. Round UP to the bin first (a hair
-    # over it, so float32 cannot fall back below): slices' floor is then a no-op
+    # over it, so float32 cannot fall back below): slices' floor is then a no-op.
+    # A line already ON a bin stays there: float32 keeps 46.4 as 46.4000015, and
+    # a 1e-6 tolerance pushed it a whole bin further down the picture (2 px over
+    # the floor in front of every such object, user, che-ext, 2026-11-01)
     have = ~np.isnan(base) & (base < 99.0)
-    base[have] = np.minimum(99.0, np.ceil(base[have].astype(np.float64) / bo.BIN - 1e-6) * bo.BIN + 1e-3)
+    base[have] = np.minimum(99.0, np.ceil(base[have].astype(np.float64) / bo.BIN - ROUND_EPS) * bo.BIN + 1e-3)
     parts, _snapped = bo.slices(base, walk, actor_h)
     pos, (aw, ah) = bo.pack(parts)
     atlas = np.zeros((ah, aw, 4), np.uint8)

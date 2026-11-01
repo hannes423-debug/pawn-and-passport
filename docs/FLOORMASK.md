@@ -208,6 +208,32 @@ a study doorway hidden by the wall south of it.
   behind the gate arch sign, the porch sign and the palm crowns: the x-ray shows
   them there.
 
+## Nothing hides a player standing in front of it (v1.2.13, 2026-11-01)
+
+From the user's che-ext screenshot: the x-ray (v1.2.12) showing on a player
+standing on the paving in front of a flower bed. The x-ray was right: the bed
+was drawn over them. Two rounding steps put every object's line too far down
+the picture, so it covered the floor right in front of it:
+
+- The box rule rounds each row's line DOWN the picture to steps of STEP
+  character heights (0.8 % in che-ext). Its front face stands at the contact
+  row c (`min(row + h, c)`), but the step carried it past c: a bed meeting the
+  floor at 46.04 stood at 46.4, over a player at 46.2. The step is capped at c,
+  rounded up to the bin.
+- The last round-up to the bin used a tolerance of 1e-6 bins, under float32's
+  error: 46.4 is held as 46.4000015 and went to 46.6, a whole bin (2 px) down
+  the picture. ROUND_EPS = 1e-3 bins.
+
+Every scene was rebuilt. Measured on every standable spot every 2 px, a
+player mostly hidden by something whose line is within the shoe strip below
+their feet (the drawn shoes reach past its front edge: they look in front):
+3,297 -> 2,295 spots in all, che-ext 284 -> 2, nyc-ext 568 -> 301, ist-ext
+226 -> 125. What is left is mostly right: a player behind a potted cone or on
+a low wall's top, behind its face.
+
+The HUD level badge (dark "15" on gold) had taken the floating HUD's 2 px dark
+outline and become a black blob: `text-shadow: none` on `.pp-hud__badge`.
+
 ## Results
 
 Measured 2026-09-30 on every standable spot of the game's own walk grid (a

@@ -557,6 +557,7 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
     min-width: 15px; height: 14px; padding: 0 2px; border-radius: 7px;
     background: var(--gold); color: #2a1a10; border: 1.5px solid #2a1a10;
     font-family: var(--font-pixel); font-size: 7px; line-height: 1;
+    text-shadow: none;    /* dark on gold: the floating HUD's dark outline turned "15" into a black blob */
   }
   .pp-hud__lvl { width: 58px; margin-left: 4px; }
   .pp-hud__lvl .pp-small { justify-content: center; font-size: 12px; line-height: 1.1; }
