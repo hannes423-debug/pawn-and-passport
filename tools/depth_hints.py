@@ -978,12 +978,15 @@ OBJECTS = {
     ],
     'che-int': [
         # (user, 2026-11-01) the study doorways either side of the lobby: the cap of
-        # the low wall south of each opening (and the lintel strip joining it to the
-        # wall north of it) hid a player standing in the doorway. A player in the
-        # doorway is in front of its jambs (user rule, docs/FLOORMASK.md)
-        ('door-cap-w', 'poly', (30.0, 67.2, 33.45, 71.3), 66.6),
+        # the low wall south of each opening hid a player in the doorway (at the
+        # wall's foot), then, in front of them, stood the player ON the wall (the
+        # walk mask lets feet across the cap). It is the top of a wall running up
+        # the picture: each row at its own depth, so feet on the cap are behind its
+        # rows below them and the body shows above it. The strip joining it to the
+        # wall north of the opening stands at the opening's first row
+        ('door-cap-w', 'poly', (30.0, 67.2, 33.45, 71.3), 'rows'),
         ('door-lintel-w', 'poly', (31.1, 65.8, 32.1, 67.25), 66.6),
-        ('door-cap-e', 'poly', (66.55, 67.2, 70.05, 71.3), 66.6),
+        ('door-cap-e', 'poly', (66.55, 67.2, 70.05, 71.3), 'rows'),
         ('door-lintel-e', 'poly', (67.85, 65.8, 68.95, 67.25), 66.6),
     ],
     'wen-ext': [

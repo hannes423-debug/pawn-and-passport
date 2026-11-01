@@ -606,15 +606,21 @@ img, canvas { image-rendering: pixelated; }
   display: inline-flex; padding: 2px; border-radius: 6px;
   background: rgba(20, 12, 6, 0.72); border: 2px solid rgba(232, 176, 74, 0.55);
 }
+/* The name takes the bubble's place (the bubble steps aside while it shows):
+   stacked above the bubble it stood a whole row higher, over the body of the
+   member standing behind (user, che-int, 2026-11-01: Hiro's name over Rahul). */
 .pp-hotspot.is-member .pp-hotspot__label {
   font-size: clamp(10px, 0.95vw, 14px); padding: 1px 6px;
   background: rgba(20, 12, 6, 0.82); border-width: 2px; border-color: rgba(232, 176, 74, 0.55);
-  position: absolute; bottom: 100%; margin-bottom: 3px;
+  position: absolute; top: 0; left: 50%; transform: translate(calc(-50% + var(--name-dx, 0px)), var(--name-dy, 0px));
   opacity: 0; visibility: hidden; transition: opacity 140ms ease;
 }
 .pp-hotspot.is-member.is-near .pp-hotspot__label,
 .pp-hotspot.is-member:hover .pp-hotspot__label,
 .pp-hotspot.is-member:focus-visible .pp-hotspot__label { opacity: 1; visibility: visible; }
+.pp-hotspot.is-member.is-near .pp-hotspot__bubble,
+.pp-hotspot.is-member:hover .pp-hotspot__bubble,
+.pp-hotspot.is-member:focus-visible .pp-hotspot__bubble { visibility: hidden; }
 .pp-hotspot.is-member.is-near .pp-hotspot__bubble { border-color: var(--gold); background: rgba(50, 30, 8, 0.9); }
 .pp-hotspot.is-member .pp-hotspot__arrow { animation: none; opacity: 0.55; font-size: clamp(10px, 1vw, 14px); }
 /* Distance decides how much a hotspot shows (scene.js CUE_RADIUS): out of

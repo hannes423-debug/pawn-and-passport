@@ -234,6 +234,25 @@ a low wall's top, behind its face.
 The HUD level badge (dark "15" on gold) had taken the floating HUD's 2 px dark
 outline and become a black blob: `text-shadow: none` on `.pp-hud__badge`.
 
+## The study doorways, and names that cover nobody (v1.2.14, 2026-11-01)
+
+From the user's che-int screenshot: the player standing ON the low wall south
+of the east study doorway, and Hiro's name drawn over Rahul's body.
+
+- The walk mask lets feet across the cap of the low wall at each study
+  doorway (the opening itself, between the cap and the wall end north of it,
+  is narrower than a character). v1.2.11 had the cap in front (the player
+  vanished behind it), v1.2.12 behind (the player stood on top of it). It is
+  the top of a wall running up the picture, so it is `'rows'` now: feet on the
+  cap are behind its rows below them, and the body shows above it (the x-ray
+  shows the legs). In the opening the player is drawn whole, as before.
+- A member's name used to appear a row above their speech bubble, a body and a
+  half above their feet: in a crowded lobby that is the body of whoever stands
+  behind. The name takes the bubble's place now (the bubble steps aside), then
+  `placeName()` (scene.js) tries the bubble's place, above it, under the
+  member's feet and beside the head, and takes the first that covers no other
+  character (else the one covering least).
+
 ## Results
 
 Measured 2026-09-30 on every standable spot of the game's own walk grid (a

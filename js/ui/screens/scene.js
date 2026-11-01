@@ -348,6 +348,45 @@ export async function sceneScreen(app, params) {
       }
       place(spot, true);
     }
+    for (const spot of hotspotLayer.querySelectorAll('.pp-hotspot.is-member:not(.is-far)')) placeName(spot);
+    /* A member's name, where it covers no other character (user, che-int,
+       2026-11-01: Hiro's name over Rahul, who stood a body and a half behind
+       him). Tried in order: the bubble's place, above it, under the member's
+       feet, beside the head either side; the first that covers nobody, else
+       the one covering least. Its own member is not counted. */
+    function placeName(spot) {
+      const name = spot.querySelector('.pp-hotspot__name');
+      if (!name) return;
+      name.style.setProperty('--name-dx', '0px');
+      name.style.setProperty('--name-dy', '0px');
+      const at = spot.dataset.at ? spot.dataset.at.split(',').map(Number) : null;
+      const own = at ? actorList.find((a) => a.x === at[0] && a.y === at[1]) : null;
+      const bodies = actorList.filter((a) => a !== own).map((a) => {
+        const b = a.canvas.getBoundingClientRect();
+        const inset = b.width * 0.2;                   // the sprite, not its canvas's empty sides
+        return { left: b.left + inset, right: b.right - inset, top: b.top, bottom: b.bottom };
+      });
+      const r = name.getBoundingClientRect();
+      if (!r.width) return;
+      const feet = own ? own.canvas.getBoundingClientRect().bottom : null;
+      const tries = [[0, 0], [0, -(r.height + 3)]];
+      if (feet !== null) tries.push([0, feet + 3 - r.top]);
+      tries.push([-(r.width / 2 + 8), 0], [r.width / 2 + 8, 0]);
+      let best = null;
+      for (const [dx, dy] of tries) {
+        const c = { left: r.left + dx, right: r.right + dx, top: r.top + dy, bottom: r.bottom + dy };
+        if (c.left < limit.left || c.right > limit.right || c.top < vp.top || c.bottom > vp.bottom) continue;
+        let cover = 0;
+        for (const b of bodies) {
+          cover += Math.max(0, Math.min(c.right, b.right) - Math.max(c.left, b.left)) * Math.max(0, Math.min(c.bottom, b.bottom) - Math.max(c.top, b.top));
+        }
+        if (!best || cover < best.cover) best = { dx, dy, cover };
+        if (cover === 0) break;
+      }
+      if (!best) return;
+      name.style.setProperty('--name-dx', `${Math.round(best.dx)}px`);
+      name.style.setProperty('--name-dy', `${Math.round(best.dy)}px`);
+    }
     /** Nudge one label inside the screen and off the controls; false when an exit would have to leave its doorway (unless `lift`). */
     function place(spot, lift) {
       spot.style.setProperty('--nudge', '0px');
@@ -757,6 +796,7 @@ export async function sceneScreen(app, params) {
       const node = h('button.pp-hotspot', {
         type: 'button', class: `${spotState(spot)} is-${kind}${out ? ' is-out' : ''}${spot.member && (career.membersMet?.[spot.action.memberId] || career.memberRecords?.[spot.action.memberId]) ? ' is-met' : ''} is-far`,
         style: { left: `${spot.npc?.at && !spot.mark ? spot.npc.at[0] : mx}%`, top: `${Math.max(4, labelY)}%` },
+        dataset: spot.member ? { at: spot.npc.at.join(',') } : {},
         'aria-label': `${spot.verb}: ${spot.label}`,
         onclick: (e) => { e.stopPropagation(); use(spot); }
       }, spot.member ? h('span.pp-hotspot__bubble', null, pixelIcon('dialogue', { size: 'sm' })) : null,
