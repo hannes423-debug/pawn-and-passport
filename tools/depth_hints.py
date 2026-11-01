@@ -822,6 +822,19 @@ OBJECTS = {
         ('table-ne-back', 'poly', [(81.9, 35.2), (83.5, 32.6), (85.3, 31.6), (87.2, 32.6), (88.6, 35.2), (88.8, 36),
                                    (88.8, 44.8), (81.3, 44.8), (81.3, 36.5), (81.9, 36)], 44.3),
         ('table-ne-front', 'poly', [(86.8, 35.4), (93.5, 35.4), (93.5, 48), (85.8, 48), (85.8, 40.2), (86.8, 40.2)], 47.6),
+        # (user, 2026-11-01) the layer drew the grass path left of the gazebo and the
+        # paving between the front table and the east fence: floor, picked by colour
+        # so the trees beside them keep their edges ('paving', floor_depth.py only)
+        ('path-w', 'poly', [(9.25, 41.0), (10.3, 45.0), (10.3, 50.6), (8.2, 50.6), (8.2, 44.0)], 'paving'),
+        ('paving-e', 'poly', (87.5, 43, 91.5, 51), 'paving'),
+        # the courtyard lamp heads hung unheld (always in front, over a player in
+        # front of the lamp): they stand with their posts
+        ('lamp-w-head', 'poly', (24.55, 42.8, 26.5, 49.2), 60.0),
+        ('lamp-e-head', 'poly', (73.6, 42.8, 75.6, 49.2), 60.0),
+        # the hedge rising behind each courtyard pillar took the pillar's foot and
+        # hid a player standing between the two: it stands where the cap hides it
+        ('hedge-pillar-w', 'poly', (26.4, 37.4, 28.6, 42.3), 44.0),
+        ('hedge-pillar-e', 'poly', (71.4, 37.4, 73.6, 42.3), 44.0),
     ],
     'vie-int': [
         # the grand staircase: the handrails run down beside the steps (each row

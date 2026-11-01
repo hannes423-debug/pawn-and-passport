@@ -379,6 +379,13 @@ def depth(scene, opaque, walk, floor, actor_h, art=None, pruned=None):
     kinds[hh_] = K_HINT
     for _oid, m, line in bo.objects(scene, opaque):
         m = m & opaque
+        if line == 'paving':
+            # floor the layer drew, picked by colour inside the shape: the bush or
+            # tree edge sharing the shape keeps its pixels (a plain None would drop them)
+            m = m & paving_in(art, m, walk)
+            base[m] = np.nan
+            kinds[m] = K_DECAL
+            continue
         if line is None:
             base[m] = np.nan
             kinds[m] = K_DECAL
@@ -412,7 +419,7 @@ def depth(scene, opaque, walk, floor, actor_h, art=None, pruned=None):
 def sources(scene):
     folder = os.path.join(ROOT, bo.CITY_DIR[scene[:3]])
     md5 = lambda p: hashlib.md5(open(p, 'rb').read()).hexdigest()[:12]
-    rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box2', STEP, 'ceil3', CEIL_RIM, 'pruned-floor2', PRUNED_SLACK, 'attach3', ATTACH_MAX, 'hints2', 'walltop1', MIN_FOOT, WALLTOP_GAP, CEILING.get(scene), RING, RING_ALPHA, 'dip3', SMOOTH_R, DIP_TOL, 'binup1', 'bedback1', BED_BACK, 'pave6', 'gapin1', 'iron3', DARK_GAP, DARK_SHADE, 'shadow1', SHADOW_CHROMA, SHADOW_MIN, 'gap3', 'flow2', fm.FLOW_MAX, fm.FLOW_ALPHA, GAP_ALPHA, PAVE_MIN, PAVE_RIM, PAVE_REF, PAVE_T, PAVE_MARGIN, PAVE_DIFF,
+    rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box2', STEP, 'ceil3', CEIL_RIM, 'pruned-floor2', PRUNED_SLACK, 'attach3', ATTACH_MAX, 'hints2', 'walltop1', MIN_FOOT, WALLTOP_GAP, CEILING.get(scene), RING, RING_ALPHA, 'dip3', SMOOTH_R, DIP_TOL, 'binup1', 'bedback1', BED_BACK, 'pave6', 'pavein1', 'gapin1', 'iron3', DARK_GAP, DARK_SHADE, 'shadow1', SHADOW_CHROMA, SHADOW_MIN, 'gap3', 'flow2', fm.FLOW_MAX, fm.FLOW_ALPHA, GAP_ALPHA, PAVE_MIN, PAVE_RIM, PAVE_REF, PAVE_T, PAVE_MARGIN, PAVE_DIFF,
                   fm.K, fm.L_WEIGHT, fm.T_FLOOR, fm.T_NOT, bo.GRID, bo.ALPHA, bo.BIN, bo.SPECK,
                   bo.WARP.get(scene), bo.HINTS.get(scene), bo.OBJECTS.get(scene)))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
@@ -421,6 +428,16 @@ def sources(scene):
             'pruned': md5(os.path.join(folder, f'{scene}-occlusion.png')),
             'art': md5(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')),
             'rules': hashlib.md5(rules.encode()).hexdigest()[:12]}
+
+
+def paving_in(art, shape, walk):
+    """Px of `shape` coloured like the walkable floor visible around it (an OBJECTS 'paving' entry)."""
+    lab = cv2.cvtColor(art, cv2.COLOR_RGB2LAB)
+    ring = ndimage.binary_dilation(shape, iterations=PAVE_REF) & walk & ~shape
+    if ring.sum() < 20:
+        return np.zeros_like(shape)
+    pick = shape & (fm.colour_distance(lab, fm.colour_model(lab, ring)) < PAVE_T)
+    return ndimage.binary_opening(pick, structure=np.ones((2, 2)))
 
 
 def layer_rgb(scene, W, H):

@@ -7,7 +7,7 @@ Crop saved as diag/probe-<name>.png, with a 1% grid."""
 import json, os, sys
 import numpy as np
 from PIL import Image, ImageDraw
-PAWNS = os.path.expanduser('~/Työpöytä/Pawns')
+PAWNS = os.path.expanduser('~/Työpöytä/Portfolio/pawn-and-passport')
 L = os.path.join(PAWNS, 'tools', 'shots')
 os.chdir(PAWNS)
 sys.path.insert(0, 'tools')

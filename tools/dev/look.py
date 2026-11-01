@@ -5,7 +5,7 @@ opaque px tinted (red = in layer), and the current preview crop. -> diag/look-<s
 import os, sys
 import numpy as np
 from PIL import Image, ImageDraw
-PAWNS = os.path.expanduser('~/Työpöytä/Pawns')
+PAWNS = os.path.expanduser('~/Työpöytä/Portfolio/pawn-and-passport')
 sys.path.insert(0, os.path.join(PAWNS, 'tools'))
 os.chdir(PAWNS)
 import build_occlusion as bo

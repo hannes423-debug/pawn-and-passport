@@ -395,6 +395,8 @@ def depth(scene, opaque, walk, actor_h):
     kinds[ys, xs] = 1
     for _oid, m, line in objects(scene, opaque):       # after unify: nothing may pull an object's line
         m = m & opaque
+        if line == 'paving':                             # floor_depth.py only (colour-picked floor)
+            continue
         if line is None:                                 # floor: never in front of anybody
             base[m] = np.nan
             kinds[m] = 3
