@@ -75,7 +75,7 @@ function hallA(id, image, p, { upstairs = true } = {}) {
     { id: 'tournament', node: 'hall', label: 'Tournament hall', verb: 'Play', action: { type: 'tournament' },
       npc: { kind: 'regular', index: 0, at: p.hallNpc } },
     { id: 'star', node: 'director', label: "Director's office", verb: 'Talk', action: { type: 'star' },
-      npc: { kind: 'star', at: p.starNpc } },
+      npc: { kind: 'star', at: p.starNpc, dir: p.starDir } },
     { id: 'friendly', node: 'practice', label: 'Practice room', verb: 'Practice', action: { type: 'friendly' },
       npc: { kind: 'regular', index: 1, at: p.practiceNpc } },
     { id: 'exit', node: 'entrance', label: 'Garden', verb: 'Exit', action: { type: 'scene', to: `${club}-ext`, spawn: 'door' } }
@@ -128,7 +128,7 @@ add({ ...garden('nyc-ext', 'assets/scenes/nyc-ext.webp',
   { gate: [50, 89], path: [39.5, 62], porch: [50, 48], door: [50, 44.5], sides: [[39.5, 62], [60.5, 62]] }), actorHeight: 0.095 });
 add({ ...hallA('nyc-int', 'assets/scenes/nyc-int.webp', {
   entrance: [50, 91], lobby: [50, 78], mid: [50, 40], stairs: [50, 14],
-  dirDoor: [34, 38.5], director: [27, 32], starNpc: [18, 23.5],
+  dirDoor: [34, 38.5], director: [27, 33], starNpc: [18, 33], starDir: 'right',
   pracDoor: [34, 60], practice: [18.2, 66], practiceNpc: [18.2, 58.5],
   hallDoor: [64, 40], hall: [80.5, 46], hallNpc: [80.5, 35]
 }), actorHeight: 0.07 });
@@ -175,7 +175,7 @@ add({ ...garden('vie-ext', 'assets/scenes/vie-ext.webp',
   { gate: [50, 92], path: [50, 65], porch: [50, 45], door: [50, 39] }), actorHeight: 0.09 });
 add({ ...hallA('vie-int', 'assets/scenes/vie-int.webp', {
   entrance: [50, 91], lobby: [50, 78], mid: [50, 33], stairs: [50, 12],
-  dirDoor: [34, 35], director: [27.5, 34], starNpc: [18.3, 23],
+  dirDoor: [34, 35], director: [25.5, 32], starNpc: [18.3, 31], starDir: 'right',
   pracDoor: [34, 60], practice: [29.2, 60], practiceNpc: [17.9, 58],
   hallDoor: [65, 36], hall: [81.3, 47], hallNpc: [81.3, 37]
 }), actorHeight: 0.07 });
@@ -245,7 +245,7 @@ add({ ...garden('wen-ext', 'assets/scenes/wen-ext.webp',
   { gate: [50, 91], path: [50, 66], porch: [50, 52], door: [50, 46] }), actorHeight: 0.08 });
 add({ ...hallA('wen-int', 'assets/scenes/wen-int.webp', {
   entrance: [50, 91], lobby: [50, 78], mid: [50, 50], stairs: [50, 8],
-  dirDoor: [33, 30.5], director: [26, 31], starNpc: [17, 21],
+  dirDoor: [33, 30.5], director: [28.5, 31.5], starNpc: [23.5, 29.5], starDir: 'right',
   pracDoor: [33, 62.5], practice: [17, 66], practiceNpc: [17, 62],
   hallDoor: [67, 50.5], hall: [82.5, 56], hallNpc: [82.5, 34.5]
 }), actorHeight: 0.07 });

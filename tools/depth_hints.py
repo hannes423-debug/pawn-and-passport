@@ -817,7 +817,10 @@ OBJECTS = {
         # two umbrella tables, one behind the other: a player on the floor between
         # them (left of the front table) is in front of the back set and behind the
         # front one. The front umbrella overlaps the back table, so it comes second.
-        ('table-ne-back', 'poly', (81.3, 32, 88.8, 44.8), 44.3),
+        # The back set follows its canopy: a box took the hedge round the umbrella
+        # too, and a player in front of the hedge vanished into it (2026-11-01).
+        ('table-ne-back', 'poly', [(81.9, 35.2), (83.5, 32.6), (85.3, 31.6), (87.2, 32.6), (88.6, 35.2), (88.8, 36),
+                                   (88.8, 44.8), (81.3, 44.8), (81.3, 36.5), (81.9, 36)], 44.3),
         ('table-ne-front', 'poly', [(86.8, 35.4), (93.5, 35.4), (93.5, 48), (85.8, 48), (85.8, 40.2), (86.8, 40.2)], 47.6),
     ],
     'vie-int': [

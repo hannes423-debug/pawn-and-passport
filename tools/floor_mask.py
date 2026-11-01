@@ -86,10 +86,53 @@ def hand_edited():
     return set(re.findall(r'^\| ([a-z]{3}-[a-z]+) \|', part, re.M))
 
 
+FLOW_ALPHA = 'nearest'   # how the layer's alpha is resampled (rules hash)
+FLOW_MAX = 6.0            # px: the most the layer is moved locally onto the art (flow p99 ~10 is noise)
+_ALIGNED = {}
+
+
+def aligned_layer(scene, W, H):
+    """The artist's ORIGINAL layer (alpha 0-255 float, RGB float), in the art frame
+    and moved onto the art px by px.
+
+    The layer was cut from a slightly different render of each scene: after
+    the per-scene affine WARP its objects are still 1-5 px off the art, a
+    different way for each object (vie-ext: median 1.2 px, a tenth over 5),
+    and every px of that offset was paving drawn over a character (user,
+    2026-11-01: "there should not be any extra pixels"). A dense optical flow
+    from the art to the layer laid over the art finds where each object's
+    pixels really are; transparent parts match the art exactly and stay put.
+    vie-ext: the layer's own colours differ from the art under it by 52
+    instead of 76 (RGB sum, solid px)."""
+    key = (scene, W, H)
+    if key not in _ALIGNED:
+        # The alpha goes through every step NEAREST: three smoothing resamples
+        # (1 px resize, affine warp, flow) blurred a gate's 2-3 px see-through
+        # gaps to half-opaque and filled them (user, 2026-11-01)
+        img = Image.open(original_path(scene)).convert('RGBA')
+        rgb = np.asarray(img.convert('RGB').resize((W, H), Image.LANCZOS))
+        a8 = np.asarray(img.getchannel('A').resize((W, H), Image.NEAREST))
+        lay = np.dstack([bo.warp(rgb[..., c].copy(), scene, (W, H), cv2.INTER_LINEAR) for c in range(3)]
+                        + [bo.warp(a8.copy(), scene, (W, H), cv2.INTER_NEAREST)]).astype(np.float32)
+        art = np.asarray(Image.open(os.path.join(ROOT, 'assets', 'scenes', f'{scene}.webp')).convert('RGB').resize((W, H), Image.LANCZOS)).astype(np.float32)
+        a = lay[..., 3:4] / 255
+        comp = (lay[..., :3] * a + art * (1 - a)).astype(np.uint8)
+        g_art = cv2.cvtColor(art.astype(np.uint8), cv2.COLOR_RGB2GRAY)
+        g_lay = cv2.cvtColor(comp, cv2.COLOR_RGB2GRAY)
+        flow = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM).calc(g_art, g_lay, None)
+        flow = np.clip(flow, -FLOW_MAX, FLOW_MAX)
+        gx, gy = np.meshgrid(np.arange(W, dtype=np.float32), np.arange(H, dtype=np.float32))
+        mx, my = gx + flow[..., 0], gy + flow[..., 1]
+        moved = cv2.remap(lay[..., :3], mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+        alpha = cv2.remap(lay[..., 3], mx, my, cv2.INTER_NEAREST, borderMode=cv2.BORDER_REPLICATE)
+        _ALIGNED[key] = (np.clip(alpha, 0, 255), moved)
+    return _ALIGNED[key]
+
+
 def original_alpha(scene, W, H):
-    """The artist's ORIGINAL occlusion layer's alpha (0-255, soft edges kept), in the art frame."""
-    lay = Image.open(original_path(scene)).convert('RGBA').resize((W, H), Image.LANCZOS)
-    return bo.warp(np.asarray(lay)[..., 3].copy(), scene, (W, H), cv2.INTER_LINEAR)
+    """The artist's ORIGINAL occlusion layer's alpha (0-255, soft edges kept), in the art frame,
+    aligned onto the art (aligned_layer)."""
+    return aligned_layer(scene, W, H)[0].astype(np.uint8)
 
 
 def original_opaque(scene, W, H):

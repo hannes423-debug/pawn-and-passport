@@ -443,7 +443,7 @@ export async function sceneScreen(app, params) {
     const look = npc.kind === 'star' ? starForClub(clubId)?.look
       : npc.kind === 'host' ? missionForClub(clubId)?.host.look
       : club?.regularOpponentPool[npc.index % club.regularOpponentPool.length].look;
-    if (look) makeActor(look, npc.at, { dir: 'down' });
+    if (look) makeActor(look, npc.at, { dir: npc.dir || 'down' });
   }
 
   /* Depth layers: the artist's occlusion layer, cut into slices by ground line
@@ -624,6 +624,12 @@ export async function sceneScreen(app, params) {
       const near = freeMode && distanceTo(spot) <= USE_RADIUS;
       if (near) playerNode = spot.node;
       const arrived = near || await walkTo(spot.node);
+      // Turn to whoever the spot is about, not the way the last step went.
+      if (arrived && spot.npc?.at) {
+        const dxPx = (spot.npc.at[0] - player.x) * aspect;
+        const dy = spot.npc.at[1] - player.y;
+        if (Math.hypot(dxPx, dy) > 1e-6) { player.dir = Math.abs(dxPx) > Math.abs(dy) ? (dxPx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down'); player.draw(); }
+      }
       if (arrived) await runAction(spot);
     } finally {
       busy = false;

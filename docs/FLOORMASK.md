@@ -116,6 +116,36 @@ table below (masks), then run floor_depth.py and leak_check.py.
 | scene | edited | note |
 |---|---|---|
 
+## Accuracy: the layer is not cut from this art (v1.2.9, 2026-11-01)
+
+From the user's Vienna screenshots: paving drawn over characters round lamp
+posts and trees, and gates drawn solid. The artist's layer was cut from a
+slightly different render of each scene: after the per-scene affine WARP its
+objects are still 1-5 px off the art, a different way for each object.
+
+- `fm.aligned_layer()`: the layer is moved onto the art by a dense optical flow
+  (OpenCV DIS, art vs the layer laid over the art, capped at FLOW_MAX = 6 px);
+  its alpha is resampled NEAREST at every step, or a gate's 2-3 px gaps blur
+  shut. Every tool reading `original_alpha` (the build, leak_check) gets it.
+- The pruned layer is still loaded unaligned for the legacy movement; its use
+  in rule 4 ("erased by pruning = floor") gets PRUNED_SLACK = 2 px. Without it
+  every bar and post lost its right column and was drawn shifted left.
+- `paving()` in floor_depth.py, px that are never drawn (depth itself is still
+  worked out from the layer as drawn):
+  - the RING never takes the visible floor's colour (PAVE_*), nor a gap 2+ px
+    wide with drawing on both sides (GAP_ALPHA);
+  - inside the layer, only where the layer's own px disagrees with the art and
+    the object lies on both sides (gaps), never along one edge: a wooden chair
+    rail on parquet reads as floor and must stay;
+  - iron (DARK_GAP under the floor's lightness) comes from the ART: gaps between
+    bars and halos beside posts are dropped, iron the layer missed is drawn;
+  - cast shadows painted into the layer (the floor's hue, SHADOW_*).
+- vie-ext `table-ne-back` follows the umbrella canopy: the box took the hedge.
+
+leak_check counts every gap these open as a leak (it scores against the
+layer's alpha), so it rose in every scene by design. Judge changes with
+door_probe renders of the old build (a git worktree of HEAD) beside the new.
+
 ## Results
 
 Measured 2026-09-30 on every standable spot of the game's own walk grid (a

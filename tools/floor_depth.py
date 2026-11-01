@@ -74,6 +74,7 @@ DECAL_ON_FLOOR = 0.95  # rule 6
 SPLIT_GAP = 0.25       # character heights: two pieces of one drawing this far apart in line count as separate depths
 SPANS = 0.5            # character heights: a drawing whose lines spread over more than this spans several depths
 RING = 2               # px: an object's soft edge (the layer's anti-aliasing) joins it this far out...
+GAP_ALPHA = 128        # ...but inside a gap (drawing on both sides) only from this opaque
 RING_ALPHA = 16        # ...where the layer is at least this opaque (a resampled edge column leaked the player)
 MIN_FOOT = 3           # px: a footprint thinner than this is walk-mask edge noise
 WALLTOP_GAP = 4        # px: rows right below a floor-drawn piece that decide whether it is a wall top
@@ -82,6 +83,18 @@ CEIL_RIM = 4           # px: the ceiling's side outline joins it (sideways only;
 SMOOTH_R = 4           # px: a dip (a line lower than on BOTH sides) narrower than 2*SMOOTH_R+1 is filled...
 DIP_TOL = 1.0          # ...when it is at most this many character heights lower: columns of one object a
                        # little apart (uneven walk-mask edges) split a player between them into thin stripes
+PAVE_RIM = 3           # px: the layer's rim where a px may turn out to be the floor it was cut from (below)
+PAVE_REF = 12          # px: window of the local references, the visible floor and the object's own inside
+                       # (7 found no open floor in the middle of an open gate: its gaps stayed filled)
+PAVE_T = 12.0          # Lab distance (lightness weighted as fm.L_WEIGHT) a px may be from the local floor...
+PAVE_MARGIN = 3.0      # ...and at least this much nearer to it than to the object's inside...
+DARK_GAP = 35.0        # Lab L (0-255): iron is at least this much darker than the floor beside it...
+DARK_SHADE = 30.0      # ...and the paving it covers at most this much darker (in its shadow)
+SHADOW_CHROMA = 6.0    # Lab a/b distance from the local floor: a cast shadow is the floor's own hue...
+SHADOW_MIN = 30        # px: ...over an area this big, 3+ px thick, open to the visible floor
+PAVE_MIN = 8           # px: smaller bits are not worth a hole
+PAVE_DIFF = 12.0       # ...and the layer's OWN px there at least this far from the art's (it drew something else)
+PRUNED_SLACK = 2       # px: how far off the pruned layer may sit before its absence means 'floor'
 BED_BACK = 0.5         # character heights: a 'bed' px over floor stands at the footprint below it only when
                        # that is this near the bed's back edge (a bush over the floor behind); else at its own row
 LEGACY_JS = os.path.join(ROOT, 'js', 'data', 'sceneLayers.js')
@@ -312,7 +325,10 @@ def depth(scene, opaque, walk, floor, actor_h, art=None, pruned=None):
     # them apart (parquet, carpet and tile make every warm colour "floor"). For a
     # hand-cleaned layer the two are the same file: nothing to drop.
     if pruned is not None:
-        drawn_floor = (kinds == K_HANGING) & walk & ~pruned
+        # the pruned layer is loaded smoothed and unaligned, 1-2 px off the art:
+        # its edge must not 'erase' an object's own edge (every vie-ext gate bar
+        # lost its right column, drawn shifted left over the paving)
+        drawn_floor = (kinds == K_HANGING) & walk & ~ndimage.binary_dilation(pruned, iterations=PRUNED_SLACK)
         drawn_floor = ndimage.binary_closing(drawn_floor, structure=np.ones((3, 3))) & (kinds == K_HANGING) & walk
         base[drawn_floor] = np.nan
         kinds[drawn_floor] = K_DECAL
@@ -396,7 +412,7 @@ def depth(scene, opaque, walk, floor, actor_h, art=None, pruned=None):
 def sources(scene):
     folder = os.path.join(ROOT, bo.CITY_DIR[scene[:3]])
     md5 = lambda p: hashlib.md5(open(p, 'rb').read()).hexdigest()[:12]
-    rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box2', STEP, 'ceil3', CEIL_RIM, 'pruned-floor1', 'attach3', ATTACH_MAX, 'hints2', 'walltop1', MIN_FOOT, WALLTOP_GAP, CEILING.get(scene), RING, RING_ALPHA, 'dip3', SMOOTH_R, DIP_TOL, 'binup1', 'bedback1', BED_BACK,
+    rules = repr((OVER, SIDE_LEN, SIDE_W, SIDE_R, SIDE_D, MIN_BAND, INHERIT_R, DECAL_ON_FLOOR, 'box2', STEP, 'ceil3', CEIL_RIM, 'pruned-floor2', PRUNED_SLACK, 'attach3', ATTACH_MAX, 'hints2', 'walltop1', MIN_FOOT, WALLTOP_GAP, CEILING.get(scene), RING, RING_ALPHA, 'dip3', SMOOTH_R, DIP_TOL, 'binup1', 'bedback1', BED_BACK, 'pave6', 'gapin1', 'iron3', DARK_GAP, DARK_SHADE, 'shadow1', SHADOW_CHROMA, SHADOW_MIN, 'gap3', 'flow2', fm.FLOW_MAX, fm.FLOW_ALPHA, GAP_ALPHA, PAVE_MIN, PAVE_RIM, PAVE_REF, PAVE_T, PAVE_MARGIN, PAVE_DIFF,
                   fm.K, fm.L_WEIGHT, fm.T_FLOOR, fm.T_NOT, bo.GRID, bo.ALPHA, bo.BIN, bo.SPECK,
                   bo.WARP.get(scene), bo.HINTS.get(scene), bo.OBJECTS.get(scene)))
     return {'walkmask': md5(os.path.join(folder, f'{scene}-walkmask.png')),
@@ -407,14 +423,149 @@ def sources(scene):
             'rules': hashlib.md5(rules.encode()).hexdigest()[:12]}
 
 
+def layer_rgb(scene, W, H):
+    """The artist's ORIGINAL layer's colours, in the art frame (as original_alpha places them)."""
+    return np.clip(fm.aligned_layer(scene, W, H)[1], 0, 255).astype(np.uint8)
+
+
+def paving(scene, art, opaque, walk, floor, alpha):
+    """Px of the floor itself around the layer's objects (bool, art frame).
+
+    The artist's layer was cut from a slightly different render of each scene
+    (best local fit 1-3 px apart, and different per object), so its edges carry
+    paving: a band of floor round a lamp post, the gaps of a gate filled in,
+    and every px of it was drawn over a character standing behind (user,
+    Vienna, 2026-10-31). A px near the layer's rim, or in the soft edge the
+    RING would add, is floor when its colour is near the VISIBLE floor right
+    beside it and clearly nearer to that than to the object's own inside a
+    few px away. Local, both ways: a cream stone cap on beige paving keeps
+    its rim, and only ground (walkable, or floor in the floor mask) is touched.
+    And only where the layer's own px DISAGREES with the art (it drew the
+    lamp there, the art has paving): a chair's thin wooden rail on a parquet
+    floor is floor-coloured too, but the layer drew that same rail, so it
+    stays (lon-int: without this the player's hands showed through it)."""
+    lab = cv2.cvtColor(art, cv2.COLOR_RGB2LAB).astype(np.float32)
+    lab[..., 0] *= fm.L_WEIGHT
+    ground = walk | (floor == fm.FLOOR)
+    inside = ndimage.distance_transform_edt(opaque)
+    outside = ndimage.distance_transform_edt(~opaque)
+    seen = ~opaque & ground & (alpha < RING_ALPHA) & (outside >= 2)    # floor nobody drew over
+    core = opaque & (inside >= PAVE_RIM + 1)                             # the object's own inside
+    k = 2 * PAVE_REF + 1
+
+    def local_mean(m):
+        w = cv2.blur(m.astype(np.float32), (k, k))
+        mean = np.dstack([cv2.blur(lab[..., c] * m, (k, k)) for c in range(3)]) / np.maximum(w, 1e-6)[..., None]
+        return mean, w > 0.05
+
+    floor_ref, has_f = local_mean(seen)
+    obj_ref, has_o = local_mean(core)
+    d_f = np.sqrt(((lab - floor_ref) ** 2).sum(2))
+    d_o = np.where(has_o, np.sqrt(((lab - obj_ref) ** 2).sum(2)), np.inf)
+    lay = cv2.cvtColor(layer_rgb(scene, *art.shape[1::-1]), cv2.COLOR_RGB2LAB).astype(np.float32)
+    lay[..., 0] *= fm.L_WEIGHT
+    differs = np.sqrt(((lab - lay) ** 2).sum(2)) > PAVE_DIFF
+    # Only the soft edge the RING would add, never what the layer itself drew:
+    # inside it, a chair back's wooden top on a parquet floor reads as floor
+    # too (lon-int: feet showed over it), and the reported halos and filled
+    # gaps were all the ring's
+    rim = ~opaque & (outside <= RING) & (alpha >= RING_ALPHA)
+    pave = rim & ground & has_f & differs & (d_f < PAVE_T) & (d_f + PAVE_MARGIN < d_o)
+    # Cast shadows the artist painted into the layer (the planter's shadow
+    # beside a vie-ext lamp): inside the layer, on walkable ground, the floor's
+    # hue at any lightness and nearer the floor than the object. The layer drew
+    # the shadow too, so no 'differs'; thickness and size keep a chair's
+    # 2-3 px wooden rail on parquet out of it
+    chroma = np.sqrt(((lab[..., 1:] - floor_ref[..., 1:]) ** 2).sum(2))
+    d_o_ab = np.where(has_o, np.sqrt(((lab[..., 1:] - obj_ref[..., 1:]) ** 2).sum(2)), np.inf)
+    shade = opaque & walk & has_f & (chroma < SHADOW_CHROMA) & (chroma + PAVE_MARGIN < d_o_ab)
+    shade = ndimage.binary_opening(shade, structure=np.ones((3, 3)))
+    lab_s, n_s = ndimage.label(shade, structure=np.ones((3, 3)))
+    if n_s:
+        sizes = ndimage.sum(shade, lab_s, np.arange(1, n_s + 1))
+        open_ = np.unique(lab_s[shade & ndimage.binary_dilation(seen, iterations=2)])
+        ok = np.zeros(n_s + 1, bool); ok[open_] = True; ok[0] = False
+        ok[1:] &= sizes >= SHADOW_MIN
+        shade = ok[lab_s]
+    pave |= shade
+    # Gaps INSIDE the layer: the layer's bars sit ~1 px off the art's (too thin
+    # for the flow), so it covers the paving between a gate's bars. A px there
+    # looks like the floor beside the gate, the layer drew something else, and
+    # the object's own (non-floor) px lie within 4 px on BOTH opposite sides.
+    # A chair rail on parquet has floor on one side; a stone urn matches its layer.
+    objlike = opaque & ~(d_f < PAVE_T)
+    def near_obj(dx, dy):
+        out = np.zeros_like(objlike)
+        for k in range(1, 2 * RING + 1):
+            out |= np.roll(objlike, (dy * k, dx * k), axis=(0, 1))
+        return out
+    between = ((near_obj(1, 0) & near_obj(-1, 0)) | (near_obj(0, 1) & near_obj(0, -1))
+               | (near_obj(1, 1) & near_obj(-1, -1)) | (near_obj(1, -1) & near_obj(-1, 1)))
+    pave |= opaque & ground & has_f & differs & (d_f < PAVE_T) & between
+    # Dark thin things on light floor (gates, railings, lamp posts): the gaps
+    # under a gate are SHADED paving, too dark for the floor test. A px with the
+    # floor's hue and at most DARK_SHADE darker, where the layer is iron-dark
+    # (DARK_GAP under the floor) on both sides within 4 px - or between iron
+    # and open floor within 2 px (a halo) - is floor.
+    L = cv2.cvtColor(art, cv2.COLOR_RGB2LAB)[..., 0].astype(np.float32)
+    fL = floor_ref[..., 0] / fm.L_WEIGHT
+    hue_ok = has_f & (np.sqrt(((lab[..., 1:] - floor_ref[..., 1:]) ** 2).sum(2)) < SHADOW_CHROMA * 1.5)
+    # where the iron IS comes from the art: the layer's bars sit up to ~4 px off
+    # the art's under a gate, and the flow cannot see bars that thin
+    iron = has_f & (L < fL - DARK_GAP) & (outside <= 2 * RING)
+    lightish = opaque & hue_ok & ~iron & (L > fL - DARK_SHADE)  # (under a gate leaf the floor mask is unsure)
+    def near(m, dx, dy, reach):
+        out = np.zeros_like(m)
+        for k in range(1, reach + 1):
+            out |= np.roll(m, (dy * k, dx * k), axis=(0, 1))
+        return out
+    pairs = ((1, 0), (0, 1), (1, 1), (1, -1))
+    walled = np.zeros_like(opaque)
+    for dx, dy in pairs:
+        walled |= near(iron, dx, dy, 2 * RING) & near(iron, -dx, -dy, 2 * RING)
+    openfloor = ~opaque & ground & (alpha < RING_ALPHA)
+    halo = np.zeros_like(opaque)
+    for dx, dy in pairs + tuple((-a, -b) for a, b in pairs):
+        halo |= near(iron, dx, dy, RING) & near(openfloor, -dx, -dy, RING)
+    pave |= lightish & (walled | (halo & ground))
+    # A misregistered band or a filled gap is 2+ px thick; a 1 px line along
+    # an object is its own anti-aliased outline (lon-int: dropping those opened
+    # thin lines of a player along every chair)
+    pave = ndimage.binary_opening(pave, structure=np.ones((2, 2)))
+    lab_, n = ndimage.label(pave, structure=np.ones((3, 3)))
+    if n:
+        sizes = ndimage.sum(pave, lab_, np.arange(1, n + 1))
+        pave &= ~np.isin(lab_, np.nonzero(sizes < PAVE_MIN)[0] + 1)
+    # ...and the art's iron the layer missed, right beside it, is drawn (the ring gives it its line)
+    return pave, iron & ~opaque & (outside <= RING)
+
+
 def build(scene, actor_h, legacy):
     art, opaque, walk, floor, pruned = inputs(scene, with_pruned=True)
     H, W = opaque.shape
+    alpha = fm.original_alpha(scene, W, H)
+    # Depth is worked out from the layer as drawn (taking paving out of an
+    # object's foot moved where it meets the ground: lon-int's chair rails
+    # went behind a player they hid); the paving is only left UNDRAWN, below.
+    pave, iron_add = paving(scene, art, opaque, walk, floor, alpha)
+    alpha = np.where(pave, 0, np.where(iron_add, 255, alpha))   # the soft edge never claims paving, always takes iron
     base, kinds, piece, contact, heights, auto, decals, opaque = depth(scene, opaque, walk, floor, actor_h, art=art, pruned=pruned)
     # the layer's soft edge joins the object it is the edge of (front-most neighbour)
-    alpha = fm.original_alpha(scene, W, H)
     have = ~np.isnan(base)
     zone = ndimage.binary_dilation(have, structure=np.ones((3, 3)), iterations=RING) & ~have & ~decals & (alpha >= RING_ALPHA)
+    # ...one SIDE of an object. A px with the drawing within 2*RING px on both
+    # opposite sides is a gap (between a gate's bars; resampling smears its
+    # alpha to 47-127): filled only where the layer is half opaque there
+    def near(dx, dy):
+        out = np.zeros_like(have)
+        for k in range(1, 2 * RING + 1):                # a 4 px gap closes from both ends
+            out |= np.roll(have, (dy * k, dx * k), axis=(0, 1))
+        return out
+    gap = ((near(1, 0) & near(-1, 0)) | (near(0, 1) & near(0, -1))) & (alpha < GAP_ALPHA)
+    # ...and 2+ px wide: a 1 px seam between two objects is what the ring was
+    # made for (a resampled edge column leaked the player), it stays filled
+    gap = ndimage.binary_opening(gap, structure=np.ones((1, 2))) | ndimage.binary_opening(gap, structure=np.ones((2, 1)))
+    zone &= ~gap
     vals = np.where(have, base, -1.0).astype(np.float32)
     for _ in range(RING):
         grown = ndimage.grey_dilation(vals, size=(3, 3))
@@ -443,6 +594,7 @@ def build(scene, actor_h, legacy):
             side = np.minimum(before, after)                     # a dip: both sides stand further forward
             lift = have & (side > cur) & (side - cur <= tol) & (cur < 99.0)
             base[lift] = side[lift]
+    base[pave] = np.nan
     # bo.slices FLOORS each line to its BIN, which moves an object up to a bin
     # (2 px) back up the picture: a door jamb meeting the floor at 64.397 was
     # drawn at 64.2, behind a player whose feet were at 64.3, and the player
