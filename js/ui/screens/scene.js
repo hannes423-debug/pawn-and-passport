@@ -446,7 +446,7 @@ export async function sceneScreen(app, params) {
         const height = Math.max(40, Math.round(stageH * ACTOR_H));
         canvas.height = height;
         canvas.width = Math.round(height * CELL.W / CELL.H);
-        if (xray) { xray.width = canvas.width; xray.height = canvas.height; }
+        if (xray) { xray.style.width = `${canvas.width}px`; xray.style.height = `${canvas.height}px`; }
         shadow.style.width = `${canvas.width * 0.55}px`;
         shadow.style.height = `${canvas.width * 0.16}px`;
         this.height = height;
@@ -506,84 +506,214 @@ export async function sceneScreen(app, params) {
      feet are above its ground line). */
   let depthSet = null;
   let atlasImg = null;
+  /* The outline is drawn at the screen's own resolution (XK device px per
+     css px), from a SMOOTHED silhouette: traced on the sprite's css-px grid
+     it came out in steps, with specks where a slice's stray px covered the
+     player (user, 2026-11-02). Steps: the sprite's alpha and the cover's,
+     each blurred 3x3 (1-px bits and notches go), scaled up bilinear and cut
+     at half; the hidden part opened (slivers under 2 css px go) and its
+     small pieces dropped; then the gold line inside its edge and the ink ring
+     outside, by distance, soft at their inner and outer sides. */
+  const XK = Math.max(1, Math.min(2, Math.round(window.devicePixelRatio || 1)));    // 2 at most: the browser scales the soft result to a 3x screen
+  const scratch = document.createElement('canvas');
+  const figure = document.createElement('canvas');   // the player redrawn for reading back (CPU side), only when hidden
+  const buf = {};
+  const grow = (name, n, T) => (buf[name] && buf[name].length >= n ? buf[name] : (buf[name] = new T(n)));
+  function blur3(src, w, h, out) {               // 3x3 box blur of a 0..1 field
+    for (let y = 0; y < h; y += 1) {
+      for (let x = 0; x < w; x += 1) {
+        let s = 0; let c = 0;
+        for (let dy = -1; dy <= 1; dy += 1) {
+          const yy = y + dy;
+          if (yy < 0 || yy >= h) continue;
+          for (let dx = -1; dx <= 1; dx += 1) {
+            const xx = x + dx;
+            if (xx < 0 || xx >= w) continue;
+            s += src[yy * w + xx]; c += 1;
+          }
+        }
+        out[y * w + x] = s / c;
+      }
+    }
+  }
+  function upsample(src, w, h, k, W, H, out) {   // bilinear, cut at half: 1 inside
+    for (let Y = 0; Y < H; Y += 1) {
+      const fy = Math.min(h - 1, Math.max(0, (Y + 0.5) / k - 0.5));
+      const y0 = Math.floor(fy); const y1 = Math.min(h - 1, y0 + 1); const ty = fy - y0;
+      for (let X = 0; X < W; X += 1) {
+        const fx = Math.min(w - 1, Math.max(0, (X + 0.5) / k - 0.5));
+        const x0 = Math.floor(fx); const x1 = Math.min(w - 1, x0 + 1); const tx = fx - x0;
+        const top = src[y0 * w + x0] * (1 - tx) + src[y0 * w + x1] * tx;
+        const bot = src[y1 * w + x0] * (1 - tx) + src[y1 * w + x1] * tx;
+        out[Y * W + X] = top * (1 - ty) + bot * ty >= 0.5 ? 1 : 0;
+      }
+    }
+  }
+  function distance(feature, W, H, out) {        // chamfer 3-4: px to the nearest feature px (x3)
+    const INF = 1 << 29;
+    const n = W * H;
+    for (let i = 0; i < n; i += 1) out[i] = feature[i] ? 0 : INF;
+    for (let y = 0; y < H; y += 1) {
+      for (let x = 0; x < W; x += 1) {
+        const i = y * W + x;
+        let v = out[i];
+        if (!v) continue;
+        if (x > 0) v = Math.min(v, out[i - 1] + 3);
+        if (y > 0) {
+          v = Math.min(v, out[i - W] + 3);
+          if (x > 0) v = Math.min(v, out[i - W - 1] + 4);
+          if (x < W - 1) v = Math.min(v, out[i - W + 1] + 4);
+        }
+        out[i] = v;
+      }
+    }
+    for (let y = H - 1; y >= 0; y -= 1) {
+      for (let x = W - 1; x >= 0; x -= 1) {
+        const i = y * W + x;
+        let v = out[i];
+        if (!v) continue;
+        if (x < W - 1) v = Math.min(v, out[i + 1] + 3);
+        if (y < H - 1) {
+          v = Math.min(v, out[i + W] + 3);
+          if (x < W - 1) v = Math.min(v, out[i + W + 1] + 4);
+          if (x > 0) v = Math.min(v, out[i + W - 1] + 4);
+        }
+        out[i] = v;
+      }
+    }
+  }
+  function fill(mask, W, H, N, seeds, ok) {       // 4-connected flood fill from `seeds`: mask[i] = 1 where reached and ok(i)
+    const stack = seeds;
+    while (stack.length) {
+      const j = stack.pop(); const px = j % W;
+      if (j >= W && !mask[j - W] && ok(j - W)) { mask[j - W] = 1; stack.push(j - W); }
+      if (j + W < N && !mask[j + W] && ok(j + W)) { mask[j + W] = 1; stack.push(j + W); }
+      if (px > 0 && !mask[j - 1] && ok(j - 1)) { mask[j - 1] = 1; stack.push(j - 1); }
+      if (px < W - 1 && !mask[j + 1] && ok(j + 1)) { mask[j + 1] = 1; stack.push(j + 1); }
+    }
+  }
   function paintXray(a) {
     const g = a.xray;
     if (!g) return;
-    const ctx = g.getContext('2d', { willReadFrequently: true });
-    ctx.globalCompositeOperation = 'source-over';
+    const cw = a.canvas.width; const ch = a.canvas.height;
+    if (g.width !== cw * XK || g.height !== ch * XK) { g.width = cw * XK; g.height = ch * XK; }
+    const ctx = g.getContext('2d');
     ctx.clearRect(0, 0, g.width, g.height);
     g.style.left = a.canvas.style.left; g.style.top = a.canvas.style.top;
-    if (!XRAY || !depthSet || !atlasImg || !stageW || !g.width) { g.hidden = true; return; }
-    const cw = g.width; const ch = g.height;
+    if (!XRAY || !depthSet || !atlasImg || !stageW || !cw) { g.hidden = true; return; }
     const left = (a.x / 100) * stageW - cw / 2;      // .pp-actor: translate(-50%, -92%)
     const top = (a.y / 100) * stageH - 0.92 * ch;
     const z = Math.round(a.y * 10) * 2 + 1;
-    ctx.imageSmoothingEnabled = false;
+    if (scratch.width !== cw || scratch.height !== ch) { scratch.width = cw; scratch.height = ch; }
+    const sc = scratch.getContext('2d', { willReadFrequently: true });
+    sc.clearRect(0, 0, cw, ch);
+    sc.imageSmoothingEnabled = false;
     let covered = false;
     for (const [base, x, y, pw, ph, ax, ay, w, hgt] of depthSet.slices) {
       if (Math.round(base * 10) * 2 <= z) continue;
       const sx = (x / 100) * stageW - left; const sy = (y / 100) * stageH - top;
       const sw = (pw / 100) * stageW; const sh = (ph / 100) * stageH;
       if (sx >= cw || sy >= ch || sx + sw <= 0 || sy + sh <= 0) continue;
-      ctx.drawImage(atlasImg, ax, ay, w, hgt, sx, sy, sw, sh);
+      sc.drawImage(atlasImg, ax, ay, w, hgt, sx, sy, sw, sh);
       covered = true;
     }
     if (!covered) { g.hidden = true; return; }
-    const cover = ctx.getImageData(0, 0, cw, ch).data;
-    const body = a.canvas.getContext('2d').getImageData(0, 0, cw, ch).data;
-    const n = cw * ch;
-    const inBody = new Uint8Array(n);
-    const hid = new Uint8Array(n);
-    let any = false;
-    for (let i = 0; i < n; i += 1) {
-      inBody[i] = body[i * 4 + 3] > 127 ? 1 : 0;
-      if (inBody[i] && cover[i * 4 + 3] > 127) { hid[i] = 1; any = true; }
-    }
-    if (!any) { g.hidden = true; return; }
-    // OUTSIDE the figure: the empty px joined to the canvas's border. A few
-    // see-through px inside the sprite (between the hair and the collar) are
-    // not an edge: outlined, they drew a gold seam across the neck
-    const outside = new Uint8Array(n);
-    const stack = [];
-    for (let i = 0; i < n; i += 1) {
-      const px = i % cw; const py = (i - px) / cw;
-      if ((px === 0 || py === 0 || px === cw - 1 || py === ch - 1) && !inBody[i]) { outside[i] = 1; stack.push(i); }
-    }
-    while (stack.length) {
-      const i = stack.pop(); const px = i % cw;
-      for (const j of [i - cw, i + cw, px > 0 ? i - 1 : -1, px < cw - 1 ? i + 1 : -1]) {
-        if (j >= 0 && j < n && !outside[j] && !inBody[j]) { outside[j] = 1; stack.push(j); }
+    const cover = sc.getImageData(0, 0, cw, ch).data;
+    if (figure.width !== cw || figure.height !== ch) { figure.width = cw; figure.height = ch; }
+    const fc = figure.getContext('2d', { willReadFrequently: true });
+    fc.clearRect(0, 0, cw, ch);
+    drawCharacter(fc, a.look, { dir: a.dir, frame: a.frame, walking: a.walking, height: a.height || ch });
+    const body = fc.getImageData(0, 0, cw, ch).data;
+    // only round what is hidden: its box, and room for the blur and the ring
+    let bx0 = cw; let by0 = ch; let bx1 = -1; let by1 = -1;
+    for (let y = 0; y < ch; y += 1) {
+      for (let x = 0; x < cw; x += 1) {
+        const k = (y * cw + x) * 4 + 3;
+        if (body[k] > 127 && cover[k] > 127) { if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
       }
     }
-    const t = Math.max(1, Math.round(ch / 70));      // a sprite pixel or two, however big characters are drawn
-    const near = (i, test) => {                       // any px within t of i (a square) passing test
-      const px = i % cw; const py = (i - px) / cw;
-      for (let dy = -t; dy <= t; dy += 1) {
-        const yy = py + dy;
-        if (yy < 0 || yy >= ch) continue;
-        for (let dx = -t; dx <= t; dx += 1) {
-          const xx = px + dx;
-          if (xx >= 0 && xx < cw && test(yy * cw + xx)) return true;
-        }
+    if (bx1 < 0) { g.hidden = true; return; }
+    const m = 3;
+    bx0 = Math.max(0, bx0 - m); by0 = Math.max(0, by0 - m); bx1 = Math.min(cw - 1, bx1 + m); by1 = Math.min(ch - 1, by1 + m);
+    const w = bx1 - bx0 + 1; const h = by1 - by0 + 1; const n = w * h;
+    const s0 = grow('s0', n, Float32Array); const c0 = grow('c0', n, Float32Array);
+    for (let y = 0; y < h; y += 1) {
+      for (let x = 0; x < w; x += 1) {
+        const k = ((y + by0) * cw + x + bx0) * 4 + 3;
+        s0[y * w + x] = body[k] / 255; c0[y * w + x] = cover[k] / 255;
       }
-      return false;
-    };
-    const out = ctx.createImageData(cw, ch);
+    }
+    const s1 = grow('s1', n, Float32Array); const c1 = grow('c1', n, Float32Array);
+    blur3(s0, w, h, s1); blur3(c0, w, h, c1);
+    const W = w * XK; const H = h * XK; const N = W * H;
+    const inS = grow('inS', N, Uint8Array); const inC = grow('inC', N, Uint8Array);
+    upsample(s1, w, h, XK, W, H, inS); upsample(c1, w, h, XK, W, H, inC);
+    const hid = grow('hid', N, Uint8Array); const tmp = grow('tmp', N, Uint8Array);
+    const d = grow('d', N, Int32Array);
+    let bodyArea = 0;
+    for (let i = 0; i < N; i += 1) { hid[i] = inS[i] & inC[i]; bodyArea += inS[i]; }
+    // open the hidden part: slivers under 2 css px wide go
+    const r = XK * 3;                                   // chamfer units (3 per px)
+    for (let i = 0; i < N; i += 1) tmp[i] = hid[i] ? 0 : 1;
+    distance(tmp, W, H, d);
+    for (let i = 0; i < N; i += 1) tmp[i] = d[i] > r ? 1 : 0;
+    distance(tmp, W, H, d);
+    for (let i = 0; i < N; i += 1) hid[i] = hid[i] && d[i] <= r ? 1 : 0;
+    // ...and its small pieces (a speck of a slice over a shoulder)
+    const piece = grow('piece', N, Uint8Array);
+    const done = grow('done', N, Uint8Array); done.fill(0, 0, N);
+    const minArea = Math.max(6 * XK * XK, bodyArea * 0.012);
+    let shown = false;
+    for (let i = 0; i < N; i += 1) {
+      if (!hid[i] || done[i]) continue;
+      piece.fill(0, 0, N); piece[i] = 1;
+      fill(piece, W, H, N, [i], (q) => hid[q] === 1);
+      let area = 0;
+      for (let j = 0; j < N; j += 1) if (piece[j]) { area += 1; done[j] = 1; }
+      if (area < minArea) { for (let j = 0; j < N; j += 1) if (piece[j]) hid[j] = 0; } else shown = true;
+    }
+    if (!shown) { g.hidden = true; return; }
+    // OUTSIDE the figure: the empty px joined to the box's border (a few
+    // see-through px inside the sprite are no edge: they drew a seam at the neck)
+    const outside = grow('outside', N, Uint8Array); outside.fill(0, 0, N);
+    const seeds = [];
+    for (let X = 0; X < W; X += 1) {
+      for (const i of [X, (H - 1) * W + X]) if (!inS[i] && !outside[i]) { outside[i] = 1; seeds.push(i); }
+    }
+    for (let Y = 0; Y < H; Y += 1) {
+      for (const i of [Y * W, Y * W + W - 1]) if (!inS[i] && !outside[i]) { outside[i] = 1; seeds.push(i); }
+    }
+    fill(outside, W, H, N, seeds, (q) => inS[q] === 0);
+    const out = ctx.createImageData(W, H);
     const o = out.data;
+    const t = Math.max(1, Math.round(ch / 70));
+    const lw = Math.max(2, t * XK * 1.5);               // the gold line (XK px per css px): as heavy as a sprite pixel
+    const rw = Math.max(1.5, XK * 1.4);                 // the ink ring round it
     const [GR, GG, GB] = XRAY_LINE; const [IR, IG, IB] = XRAY_RING;
-    for (let i = 0; i < n; i += 1) {
-      const k = i * 4;
-      if (hid[i]) {
-        if (near(i, (j) => outside[j])) {               // the silhouette's edge: gold
-          o[k] = GR; o[k + 1] = GG; o[k + 2] = GB; o[k + 3] = 255;
-        } else {                                        // inside: a soft ghost of the sprite
-          o[k] = body[k]; o[k + 1] = body[k + 1]; o[k + 2] = body[k + 2]; o[k + 3] = XRAY_GHOST;
-        }
-      } else if (outside[i] && cover[k + 3] > 127 && near(i, (j) => hid[j])) {
-        o[k] = IR; o[k + 1] = IG; o[k + 2] = IB; o[k + 3] = 220;   // the ink ring outside it, over what hides them
+    distance(outside, W, H, d);                         // hidden px: how far in from the edge
+    for (let Y = 0; Y < H; Y += 1) {
+      const by = ((Math.floor(Y / XK) + by0) * cw + bx0) * 4;
+      for (let X = 0; X < W; X += 1) {
+        const i = Y * W + X;
+        if (!hid[i]) continue;
+        const k = i * 4;
+        const bi = by + Math.floor(X / XK) * 4;
+        const line = Math.min(1, Math.max(0, lw + 0.5 - d[i] / 3));
+        o[k] = Math.round(body[bi] * (1 - line) + GR * line);         // gold over the ghost, soft on its inner side
+        o[k + 1] = Math.round(body[bi + 1] * (1 - line) + GG * line);
+        o[k + 2] = Math.round(body[bi + 2] * (1 - line) + GB * line);
+        o[k + 3] = Math.round(XRAY_GHOST * (1 - line) + 255 * line);
       }
     }
-    ctx.putImageData(out, 0, 0);
+    distance(hid, W, H, d);                             // outside px: how far from the hidden part
+    for (let i = 0; i < N; i += 1) {
+      if (!outside[i] || !inC[i]) continue;
+      const ring = Math.min(1, Math.max(0, rw + 0.5 - d[i] / 3));
+      if (ring <= 0) continue;
+      const k = i * 4;
+      o[k] = IR; o[k + 1] = IG; o[k + 2] = IB; o[k + 3] = Math.round(235 * ring);
+    }
+    ctx.putImageData(out, bx0 * XK, by0 * XK);
     g.hidden = false;
   }
 

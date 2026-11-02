@@ -269,6 +269,22 @@ the name labels and the HUD numbers are. Only the OUTSIDE edge is traced (the
 empty px joined to the canvas border): see-through px inside the sprite drew
 a seam across the neck.
 
+## A smooth outline (v1.2.16, 2026-11-02)
+
+The user: stray px in the outline, and it should be smoother. Traced on the
+sprite's css-px grid, the outline came out in steps (3x3 device px each on a
+phone), and every speck or 1-px sliver of a slice over the player got an
+outline of its own. `paintXray` now works on the box round the hidden part:
+the sprite's alpha and the cover's are blurred 3x3 (1-px bits and notches
+go), scaled up bilinear to XK device px per css px (2 at most: the browser
+scales the soft result to a 3x screen) and cut at half; the hidden part is
+opened (slivers under 2 css px go) and pieces under 1.2 % of the figure are
+dropped; the gold line and the ink ring are drawn by chamfer distance from
+the figure's edge, soft on their inner and outer sides. The sprite is read
+back from a CPU-side copy drawn only when something covers the player.
+Cost, CPU slowed 4x: about 9 ms a step where hidden (7.5 before), the same
+as before in the open.
+
 ## Results
 
 Measured 2026-09-30 on every standable spot of the game's own walk grid (a
