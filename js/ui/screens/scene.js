@@ -124,7 +124,10 @@ const fits = (size, d) => !size || (size[0] === d.atlasSize[0] && size[1] === d.
    ?depth=legacy switches to the previous renderer (and back), live, for the
    rest of the session. Walking is identical in both: same walk grid. */
 const DEPTH_DEFAULT = 'floor';     // 'legacy' puts everybody back on the previous renderer
-const XRAY = true;                 // the player shows faintly through whatever stands in front (paintXray)
+const XRAY = true;                 // the player shows through whatever stands in front (paintXray)
+const XRAY_LINE = [255, 216, 122]; // --gold-hi: the hidden silhouette's outline
+const XRAY_RING = [26, 15, 8];     // the HUD's outline ink, round it
+const XRAY_GHOST = 90;             // alpha (of 255) of the sprite inside the outline
 const XRAY_Z = 2100;               // over every slice (a slice's z is at most 2 * 990)
 let depthMode = (() => {
   try {
@@ -494,17 +497,19 @@ export async function sceneScreen(app, params) {
   }
 
   /* X-RAY (user, 2026-11-01: the player vanished behind a palm crown, an open
-     gate, the wall south of a doorway). Where a depth slice is drawn in front
-     of the player, that part of them is drawn again, faintly, over it: the
-     depth stays right and the player is never lost. Only the hidden px: where
-     nothing covers the player the x-ray is empty. Same stacking rule as the
-     stage (a slice covers a character whose feet are above its ground line). */
+     gate, a pillar they walk behind). Where a depth slice is drawn in front of
+     the player, that part of them shows as a soft ghost of the sprite with its
+     outline highlighted in the game's gold, ringed in dark ink like the name
+     labels and the HUD numbers: the depth stays right and the player is never
+     lost. Only the hidden px: where nothing covers the player the x-ray is
+     empty. Same stacking rule as the stage (a slice covers a character whose
+     feet are above its ground line). */
   let depthSet = null;
   let atlasImg = null;
   function paintXray(a) {
     const g = a.xray;
     if (!g) return;
-    const ctx = g.getContext('2d');
+    const ctx = g.getContext('2d', { willReadFrequently: true });
     ctx.globalCompositeOperation = 'source-over';
     ctx.clearRect(0, 0, g.width, g.height);
     g.style.left = a.canvas.style.left; g.style.top = a.canvas.style.top;
@@ -523,12 +528,63 @@ export async function sceneScreen(app, params) {
       ctx.drawImage(atlasImg, ax, ay, w, hgt, sx, sy, sw, sh);
       covered = true;
     }
-    if (covered) {
-      ctx.globalCompositeOperation = 'source-in';     // the player, only where a slice is
-      ctx.drawImage(a.canvas, 0, 0);
-      ctx.globalCompositeOperation = 'source-over';
+    if (!covered) { g.hidden = true; return; }
+    const cover = ctx.getImageData(0, 0, cw, ch).data;
+    const body = a.canvas.getContext('2d').getImageData(0, 0, cw, ch).data;
+    const n = cw * ch;
+    const inBody = new Uint8Array(n);
+    const hid = new Uint8Array(n);
+    let any = false;
+    for (let i = 0; i < n; i += 1) {
+      inBody[i] = body[i * 4 + 3] > 127 ? 1 : 0;
+      if (inBody[i] && cover[i * 4 + 3] > 127) { hid[i] = 1; any = true; }
     }
-    g.hidden = !covered;
+    if (!any) { g.hidden = true; return; }
+    // OUTSIDE the figure: the empty px joined to the canvas's border. A few
+    // see-through px inside the sprite (between the hair and the collar) are
+    // not an edge: outlined, they drew a gold seam across the neck
+    const outside = new Uint8Array(n);
+    const stack = [];
+    for (let i = 0; i < n; i += 1) {
+      const px = i % cw; const py = (i - px) / cw;
+      if ((px === 0 || py === 0 || px === cw - 1 || py === ch - 1) && !inBody[i]) { outside[i] = 1; stack.push(i); }
+    }
+    while (stack.length) {
+      const i = stack.pop(); const px = i % cw;
+      for (const j of [i - cw, i + cw, px > 0 ? i - 1 : -1, px < cw - 1 ? i + 1 : -1]) {
+        if (j >= 0 && j < n && !outside[j] && !inBody[j]) { outside[j] = 1; stack.push(j); }
+      }
+    }
+    const t = Math.max(1, Math.round(ch / 70));      // a sprite pixel or two, however big characters are drawn
+    const near = (i, test) => {                       // any px within t of i (a square) passing test
+      const px = i % cw; const py = (i - px) / cw;
+      for (let dy = -t; dy <= t; dy += 1) {
+        const yy = py + dy;
+        if (yy < 0 || yy >= ch) continue;
+        for (let dx = -t; dx <= t; dx += 1) {
+          const xx = px + dx;
+          if (xx >= 0 && xx < cw && test(yy * cw + xx)) return true;
+        }
+      }
+      return false;
+    };
+    const out = ctx.createImageData(cw, ch);
+    const o = out.data;
+    const [GR, GG, GB] = XRAY_LINE; const [IR, IG, IB] = XRAY_RING;
+    for (let i = 0; i < n; i += 1) {
+      const k = i * 4;
+      if (hid[i]) {
+        if (near(i, (j) => outside[j])) {               // the silhouette's edge: gold
+          o[k] = GR; o[k + 1] = GG; o[k + 2] = GB; o[k + 3] = 255;
+        } else {                                        // inside: a soft ghost of the sprite
+          o[k] = body[k]; o[k + 1] = body[k + 1]; o[k + 2] = body[k + 2]; o[k + 3] = XRAY_GHOST;
+        }
+      } else if (outside[i] && cover[k + 3] > 127 && near(i, (j) => hid[j])) {
+        o[k] = IR; o[k + 1] = IG; o[k + 2] = IB; o[k + 3] = 220;   // the ink ring outside it, over what hides them
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+    g.hidden = false;
   }
 
   /* Depth layers: the artist's occlusion layer, cut into slices by ground line

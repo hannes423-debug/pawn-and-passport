@@ -253,6 +253,22 @@ of the east study doorway, and Hiro's name drawn over Rahul's body.
   member's feet and beside the head, and takes the first that covers no other
   character (else the one covering least).
 
+## Pillars hide, the outline shows (v1.2.15, 2026-11-02)
+
+The user: the pillar at each che-int study doorway is MEANT to hide the
+player, and the walk mask is right to let feet behind it. The four che-int
+OBJECTS entries of v1.2.12/v1.2.14 are gone: the cap and the strip above it
+stand where the build's own rules put them, at the pillar's foot, in front
+of anyone walking behind them.
+
+The x-ray (scene.js `paintXray`) is now the user's pick, a highlighted
+outline: the hidden part of the player is a soft ghost of the sprite
+(XRAY_GHOST), its silhouette edge drawn in --gold-hi (XRAY_LINE) a sprite
+pixel or two thick, ringed outside in the HUD's outline ink (XRAY_RING), as
+the name labels and the HUD numbers are. Only the OUTSIDE edge is traced (the
+empty px joined to the canvas border): see-through px inside the sprite drew
+a seam across the neck.
+
 ## Results
 
 Measured 2026-09-30 on every standable spot of the game's own walk grid (a
