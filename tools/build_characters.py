@@ -383,13 +383,10 @@ def main():
     manifest = {'cell': [CELL_W, CELL_H], 'baseline': BASELINE, 'columns': {'idle': [0, 4], 'walk': [4, 12]},
                 'rows': ['down', 'left', 'right', 'up'], 'sprites': {}}
     built = {}
-    # Sheets from an older build (recolours, removed source pages) must not linger.
-    for stale in os.listdir(OUT):
-        if stale.endswith('.png'):
-            os.remove(os.path.join(OUT, stale))
-    os.makedirs(os.path.join(OUT, 'portraits'), exist_ok=True)
-    for stale in os.listdir(os.path.join(OUT, 'portraits')):
-        os.remove(os.path.join(OUT, 'portraits', stale))
+    portraits = {}
+    # Everything is built in memory FIRST: a failure half way (a missing
+    # Python module, a bad page) used to leave assets/characters/ emptied,
+    # because the old files were deleted before anything new was made.
     for sid, spec in SHEETS.items():
         file, layout, idle, region, hero = spec[:5]
         mode = spec[5] if len(spec) > 5 else 'white'
@@ -402,12 +399,21 @@ def main():
         frames = find_frames(page, layout, idle, region, mode, walk_count)
         sheet = assemble(frames)
         built[sid] = sheet
-        sheet.save(os.path.join(OUT, f'{sid}.png'), optimize=True)
         portrait = hero_figure(page, hero, mode)
-        portrait.save(os.path.join(OUT, 'portraits', f'{sid}.png'), optimize=True)
+        portraits[sid] = portrait
         manifest['sprites'][sid] = {'src': f'assets/characters/{sid}.png', 'portrait': f'assets/characters/portraits/{sid}.png',
                                     'portraitSize': list(portrait.size), 'from': file}
         print(f'  {sid}: {file} (portrait {portrait.size[0]}x{portrait.size[1]})')
+    # Sheets from an older build (recolours, removed source pages) must not linger.
+    for stale in os.listdir(OUT):
+        if stale.endswith('.png'):
+            os.remove(os.path.join(OUT, stale))
+    os.makedirs(os.path.join(OUT, 'portraits'), exist_ok=True)
+    for stale in os.listdir(os.path.join(OUT, 'portraits')):
+        os.remove(os.path.join(OUT, 'portraits', stale))
+    for sid, sheet in built.items():
+        sheet.save(os.path.join(OUT, f'{sid}.png'), optimize=True)
+        portraits[sid].save(os.path.join(OUT, 'portraits', f'{sid}.png'), optimize=True)
     with open(os.path.join(OUT, 'manifest.json'), 'w') as fh:
         json.dump(manifest, fh, indent=2)
     if DEBUG:
