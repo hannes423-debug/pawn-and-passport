@@ -44,6 +44,7 @@ DEBUG = '--debug' in sys.argv
 CELL_W, CELL_H = 72, 108
 BASELINE = CELL_H - 6
 BODY_H = 96            # the tallest frame of a character is scaled to this
+FOOT_SLACK = 1         # px a frame's lowest pixel may sit off the baseline (stabilise)
 
 A = ['down', 'right', 'up', 'left']      # "IDLE 1-4 | WALK 1-8", rows down/right/up/left
 C = ['down', 'left', 'up', 'right']      # "IDLE | WALK 1-8", rows down/left/up/right
@@ -329,6 +330,15 @@ def stabilise(sheet):
                     if score > best_score:
                         best, best_score = (dy, dx), score
             dy, dx = best
+            # Feet on the ground (2026-11-05 audit): pinning the torso alone
+            # lifted 45 walk frames 3-5 px off the floor, so walkers hovered
+            # mid-stride. The lowest pixel (the planted foot) may now sit at
+            # most FOOT_SLACK px from the baseline; the body bobs over it.
+            rows_on = np.where(mask.any(axis=1))[0]
+            if len(rows_on):
+                foot = int(rows_on.max())
+                ground = BASELINE - 1
+                dy = max(ground - FOOT_SLACK - foot, min(ground + FOOT_SLACK - foot, dy))
             moved = np.roll(np.roll(cell, dy, axis=0), dx, axis=1)
             out[row * CELL_H:(row + 1) * CELL_H, col * CELL_W:(col + 1) * CELL_W] = moved
     return Image.fromarray(out, 'RGBA')

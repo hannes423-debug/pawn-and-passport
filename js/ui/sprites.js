@@ -20,6 +20,8 @@
  * (setPlayerAvatar swaps it for its closest counterpart).
  */
 
+import { rowFor, showable } from '../core/locomotion.js';
+
 const W = 16;
 const H = 24;
 const OUTLINE = '#1b1420';
@@ -34,9 +36,20 @@ export const PLAYER_LOOKS = Object.freeze({
 /* ------------------------------------------------------- drawn sheets -- */
 
 export const CELL = Object.freeze({ W: 72, H: 108, idle: 4, walk: 8 });
-const ROW = { down: 0, left: 1, right: 2, up: 3 };
+/* Row order of the sliced sheets (assets/characters/manifest.json "rows").
+   A sheet may name its own rows and allow mirroring (manifest "sprites.<id>.
+   rows" / ".mirror"), which is how an eight-direction sheet will plug in:
+   js/core/locomotion.js decides the facing, rowFor() finds the row. */
+const DEFAULT_ROWS = Object.freeze(['down', 'left', 'right', 'up']);
 const images = new Map();
 const portraits = new Map();
+const sheetRows = new Map();     // id -> { rows, mirror }
+
+/** Device pixels per CSS pixel to rasterise characters at (1..3). */
+export function renderScale() {
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  return Math.max(1, Math.min(3, dpr));
+}
 
 /* The player's avatar and what an NPC wearing the same sprite shows instead. */
 const TWIN = { boy: 'young-blue', girl: 'woman' };
@@ -61,6 +74,11 @@ export async function loadCharacterSprites(base = 'assets/characters/') {
   try {
     const manifest = await fetch(`${base}manifest.json`).then((r) => r.json());
     ids = Object.keys(manifest.sprites || {});
+    const rows = Array.isArray(manifest.rows) && manifest.rows.length ? manifest.rows : DEFAULT_ROWS;
+    for (const id of ids) {
+      const own = manifest.sprites[id];
+      sheetRows.set(id, { rows: Array.isArray(own.rows) ? own.rows : rows, mirror: !!own.mirror });
+    }
   } catch { return images; }
   const load = (map, id, src) => new Promise((resolve) => {
     const img = new Image();
@@ -73,6 +91,17 @@ export async function loadCharacterSprites(base = 'assets/characters/') {
 }
 
 export const hasSheet = (look) => !!(spriteId(look) && images.get(spriteId(look)));
+
+/** The rows a look's sheet draws, and whether it may mirror them. */
+export function sheetLayout(look) {
+  return sheetRows.get(spriteId(look)) || { rows: DEFAULT_ROWS, mirror: false };
+}
+
+/** Every direction a look can be shown facing (for locomotion.facingFor). */
+export function directionsFor(look) {
+  const { rows, mirror } = sheetLayout(look);
+  return showable(rows, mirror);
+}
 
 function shade(hex, amount) {
   const n = parseInt(hex.slice(1), 16);
@@ -229,15 +258,24 @@ export const SPRITE = Object.freeze({ W, H, rows: { down: 0, left: 1, right: 2, 
 
 /**
  * Draw one frame of a character.
+ *
+ * `height` (and `width`) are in the TARGET canvas's own pixels. A caller that
+ * shows the canvas at a CSS size should make the canvas renderScale() times
+ * larger and pass its real size here: rasterising at CSS size and letting the
+ * browser blow it up is what made characters blurry on 2x and 3x screens
+ * (docs/CHARACTER_SPEC.md).
+ *
  * @param {Object} o
- * @param {'down'|'left'|'right'|'up'} o.dir
+ * @param {string} o.dir      any direction of js/core/locomotion.js; the sheet
+ *                            shows the nearest one it has (rowFor)
  * @param {number} o.frame    animation counter (wraps per animation)
  * @param {boolean} o.walking walk cycle instead of idle
  * @param {number} [o.height] target height in px (defaults to 24 x scale)
+ * @param {number} [o.width]  target width in px (defaults to the cell's aspect)
  */
-export function drawCharacter(ctx, look, { dir = 'down', frame = 0, walking = false, x = 0, y = 0, scale = 3, height = null } = {}) {
+export function drawCharacter(ctx, look, { dir = 'down', frame = 0, walking = false, x = 0, y = 0, scale = 3, height = null, width = null } = {}) {
   const h = height || SPRITE.H * scale;
-  const w = Math.round(h * CELL.W / CELL.H);
+  const w = width || Math.round(h * CELL.W / CELL.H);
   ctx.imageSmoothingEnabled = false;
   const sheet = hasSheet(look) ? images.get(spriteId(look)) : null;
   if (sheet) {
@@ -245,23 +283,40 @@ export function drawCharacter(ctx, look, { dir = 'down', frame = 0, walking = fa
     // unevenly; smooth when shrinking, stay crisp when enlarging.
     ctx.imageSmoothingEnabled = h < CELL.H;
     ctx.imageSmoothingQuality = 'high';
+    const { rows, mirror } = sheetLayout(look);
+    const { row, flip } = rowFor(dir, rows, mirror);
     // Standing is always the first idle frame: characters hold still.
     const col = walking ? CELL.idle + (frame % CELL.walk) : 0;
-    ctx.drawImage(sheet, col * CELL.W, ROW[dir] * CELL.H, CELL.W, CELL.H, x, y, w, h);
+    const sy = Math.max(0, rows.indexOf(row)) * CELL.H;
+    if (flip) {
+      ctx.save();
+      ctx.translate(x + w, y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(sheet, col * CELL.W, sy, CELL.W, CELL.H, 0, 0, w, h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(sheet, col * CELL.W, sy, CELL.W, CELL.H, x, y, w, h);
+    }
     return;
   }
   const procFrame = walking ? (frame % 2 ? 1 : 2) : 0;
-  ctx.drawImage(characterSheet(look), procFrame * W, SPRITE.rows[dir] * H, W, H, x, y, w, h);
+  const { row } = rowFor(dir, DEFAULT_ROWS, false);
+  ctx.drawImage(characterSheet(look), procFrame * W, SPRITE.rows[row] * H, W, H, x, y, w, h);
 }
 
 /** A standalone canvas element showing one pose (used for previews). */
 export function spriteCanvas(look, { dir = 'down', frame = 0, walking = false, scale = 4, cls = 'pp-sprite' } = {}) {
   const canvas = document.createElement('canvas');
   const height = SPRITE.H * scale;
-  canvas.height = height;
-  canvas.width = Math.round(height * CELL.W / CELL.H);
+  const width = Math.round(height * CELL.W / CELL.H);
+  // Rasterised at the screen's resolution, shown at the CSS size asked for.
+  const k = renderScale();
+  canvas.height = Math.round(height * k);
+  canvas.width = Math.round(width * k);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
   canvas.className = cls;
-  drawCharacter(canvas.getContext('2d'), look, { dir, frame, walking, height });
+  drawCharacter(canvas.getContext('2d'), look, { dir, frame, walking, height: canvas.height, width: canvas.width });
   return canvas;
 }
 
@@ -298,4 +353,4 @@ export function portraitUrl(look, { size = 96, ring = '#e8b04a', ground = '#f3e3
   return url;
 }
 
-export default { characterSheet, drawCharacter, spriteCanvas, portraitUrl, loadCharacterSprites, hasSheet, spriteId, setPlayerAvatar, PLAYER_LOOKS, SPRITE, CELL };
+export default { characterSheet, drawCharacter, spriteCanvas, portraitUrl, loadCharacterSprites, hasSheet, spriteId, setPlayerAvatar, sheetLayout, directionsFor, renderScale, PLAYER_LOOKS, SPRITE, CELL };

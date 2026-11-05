@@ -17,7 +17,8 @@
 
 import { h, button, wait, clear } from '../dom.js';
 import { sfx } from '../audio.js';
-import { drawCharacter, PLAYER_LOOKS, CELL, portraitUrl } from '../sprites.js';
+import { drawCharacter, PLAYER_LOOKS, CELL, portraitUrl, renderScale, directionsFor } from '../sprites.js';
+import { facingFor, createStride } from '../../core/locomotion.js';
 import { sceneById, findPath } from '../../data/scenes.js';
 import { CLUBS, FINALE, clubById } from '../../data/clubs.js';
 import { STAR_PLAYERS, starById, starForClub } from '../../data/starPlayers.js';
@@ -48,6 +49,10 @@ import { prompt } from '../prompts.js';
 
 const GUIDE_LOOK = { sprite: 'old-scarf', skin: '#d9a57c', hair: '#3a2a20', hairStyle: 'bun', top: '#2f5f8a', bottom: '#2a2f3a', accent: '#e8b04a' };
 const WALK_SPEED = 33.6;         // percent of the stage height per second (42 until 2026-09-25: too brisk)
+/* One walk frame every 0.09 s at full speed (the pace the cycle was tuned
+   at), counted in DISTANCE so a slower walk moves the legs slower
+   (js/core/locomotion.js createStride). */
+const FRAME_SECONDS = 0.09;
 
 /* What a hotspot is FOR decides how its label looks (css: .pp-hotspot.is-*). */
 const KIND_ICON = { goal: 'trophy', star: 'crown', practice: 'practice', puzzle: 'scroll', exit: 'exit', member: 'dialogue', info: 'dialogue' };
@@ -444,18 +449,28 @@ export async function sceneScreen(app, params) {
         // Characters stand about a tenth of the scene tall; close-up scenes
         // set their own measured height (scenes.js actorHeight).
         const height = Math.max(40, Math.round(stageH * ACTOR_H));
-        canvas.height = height;
-        canvas.width = Math.round(height * CELL.W / CELL.H);
-        if (xray) { xray.style.width = `${canvas.width}px`; xray.style.height = `${canvas.height}px`; }
-        shadow.style.width = `${canvas.width * 0.55}px`;
-        shadow.style.height = `${canvas.width * 0.16}px`;
+        const width = Math.round(height * CELL.W / CELL.H);
+        /* The bitmap is rasterised at the SCREEN's resolution and shown at
+           the CSS size: a canvas the CSS size, enlarged 2-3x by the browser
+           on a phone, was what made every character look blurry (a 29x44
+           bitmap shown 132 device px tall). this.height / this.cssW stay in
+           CSS px: the camera, the shadow and the x-ray all work in those. */
+        const k = renderScale();
+        canvas.height = Math.round(height * k);
+        canvas.width = Math.round(width * k);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        if (xray) { xray.style.width = `${width}px`; xray.style.height = `${height}px`; }
+        shadow.style.width = `${width * 0.55}px`;
+        shadow.style.height = `${width * 0.16}px`;
         this.height = height;
+        this.cssW = width;
         this.draw();
       },
       draw() {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawCharacter(ctx, look, { dir: this.dir, frame: this.frame, walking: this.walking, height: this.height || 60 });
+        drawCharacter(ctx, look, { dir: this.dir, frame: this.frame, walking: this.walking, height: canvas.height, width: canvas.width });
         canvas.style.left = `${this.x}%`; canvas.style.top = `${this.y}%`;
         shadow.style.left = `${this.x}%`; shadow.style.top = `${this.y}%`;
         // Odd: a character level with a slice's ground line stands in front of it.
@@ -595,7 +610,8 @@ export async function sceneScreen(app, params) {
   function paintXray(a) {
     const g = a.xray;
     if (!g) return;
-    const cw = a.canvas.width; const ch = a.canvas.height;
+    // CSS px: the actor's bitmap is renderScale() times larger (resize).
+    const cw = a.cssW || a.canvas.width; const ch = a.height || a.canvas.height;
     if (g.width !== cw * XK || g.height !== ch * XK) { g.width = cw * XK; g.height = ch * XK; }
     const ctx = g.getContext('2d');
     ctx.clearRect(0, 0, g.width, g.height);
@@ -622,7 +638,7 @@ export async function sceneScreen(app, params) {
     if (figure.width !== cw || figure.height !== ch) { figure.width = cw; figure.height = ch; }
     const fc = figure.getContext('2d', { willReadFrequently: true });
     fc.clearRect(0, 0, cw, ch);
-    drawCharacter(fc, a.look, { dir: a.dir, frame: a.frame, walking: a.walking, height: a.height || ch });
+    drawCharacter(fc, a.look, { dir: a.dir, frame: a.frame, walking: a.walking, height: ch, width: cw });
     const body = fc.getImageData(0, 0, cw, ch).data;
     // only round what is hidden: its box, and room for the blur and the ring
     let bx0 = cw; let by0 = ch; let bx1 = -1; let by1 = -1;
@@ -774,27 +790,40 @@ export async function sceneScreen(app, params) {
   // toward it or go back to playerNode: starting from path[1] regardless used
   // to cut straight across the room, through whatever was painted there.
   let headingNode = null;
-  let stepClock = 0;
   let cueClock = 0;
-  /** Advance the walk animation and face the direction of travel (screen-space dx, dy). */
-  function animateStep(dxPx, dy, dt) {
-    if (Math.abs(dxPx) > 1e-6 || Math.abs(dy) > 1e-6) {
-      player.dir = Math.abs(dxPx) > Math.abs(dy) ? (dxPx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
-    }
-    stepClock += dt;
-    cueClock += dt;
-    if (cueClock > 0.15) { cueClock = 0; paintCues(); }
-    if (!player.walking) { player.walking = true; player.frame = 0; }
-    if (stepClock > 0.09) {
-      stepClock = 0;
+  const playerDirections = directionsFor(player.look);
+  const stride = createStride(SPEED * FRAME_SECONDS);
+  /** Face a screen-space vector, steady on diagonals (js/core/locomotion.js). */
+  function faceToward(dxPx, dy, { steady = true } = {}) {
+    const dir = facingFor(dxPx, dy, { previous: steady ? player.dir : null, available: playerDirections });
+    if (dir) player.dir = dir;
+    return dir;
+  }
+  /** One walk frame per FRAME_SECONDS of full-speed walking, whatever the pace. */
+  function stepLegs(moved) {
+    if (!player.walking) { player.walking = true; player.frame = 0; stride.reset(); }
+    const frames = stride.advance(moved);
+    for (let i = 0; i < frames; i += 1) {
       player.frame += 1;
       if (player.frame % 4 === 0) sfx.step();
     }
+  }
+  /**
+   * Advance the walk animation and face the direction of travel.
+   * (faceDx, faceDy): where the character means to go, screen space;
+   * moved: how far it really went this tick (0 against a wall).
+   */
+  function animateStep(faceDx, faceDy, dt, moved) {
+    faceToward(faceDx, faceDy);
+    cueClock += dt;
+    if (cueClock > 0.15) { cueClock = 0; paintCues(); }
+    if (moved > 1e-6) stepLegs(moved);
+    else if (player.walking) { player.walking = false; player.frame = 0; }    // pushing a wall: stand, facing it
     player.draw();
     follow();
   }
   function stopWalking() {
-    player.walking = false; player.frame = 0; player.draw();
+    player.walking = false; player.frame = 0; stride.reset(); player.draw();
     if (camera) nudgeLabels();
     paintCues();
   }
@@ -818,7 +847,7 @@ export async function sceneScreen(app, params) {
         const step = SPEED * dt;
         if (dist <= step) { player.x = tx; player.y = ty; k += 1; }
         else { player.x += (dxPx / dist) * step / aspect; player.y += (dy / dist) * step; }
-        animateStep(dxPx, dy, dt);
+        animateStep(dxPx, dy, dt, Math.min(dist, step));
         requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
@@ -847,7 +876,6 @@ export async function sceneScreen(app, params) {
       const onNode = Math.abs(player.x - sx) < 0.01 && Math.abs(player.y - sy) < 0.01;
       let segment = onNode || path[1] === headingNode ? 1 : 0;
       let last = performance.now();
-      let stepClock = 0;
       const tick = (now) => {
         if (walking !== token) { player.walking = false; player.draw(); resolve(false); return; }
         const dt = Math.min(0.05, (now - last) / 1000);
@@ -872,14 +900,8 @@ export async function sceneScreen(app, params) {
           player.x += (dxPx / dist) * step / aspect;
           player.y += (dy / dist) * step;
         }
-        player.dir = Math.abs(dxPx) > Math.abs(dy) ? (dxPx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
-        stepClock += dt;
-        if (!player.walking) { player.walking = true; player.frame = 0; }
-        if (stepClock > 0.09) {
-          stepClock = 0;
-          player.frame += 1;
-          if (player.frame % 4 === 0) sfx.step();
-        }
+        faceToward(dxPx, dy);
+        stepLegs(Math.min(dist, step));
         player.draw();
         follow();
         requestAnimationFrame(tick);
@@ -903,7 +925,7 @@ export async function sceneScreen(app, params) {
       if (arrived && spot.npc?.at) {
         const dxPx = (spot.npc.at[0] - player.x) * aspect;
         const dy = spot.npc.at[1] - player.y;
-        if (Math.hypot(dxPx, dy) > 1e-6) { player.dir = Math.abs(dxPx) > Math.abs(dy) ? (dxPx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down'); player.draw(); }
+        if (faceToward(dxPx, dy, { steady: false })) player.draw();
       }
       if (arrived) await runAction(spot);
     } finally {
@@ -1176,7 +1198,7 @@ export async function sceneScreen(app, params) {
           player.x = r.x; player.y = r.y;
           playerNode = null;
           // Face where the stick points even against a wall.
-          animateStep(r.moved ? mdx : dxPx, r.moved ? mdy : dy, dt);
+          animateStep(r.moved ? mdx : dxPx, r.moved ? mdy : dy, dt, r.moved ? Math.hypot(mdx, mdy) : 0);
           padClock += dt;
           if (padClock > 0.2) { padClock = 0; paintPad(); }
         }
@@ -1192,8 +1214,8 @@ export async function sceneScreen(app, params) {
         const target = nodeToward(stick);
         if (!target) {
           // Nothing that way: face it, so the stick still feels alive.
-          const dir = Math.abs(stick.x * aspect) > Math.abs(stick.y) ? (stick.x < 0 ? 'left' : 'right') : (stick.y < 0 ? 'up' : 'down');
-          if (!walking && player.dir !== dir) { player.dir = dir; player.draw(); }
+          const before = player.dir;
+          if (!walking && faceToward(stick.x * aspect, stick.y, { steady: false }) && player.dir !== before) player.draw();
           await nextFrame();
           continue;
         }
