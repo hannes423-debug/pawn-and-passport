@@ -45,7 +45,7 @@ Debug deep links (need an existing save): `?screen=map`, `?scene=nyc-int`,
 ## Test it
 
 ```bash
-node tests/run.js                      # 99 rules/data/campaign/practice/save/probability tests, no browser
+node tests/run.js                      # 101 rules/data/campaign/practice/save/probability/GIF tests, no browser
 node tools/verify-puzzles.mjs          # re-prove every puzzle with Stockfish, regenerate js/data/puzzles.js
 node tools/verify-lessons.mjs          # re-check the practice tree's 337 challenges against the rules
 python3 tools/opening-research/mine-puzzles.py  # club puzzle candidates from real games in each club opening
@@ -206,15 +206,22 @@ only for the closing queen sacrifice.
 
 Every finished game is kept, move by move, under its own save key
 (`PAP_history_v1`, `js/core/history.js`; 200 games, about 1 KB each). The
-Journal's **Games** page lists them; a game opens in a viewer that steps
-through the moves (buttons, arrow keys, the pad), jumps to the next graded
-error, copies the game as PGN and the board as a picture. The marks on your
-moves are the **live feedback** you saw during the game; **Engine check**
-runs Stockfish on the position shown and prints the engine's name and depth,
-so the two are never confused. **Copy board** (also on the result card)
-redraws the position on the board art at 1040x1022 with your pieces and
-board (`js/ui/boardImage.js`), copied where the browser allows pictures on
-the clipboard and saved as a PNG otherwise.
+result card's quick option is **Copy PGN**: the game's moves with its
+tournament, city and round, ready to paste into any chess site or program
+(where a browser refuses to copy, the PGN is shown to copy by hand).
+
+The Journal's **Games** page lists the games; one opens in a viewer that
+steps through the moves (buttons, arrow keys, the pad), jumps to the next
+graded error and copies the PGN. The marks on your moves are the **live
+feedback** you saw during the game; **Engine check** runs Stockfish on the
+position shown and prints the engine's name and depth, so the two are never
+confused. **Picture** (the position shown) and **Animated GIF** (the whole
+game, one frame per move, the result held at the end) open a pop-up that
+shows the file and offers **Share** (the phone's share sheet), **Save** and,
+for a picture, **Copy**. Both are drawn from the stored moves on the board
+art with your pieces and board (`js/ui/gameExport.js`); the GIF encoder is
+the game's own (`js/ui/gif.js`, no dependency): an 86-move game is about
+650 KB and takes 2-6 s on a phone.
 
 ## Saves
 

@@ -197,11 +197,27 @@ No occlusion code or data was changed. One compatibility point:
   `--no-sandbox`) works. The character builder also needs `scipy` and
   `opencv-python-headless`.
 
+## 7b. v1.3.1 (same day, from play-testing on a phone)
+
+- Result card: the quick option is **Copy PGN** (not a picture of the
+  board): Event, Site and Round tags from the tournament, the same PGN the
+  viewer copies. Clipboard refused -> old copy command -> the PGN shown,
+  selected, to copy by hand (`js/ui/clipboard.js`).
+- Viewer: **Animated GIF** and **Picture** with Share / Save (/ Copy).
+  `js/ui/gif.js` is a GIF89a encoder written for the game (median-cut
+  palette, LZW, changed-rectangle frames with transparency); its unit test
+  decodes the output with an independent decoder. In the browser the GIF was
+  also checked with ImageDecoder and Python PIL (frame count, delays, last
+  frame against the full picture: mean difference 3.4/255). 86 plies: 657 KB,
+  1.7 s (5.4 s with the CPU slowed 4x). Share was tested through the real
+  code path with the share sheet replaced by a recorder; the share sheet
+  itself only exists on a real phone.
+
 ## 8. Test record
 
 | Check | Result |
 |---|---|
-| `node tests/run.js` | 99 passed, 0 failed |
+| `node tests/run.js` | 101 passed, 0 failed (v1.3.1) |
 | `tools/predeploy.sh` | PREDEPLOY OK |
 | `cdp.py smoke` (every screen, 24 scenes) | 0 failures |
 | `cdp.py match`, `cdp.py trophy` | 0 failures |

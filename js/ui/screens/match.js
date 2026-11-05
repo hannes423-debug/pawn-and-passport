@@ -41,8 +41,8 @@ import { createMoodTracker } from '../../core/musicMood.js';
 const PLAN_KINDS = ['hint-green', 'hint-purple', 'hint-gold'];
 import { starLines } from '../../core/dialogue.js';
 import { historyEntry, addEntry } from '../../core/history.js';
-import { equippedStyle } from '../../core/shop.js';
-import { copyOrSaveBoard, canCopyImage } from '../boardImage.js';
+import { entryPgn, pgnEvent } from '../../core/history.js';
+import { copyText } from '../clipboard.js';
 import * as Save from '../../core/save.js';
 
 const KIND_LABEL = { friendly: 'Friendly game', challenge: 'Challenge match', tournament: 'Tournament round', star: 'Tournament final', finale: 'Grand Finale' };
@@ -587,6 +587,8 @@ export function matchScreen(app, params) {
      presentation after that is optional, and whatever fails, the player is
      taken back to the venue rather than left on a dead board. */
   let finishing = null;
+  let gameEntry = null;           // this game's history entry (js/core/history.js), for Copy PGN
+  let gameRound = null;
   function onFinished() {
     if (!finishing) finishing = finishGame();
     return finishing;
@@ -612,15 +614,15 @@ export function matchScreen(app, params) {
       app.save();
       const { rewards, progress, coinDelta } = committed;
       // Match history (its own save key; js/core/history.js). Never in the way of the result.
-      if (!committed.duplicate) {
-        try {
-          const entry = historyEntry({
-            career, gameId: match.gameId, kind, clubId, opponent, colour,
-            startFen: match.game.startFen, moves: match.game.history, summary, rewards
-          });
-          Save.saveHistory(addEntry(Save.loadHistory(), entry));
-        } catch (error) { console.error('[match] the game could not be added to the history', error); }
-      }
+      try {
+        gameEntry = historyEntry({
+          career, gameId: match.gameId, kind, clubId, opponent, colour,
+          startFen: match.game.startFen, moves: match.game.history, summary, rewards
+        });
+        gameRound = (kind === 'tournament' && progress?.roundIndex >= 0) ? progress.roundIndex + 1 : null;
+        gameEntry.round = gameRound;
+        if (!committed.duplicate) Save.saveHistory(addEntry(Save.loadHistory(), gameEntry));
+      } catch (error) { console.error('[match] the game could not be added to the history', error); }
 
       if (kind === 'star' || kind === 'finale') {
         const star = starById(opponent.id);
@@ -723,20 +725,16 @@ export function matchScreen(app, params) {
               : 'Too few of your moves were graded to give an accuracy.' }) : null,
             h('div.pp-tiles', null, gradeTiles)))),
       h('div.pp-row', { style: { justifyContent: 'center', marginTop: '10px', flexWrap: 'wrap', gap: '8px' } },
-        button(canCopyImage() ? 'Copy board' : 'Save board', copyFinalBoard, { cls: 'pp-btn--small', title: 'The final position as a picture. Every game is also kept in the Journal, under Games.' }),
+        gameEntry ? button('Copy PGN', copyGamePgn, { cls: 'pp-btn--small', title: 'The moves of this game as PGN, to paste into any chess site or program. Every game is also kept in the Journal, under Games.' }) : null,
         button('Continue', () => close(), { cls: 'pp-btn--gold', icon: pixelIcon('play', { size: 'sm' }) }))), { dismissable: false });
   }
 
-  /* The final position as a PNG (js/ui/boardImage.js): copied, or saved where copying pictures is not allowed. */
-  async function copyFinalBoard() {
+  /* The game's moves as PGN, the format every chess site and program imports. */
+  async function copyGamePgn() {
     sfx.click();
-    try {
-      const last = match.game.history.at(-1) || null;
-      const style = equippedStyle(career);
-      const how = await copyOrSaveBoard({ fen: match.fen, orientation: colour, pieces: style.pieces, board: style.board, lastMove: last, coordinates: app.settings.coordinates },
-        { filename: `pawn-and-passport-${String(opponent.name || 'game').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png` });
-      app.toast(how === 'copied' ? 'Board copied as a picture.' : 'Board saved as a PNG file.');
-    } catch (error) { console.error(error); app.toast('The board picture could not be made.'); }
+    if (!gameEntry) return;
+    const pgn = entryPgn(gameEntry, { playerName: career.name, ...pgnEvent(kind, club, gameRound) });
+    await copyText(app, pgn, { done: 'PGN copied: paste it into any chess site or program.', title: 'This game as PGN' });
   }
 
   /* One of the game's main rewards: the trophy, the rival beaten, the opening

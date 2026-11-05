@@ -462,6 +462,12 @@ img, canvas { image-rendering: pixelated; }
 .pp-games__row .pp-games__result.is-loss { color: #b3372a; }
 .pp-games__who { flex: 1 1 10em; font-weight: 600; }
 .pp-study__move sup { font-size: 0.7em; font-weight: 700; }
+/* Picture / Animated GIF pop-up (js/ui/gameExport.js): the file itself, then what to do with it. */
+.pp-export { width: min(560px, calc(100vw - 24px)); }
+.pp-export__preview { display: flex; justify-content: center; align-items: center; min-height: 120px; max-height: min(62vh, 620px); background: #1a1110; border-radius: 6px; overflow: hidden; }
+.pp-export__preview img { display: block; max-width: 100%; max-height: min(62vh, 620px); object-fit: contain; image-rendering: auto; }
+.pp-export__actions { flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0; }
+.pp-copybox { width: 100%; min-height: 10em; font: 13px/1.4 ui-monospace, 'Courier New', monospace; color: var(--ink); background: #fffaf0; border: 2px solid var(--paper-3); border-radius: 6px; padding: 6px; resize: vertical; }
 .pp-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
 .pp-tile { text-align: center; padding: 6px 4px; border-radius: 6px; background: var(--paper-2); border: 2px solid var(--paper-3); }
 .pp-tile b { display: block; font-family: var(--font-pixel); font-size: 16px; }

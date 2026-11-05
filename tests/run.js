@@ -47,6 +47,7 @@ import { starLines } from '../js/core/dialogue.js';
 import * as Save from '../js/core/save.js';
 import * as Locomotion from '../js/core/locomotion.js';
 import * as History from '../js/core/history.js';
+import * as Gif from '../js/ui/gif.js';
 import { createRules, applyUci, isCheckmate } from '../js/chess/core/rules.js';
 import { START_FEN } from '../js/chess/core/constants.js';
 import { existsSync, readFileSync } from 'node:fs';
@@ -2034,6 +2035,112 @@ test('history round-trips through the save layer under its own key', () => {
     eq(Save.loadHistory().games[0].id, 'g9');
     eq(Save.KEYS.history.startsWith('PAP_'), true);
   } finally { Save.useStorage(null); }
+});
+
+/* ------------------------------------------------------------------ gif */
+
+/* An independent GIF decoder, only for the tests: parses the blocks, undoes
+   the LZW and composites the frames the way a browser does (disposal 1). */
+function decodeGif(bytes) {
+  let p = 0;
+  const u8 = () => bytes[p++]; const u16 = () => { const v = bytes[p] | (bytes[p + 1] << 8); p += 2; return v; };
+  const sig = String.fromCharCode(...bytes.slice(0, 6)); p = 6;
+  assert(sig === 'GIF89a', `signature ${sig}`);
+  const W = u16(); const H = u16(); const packed = u8(); u8(); u8();
+  const gct = 2 << (packed & 7);
+  const palette = []; for (let i = 0; i < gct; i += 1) palette.push([u8(), u8(), u8()]);
+  const canvas = new Uint8Array(W * H); const frames = []; let gce = null; let loop = null;
+  for (;;) {
+    const b = u8();
+    if (b === 0x3b) break;
+    if (b === 0x21) {
+      const label = u8();
+      const blocks = []; for (let n = u8(); n; n = u8()) { blocks.push(bytes.slice(p, p + n)); p += n; }
+      if (label === 0xf9) { const d = blocks[0]; gce = { disposal: (d[0] >> 2) & 7, transparent: d[0] & 1 ? d[3] : null, delay: d[1] | (d[2] << 8) }; }
+      if (label === 0xff && String.fromCharCode(...blocks[0]) === 'NETSCAPE2.0') loop = blocks[1][1] | (blocks[1][2] << 8);
+      continue;
+    }
+    assert(b === 0x2c, `unexpected block 0x${b.toString(16)} at ${p - 1}`);
+    const x0 = u16(); const y0 = u16(); const w = u16(); const h = u16(); u8();
+    const min = u8();
+    const data = []; for (let n = u8(); n; n = u8()) { for (let i = 0; i < n; i += 1) data.push(bytes[p + i]); p += n; }
+    // LZW decode
+    const clear = 1 << min; const eoi = clear + 1;
+    let size = min + 1; let dict = []; let prev = null; const out = [];
+    const reset = () => { dict = []; for (let i = 0; i < clear; i += 1) dict[i] = [i]; dict[clear] = []; dict[eoi] = null; size = min + 1; prev = null; };
+    reset();
+    let bit = 0;
+    const read = () => { let v = 0; for (let i = 0; i < size; i += 1) { if (data[(bit >> 3)] & (1 << (bit & 7))) v |= 1 << i; bit += 1; } return v; };
+    for (;;) {
+      if ((bit + size) > data.length * 8) break;
+      const code = read();
+      if (code === clear) { reset(); continue; }
+      if (code === eoi) break;
+      let entry;
+      if (code < dict.length && dict[code]) entry = dict[code];
+      else if (code === dict.length && prev) entry = [...prev, prev[0]];
+      else throw new Error(`bad code ${code}`);
+      out.push(...entry);
+      if (prev) dict.push([...prev, entry[0]]);
+      prev = entry;
+      if (dict.length === (1 << size) && size < 12) size += 1;
+    }
+    assert(out.length === w * h, `frame ${frames.length}: ${out.length} indices for ${w}x${h}`);
+    for (let y = 0; y < h; y += 1) for (let x = 0; x < w; x += 1) {
+      const v = out[y * w + x];
+      if (gce?.transparent !== null && gce?.transparent !== undefined && v === gce.transparent) continue;
+      canvas[(y + y0) * W + x + x0] = v;
+    }
+    frames.push({ pixels: canvas.slice(), delay: gce?.delay ?? 0, rect: [x0, y0, w, h], disposal: gce?.disposal });
+    gce = null;
+  }
+  return { W, H, palette, frames, loop };
+}
+
+test('GIF encoder: frames decode back exactly, only what changed is written, it loops', () => {
+  const W = 37; const H = 23;                       // odd sizes on purpose
+  const rnd = seeded(4242);
+  const palette = Array.from({ length: 200 }, (_, i) => [i, (i * 7) % 256, (i * 13) % 256]);
+  const frames = [];
+  let f = Uint8Array.from({ length: W * H }, () => Math.floor(rnd() * 200));   // noise: worst case for LZW
+  frames.push(f.slice());
+  for (let k = 0; k < 6; k += 1) {
+    f = f.slice();
+    const x = Math.floor(rnd() * (W - 5)); const y = Math.floor(rnd() * (H - 5));
+    for (let j = 0; j < 4; j += 1) for (let i = 0; i < 4; i += 1) f[(y + j) * W + x + i] = (k * 31 + i) % 200;
+    frames.push(f.slice());
+  }
+  frames.push(f.slice());                            // nothing changes
+  const gif = new Gif.GifWriter(W, H, palette);
+  frames.forEach((fr, i) => gif.addFrame(fr, i === frames.length - 1 ? 300 : 50));
+  const d = decodeGif(gif.finish());
+  eq(d.W, W); eq(d.H, H); eq(d.loop, 0, 'loops forever:'); eq(d.frames.length, frames.length);
+  frames.forEach((fr, i) => { for (let j = 0; j < fr.length; j += 1) if (d.frames[i].pixels[j] !== fr[j]) throw new Error(`frame ${i} pixel ${j}: ${d.frames[i].pixels[j]} vs ${fr[j]}`); });
+  assert(d.frames.slice(1, -1).every((fr) => fr.rect[2] <= 4 * 1 + W && fr.rect[2] * fr.rect[3] < W * H), 'later frames are sub-rectangles');
+  eq(d.frames.at(-1).rect.join(), '0,0,1,1', 'an unchanged frame is a 1-px placeholder:');
+  eq(d.frames.at(-1).delay, 300); eq(d.frames[1].delay, 50);
+  for (let i = 0; i < palette.length; i += 1) eq(d.palette[i].join(), palette[i].join(), `palette ${i}`);
+  // Long runs force the 4096-code reset.
+  const big = new Gif.GifWriter(300, 300, palette);
+  const ramp = Uint8Array.from({ length: 300 * 300 }, (_, i) => (i * 7 + (i >> 5)) % 200);
+  big.addFrame(ramp, 10);
+  const back = decodeGif(big.finish()).frames[0].pixels;
+  for (let j = 0; j < ramp.length; j += 1) if (back[j] !== ramp[j]) throw new Error(`big frame pixel ${j}`);
+});
+
+test('GIF palette: median cut keeps distinct colours, and indexing picks the nearest', () => {
+  const px = [];
+  const add = (r, g, b, n) => { for (let i = 0; i < n; i += 1) px.push(r, g, b, 255); };
+  add(240, 230, 200, 5000); add(100, 60, 30, 5000); add(255, 214, 90, 300); add(20, 20, 20, 50); add(0, 0, 0, 0);
+  const rgba = Uint8Array.from(px);
+  const pal = Gif.buildPalette([rgba], 16);
+  assert(pal.length >= 4 && pal.length <= 16, `palette of ${pal.length}`);
+  const index = Gif.createIndexer(pal);
+  const idx = index(Uint8Array.from([255, 214, 90, 255, 20, 20, 20, 255]));
+  const near = (c, t) => Math.abs(c[0] - t[0]) + Math.abs(c[1] - t[1]) + Math.abs(c[2] - t[2]) <= 24;
+  assert(near(pal[idx[0]], [255, 214, 90]), `highlight -> ${pal[idx[0]]}`);
+  assert(near(pal[idx[1]], [20, 20, 20]), `ink -> ${pal[idx[1]]}`);
+  assert(Gif.buildPalette([rgba], 255).length <= 255, 'never more than 255 (one index is transparency)');
 });
 
 /* ---------------------------------------------------------------- report */

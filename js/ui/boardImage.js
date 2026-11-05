@@ -80,7 +80,10 @@ export async function drawBoardImage({ fen, orientation = 'w', pieces = 'pixel',
   canvas.width = Math.round(FRAME.w * scale);
   canvas.height = Math.round(FRAME.h * scale);
   const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = false;              // the frame is pixel art (image-rendering: pixelated)
+  // The frame is pixel art (image-rendering: pixelated): crisp at full size,
+  // averaged when shrunk (nearest-neighbour would drop whole rows unevenly).
+  ctx.imageSmoothingEnabled = scale < 1;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(await image(FRAME.src), 0, 0, canvas.width, canvas.height);
 
   const bx = INSET.left * canvas.width; const by = INSET.top * canvas.height;
@@ -149,7 +152,7 @@ const toBlob = (canvas) => new Promise((resolve, reject) => canvas.toBlob((b) =>
 /** The position as a PNG Blob. */
 export async function boardPng(options) { return toBlob(await drawBoardImage(options)); }
 
-function download(blob, filename) {
+export function download(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.rel = 'noopener';

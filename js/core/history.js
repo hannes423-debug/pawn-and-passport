@@ -105,8 +105,22 @@ export function migrateHistory(raw) {
 /** The games of one career, newest first. */
 export const gamesOf = (history, career) => (history?.games || []).filter((g) => career && g.career === career.createdAt);
 
+const KIND_EVENT = { friendly: 'Friendly game', challenge: 'Challenge match', tournament: 'Tournament', star: 'Tournament final', finale: 'Grand Finale' };
+
+/**
+ * The PGN Event / Site / Round of a game.
+ * @param {string} kind
+ * @param {{city:string, tournamentConfig:{name:string}}|null} club  js/data/clubs.js
+ * @param {number|null} [round]  tournament round, 1-based
+ */
+export function pgnEvent(kind, club, round = null) {
+  if (kind === 'finale') return { event: 'Pawn & Passport Grand Finale', site: 'Madrid', round };
+  if ((kind === 'tournament' || kind === 'star') && club) return { event: club.tournamentConfig.name, site: club.city, round: kind === 'star' ? 'Final' : round };
+  return { event: `Pawn & Passport ${KIND_EVENT[kind] || 'game'}`, site: club?.city || 'Pawn & Passport', round };
+}
+
 /** A PGN of an entry, for copying out to any chess program. */
-export function entryPgn(g, { playerName = 'Player', event = 'Pawn & Passport' } = {}) {
+export function entryPgn(g, { playerName = 'Player', event = 'Pawn & Passport', site = 'Pawn & Passport', round = null } = {}) {
   const white = g.colour === 'w' ? playerName : g.opponent.name;
   const black = g.colour === 'w' ? g.opponent.name : playerName;
   const whiteScore = g.colour === 'w' ? g.score : 1 - g.score;
@@ -114,7 +128,7 @@ export function entryPgn(g, { playerName = 'Player', event = 'Pawn & Passport' }
   const d = new Date(g.at);
   const date = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
   const tags = [
-    ['Event', event], ['Site', 'Pawn & Passport'], ['Date', date], ['White', white], ['Black', black], ['Result', result],
+    ['Event', event], ['Site', site], ['Date', date], ['Round', round ?? '-'], ['White', white], ['Black', black], ['Result', result],
     ...(g.colour === 'w' ? [['BlackElo', g.opponent.elo]] : [['WhiteElo', g.opponent.elo]]).filter(([, v]) => v != null),
     ...(g.startFen ? [['SetUp', '1'], ['FEN', g.startFen]] : [])
   ];
@@ -136,4 +150,4 @@ export function entryPgn(g, { playerName = 'Player', event = 'Pawn & Passport' }
   return `${tags.map(([k, v]) => `[${k} "${esc(v)}"]`).join('\n')}\n\n${parts.join(' ')}\n`;
 }
 
-export default { HISTORY_VERSION, HISTORY_MAX, emptyHistory, historyEntry, addEntry, validEntry, migrateHistory, gamesOf, entryPgn };
+export default { HISTORY_VERSION, HISTORY_MAX, emptyHistory, historyEntry, addEntry, validEntry, migrateHistory, gamesOf, entryPgn, pgnEvent };

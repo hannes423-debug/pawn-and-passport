@@ -23,10 +23,15 @@ import { createRules } from '../chess/core/rules.js';
 import { HIGHLIGHT } from '../chess/render/boardRenderer.js';
 import { hex } from '../chess/render/feedback.js';
 import { GRADE_META } from '../core/grading.js';
-import { entryPgn, START_FEN } from '../core/history.js';
+import { entryPgn, pgnEvent, START_FEN } from '../core/history.js';
+import { clubById } from '../data/clubs.js';
 import { equippedStyle } from '../core/shop.js';
 import { engineService } from '../chess/engine/engineService.js';
-import { copyOrSaveBoard, canCopyImage } from './boardImage.js';
+import { GAME } from '../data/config.js';
+
+const GAME_TITLE = GAME.title;
+import { copyText } from './clipboard.js';
+import { openExportSheet, gameGif, gamePicture, exportName } from './gameExport.js';
 
 /** The moves of an entry replayed: fens[i] after i plies. Stops at the first unreadable move. */
 export function replayEntry(entry) {
@@ -183,19 +188,28 @@ export function openGameViewer(app, entry) {
     });
 
     const finish = () => { engineToken += 1; releaseKeys?.(); board.destroy(); close(); };
-    const copyBoard = async () => {
+    const playerName = app.career?.name || 'Player';
+    const shareText = `${resultWord(entry.score)} against ${entry.opponent.name} in ${GAME_TITLE}`;
+    const picture = () => {
       sfx.click();
-      try {
-        const last = ply > 0 ? replay.moves[ply - 1] : null;
-        const how = await copyOrSaveBoard({ fen: replay.fens[ply], orientation: entry.colour, pieces: style.pieces, board: style.board, lastMove: last, coordinates: app.settings.coordinates },
-          { filename: `pawn-and-passport-${entry.opponent.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-move-${ply}.png` });
-        app.toast(how === 'copied' ? 'Board copied as a picture.' : 'Board saved as a PNG file.');
-      } catch (error) { console.error(error); app.toast('The board picture could not be made.'); }
+      const at = ply;
+      openExportSheet(app, {
+        title: at === total ? 'The final position' : `After move ${Math.ceil(at / 2)}`, kind: 'png',
+        filename: exportName(entry, 'png', at === total ? '' : `-move-${at}`), shareText,
+        make: () => gamePicture({ entry, style, playerName, ply: at, coordinates: app.settings.coordinates })
+      });
     };
-    const copyPgn = async () => {
+    const animation = () => {
       sfx.click();
-      const pgn = entryPgn(entry, { playerName: app.career?.name || 'Player' });
-      try { await navigator.clipboard.writeText(pgn); app.toast('PGN copied: paste it into any chess program.'); } catch { app.toast('Copying is not allowed here.'); }
+      openExportSheet(app, {
+        title: 'The game, move by move', kind: 'gif', filename: exportName(entry, 'gif'), shareText,
+        make: (onProgress, cancelled) => gameGif({ entry, style, playerName, coordinates: app.settings.coordinates, onProgress, cancelled })
+      });
+    };
+    const copyPgn = () => {
+      sfx.click();
+      const pgn = entryPgn(entry, { playerName, ...pgnEvent(entry.kind, clubById(entry.clubId), entry.round ?? null) });
+      return copyText(app, pgn, { done: 'PGN copied: paste it into any chess site or program.', title: 'This game as PGN' });
     };
 
     const panel = h('div.pp-panel.pp-modal.pp-study.pp-gameview', null,
@@ -213,8 +227,9 @@ export function openGameViewer(app, entry) {
           h('div.pp-row', { style: { flexWrap: 'wrap', gap: '6px' } },
             button('Next mistake', nextError, { cls: 'pp-btn--small' }),
             button('Engine check', engineCheck, { cls: 'pp-btn--small' }),
-            button(canCopyImage() ? 'Copy board' : 'Save board', copyBoard, { cls: 'pp-btn--small' }),
-            button('Copy PGN', copyPgn, { cls: 'pp-btn--small' })),
+            button('Copy PGN', copyPgn, { cls: 'pp-btn--small' }),
+            button('Picture', picture, { cls: 'pp-btn--small', title: 'This position as a picture: share or save it' }),
+            button('Animated GIF', animation, { cls: 'pp-btn--small', title: 'The whole game as an animation: watch, share or save it' })),
           engineNote)),
       h('div.pp-row', { style: { justifyContent: 'flex-end' } }, button('Close', finish, { cls: 'pp-btn--small', back: true })));
     requestAnimationFrame(() => paint(false));
