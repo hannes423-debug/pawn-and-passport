@@ -5,13 +5,22 @@
  * Tour (which uses cwt.* keys) even on the same origin. The storage backend is
  * injectable so the Node tests run the real code against a Map.
  *
- *   PAP_career_v1    the single career slot
- *   PAP_settings_v1  audio / board / accessibility preferences
+ *   PAP_career_v1             the single career slot
+ *   PAP_career_v1_backup      the career as it was one save earlier
+ *   PAP_career_v1_unreadable  a career slot that could not be read, kept
+ *                             aside so nothing overwrites it (see loadCareerSafe)
+ *   PAP_history_v1            finished games (js/core/history.js)
+ *   PAP_settings_v1           audio / board / accessibility preferences
  */
+
+import { migrateHistory, emptyHistory } from './history.js';
 
 export const SAVE_PREFIX = 'PAP_';
 export const KEYS = Object.freeze({
   career: `${SAVE_PREFIX}career_v1`,
+  careerBackup: `${SAVE_PREFIX}career_v1_backup`,
+  careerUnreadable: `${SAVE_PREFIX}career_v1_unreadable`,
+  history: `${SAVE_PREFIX}history_v1`,
   settings: `${SAVE_PREFIX}settings_v1`
 });
 
@@ -84,6 +93,18 @@ function read(key) {
   } catch { return null; }
 }
 
+function readRaw(key) {
+  try { return storage.getItem(key); } catch { return null; }
+}
+
+function parsed(raw) {
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw);
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+  } catch { return null; }
+}
+
 function write(key, value) {
   try {
     storage.setItem(key, JSON.stringify(value));
@@ -97,13 +118,81 @@ function write(key, value) {
 
 export const hasCareer = () => !!read(KEYS.career);
 export const loadCareer = () => read(KEYS.career);
+
+/**
+ * Save the career. The slot's previous content, if it was a readable career,
+ * becomes the backup first: a save that turns out to be broken (a bug, a
+ * cut-off write) then still has the one before it. The backup is best
+ * effort: if storage is too full for it, it is dropped, never the save.
+ */
 export function saveCareer(career) {
   career.savedAt = Date.now();
-  return write(KEYS.career, career);
+  const before = readRaw(KEYS.career);
+  const ok = write(KEYS.career, career);
+  if (ok && before && parsed(before)) {
+    try { storage.setItem(KEYS.careerBackup, before); } catch { try { storage.removeItem(KEYS.careerBackup); } catch { /* nothing */ } }
+  }
+  return ok;
 }
-export function deleteCareer() { try { storage.removeItem(KEYS.career); } catch { /* nothing to delete */ } }
+
+/** Starting a new career: the old one, its backup and its quarantine go. */
+export function deleteCareer() {
+  for (const key of [KEYS.career, KEYS.careerBackup]) { try { storage.removeItem(key); } catch { /* nothing to delete */ } }
+}
+
+/* Keep an unreadable slot aside, once: the first copy is the one worth having. */
+function quarantine(raw) {
+  if (!raw || readRaw(KEYS.careerUnreadable)) return;
+  try { storage.setItem(KEYS.careerUnreadable, raw); } catch { /* storage full: nothing more to do */ }
+}
+
+/**
+ * Load the career the game can actually resume.
+ *
+ * `prepare(career)` brings it up to date (career.js migrateCareer) and may
+ * throw on a career it cannot handle. In order:
+ *   1. the slot, prepared;
+ *   2. if the slot is not JSON or prepare throws: the slot is kept aside
+ *      (PAP_career_v1_unreadable) so a New Game cannot overwrite it, and the
+ *      backup is tried, prepared;
+ *   3. otherwise no career (the title offers New Game).
+ * Before this, a slot that was not JSON read as "no career" and the next
+ * New Game replaced it, and a career migrateCareer threw on stopped the game
+ * from starting at all.
+ *
+ * @returns {{career:Object|null, source:'main'|'backup'|null, problem:string|null}}
+ */
+export function loadCareerSafe(prepare = (c) => c) {
+  const attempt = (raw) => {
+    const value = parsed(raw);
+    if (!value) return { career: null, error: raw ? 'not readable' : null };
+    try { return { career: prepare(value) || null, error: null }; } catch (error) { return { career: null, error: String(error?.message || error) }; }
+  };
+  const mainRaw = readRaw(KEYS.career);
+  const main = attempt(mainRaw);
+  if (main.career) return { career: main.career, source: 'main', problem: null };
+  if (!mainRaw) return { career: null, source: null, problem: null };
+  quarantine(mainRaw);
+  const backup = attempt(readRaw(KEYS.careerBackup));
+  if (backup.career) {
+    write(KEYS.career, backup.career);
+    return { career: backup.career, source: 'backup', problem: main.error };
+  }
+  return { career: null, source: null, problem: main.error };
+}
+
+/** Was a career slot ever set aside as unreadable? (Settings can offer it as a file.) */
+export const unreadableCareer = () => readRaw(KEYS.careerUnreadable);
+
+/* ------------------------------------------------------------ history -- */
+
+/** Finished games, migrated (js/core/history.js). Never throws. */
+export function loadHistory() {
+  try { return migrateHistory(read(KEYS.history)); } catch { return emptyHistory(); }
+}
+export const saveHistory = (history) => write(KEYS.history, history);
 
 export const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...(read(KEYS.settings) || {}) });
 export const saveSettings = (settings) => write(KEYS.settings, settings);
 
-export default { KEYS, SAVE_PREFIX, hasCareer, loadCareer, saveCareer, deleteCareer, loadSettings, saveSettings, useStorage, storageStatus, onStorageStatus };
+export default { KEYS, SAVE_PREFIX, hasCareer, loadCareer, loadCareerSafe, saveCareer, deleteCareer, unreadableCareer, loadHistory, saveHistory, loadSettings, saveSettings, useStorage, storageStatus, onStorageStatus };

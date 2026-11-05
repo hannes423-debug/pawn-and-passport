@@ -26,10 +26,15 @@ export function createApp(root, screens) {
   let hudObserver = new ResizeObserver(() => {});
   document.body.append(toasts);
 
+  /* A career the game cannot read or bring up to date is kept aside rather
+     than overwritten, and the previous save is tried (js/core/save.js). */
+  const loaded = Save.loadCareerSafe(migrateCareer);
+  if (loaded.problem) console.warn('[save] the career slot could not be used:', loaded.problem, loaded.source ? '(restored the previous save)' : '');
   const app = {
     root,
     screens,
-    career: migrateCareer(Save.loadCareer()),
+    career: loaded.career,
+    loadReport: loaded,
     settings: Save.loadSettings(),
     current: null,
     currentName: null,
@@ -396,6 +401,11 @@ export function createApp(root, screens) {
   Save.onStorageStatus(() => paintSaveWarning());
   app.paintSaveWarning = paintSaveWarning;
   paintSaveWarning();
+  if (loaded.problem) {
+    setTimeout(() => app.toast(loaded.source === 'backup'
+      ? 'Your last save could not be read, so the one before it was loaded. A copy of the unreadable save was kept.'
+      : 'Your save could not be read. A copy was kept aside, so starting a new career will not erase it.', { ms: 7000 }), 600);
+  }
 
   // First gesture unlocks WebAudio.
   const unlock = () => { unlockAudio(); configureAudio(app.settings); music.configure(app.settings); music.unlock(); };

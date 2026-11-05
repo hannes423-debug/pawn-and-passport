@@ -27,7 +27,7 @@ import { POSTCARDS, BEYOND_THE_TOUR } from '../js/data/postcards.js';
 import { MISSIONS } from '../js/data/missions.js';
 import { PUZZLES } from '../js/data/puzzles.js';
 import { SCENES, findPath } from '../js/data/scenes.js';
-import { LEVELS, ELO, BOT_ELO, HINTS, DIFFICULTY, difficultyMode, BOT_STRENGTH } from '../js/data/config.js';
+import { LEVELS, ELO, BOT_ELO, HINTS, SIM, DIFFICULTY, difficultyMode, BOT_STRENGTH } from '../js/data/config.js';
 import * as Career from '../js/core/career.js';
 import { ClubBook, fullBook } from '../js/core/openingBook.js';
 import { hintQuote } from '../js/core/hints.js';
@@ -45,6 +45,8 @@ const createRulesForTest = (fen) => { try { return createRulesForChess(fen); } c
 import { strengthForElo, profileForOpponent } from '../js/core/difficulty.js';
 import { starLines } from '../js/core/dialogue.js';
 import * as Save from '../js/core/save.js';
+import * as Locomotion from '../js/core/locomotion.js';
+import * as History from '../js/core/history.js';
 import { createRules, applyUci, isCheckmate } from '../js/chess/core/rules.js';
 import { START_FEN } from '../js/chess/core/constants.js';
 import { existsSync, readFileSync } from 'node:fs';
@@ -724,6 +726,29 @@ test('following a Focus hint grades FOCUS, earns no Focus, and the gold plan con
   eq(next.length, 1, 'after the reply the plan\'s second move is drawn by itself');
   eq(next[0].payload.plans[0].step, 1);
   assert(GM.FOCUS.label === 'Focus');
+});
+
+test('Undo cannot launder a hinted move into the player\'s own find, or keep the refund', async () => {
+  const { match, events, r } = await hintMatch({ random: () => 0.99 });
+  const best = r.hint.plans[0].uci;
+  const shown = new Set(r.hint.plans.map((p) => p.uci));
+  const other = createRules(match.fen).moves({ verbose: true }).map((m) => m.from + m.to).find((u) => !shown.has(u));
+  const afterBuy = match.focus;
+  await match.playMove(other);                         // ignore the hint: 75% back
+  await settle(match);
+  for (let k = 0; k < 40 && !match.isPlayersTurn; k += 1) await new Promise((res) => setTimeout(res, 10));
+  assert(match.focus > afterBuy, 'precondition: ignoring the hint refunded Focus');
+  const gainedOther = match.game.history.find((m) => m.uci === other)?.focusGain || 0;
+  const u = match.undo();
+  assert(u.ok, `undo refused: ${u.reason}`);
+  eq(match.focus, afterBuy - UNDO.cost, 'Undo takes the refund back with the move (and the regen):');
+  assert(gainedOther >= 0);
+  await match.playMove(best);                          // now play the move the hint showed
+  await settle(match);
+  const graded = events.filter((e) => e.type === 'graded' && e.payload.record.uci === best && !e.payload.record.undone).at(-1);
+  assert(graded, 'the replayed move was graded');
+  eq(graded.payload.grade, 'FOCUS', 'a move the hint showed is still the hint\'s after Undo:');
+  eq(graded.payload.focusGain, 0);
 });
 
 test('a lesser suggestion or no suggestion gives Focus back', async () => {
@@ -1787,6 +1812,228 @@ test('every practice challenge is playable: legal position, legal answer', () =>
       for (const uci of Object.keys(c.verdicts)) assert(legal.has(uci), `${lesson.id}/${c.id}: judged move ${uci} is not legal`);
     }
   }
+});
+
+/* ----------------------------------------------------------- locomotion */
+
+test('eight-way direction: each direction owns its 45 degree sector, screen y down', () => {
+  eq(Locomotion.direction8(1, 0), 'right'); eq(Locomotion.direction8(-1, 0), 'left');
+  eq(Locomotion.direction8(0, -1), 'up'); eq(Locomotion.direction8(0, 1), 'down');
+  eq(Locomotion.direction8(1, -1), 'up-right'); eq(Locomotion.direction8(-1, 1), 'down-left');
+  eq(Locomotion.direction8(1, -0.41), 'right', '22 degrees is still right:');
+  eq(Locomotion.direction8(1, -0.42), 'up-right', '23 degrees is up-right:');
+  eq(Locomotion.direction8(0, 0), null);
+});
+
+test('facing on a four-row sheet: the old dominant-axis rule, but steady on diagonals', () => {
+  const four = Locomotion.CARDINALS;
+  // No previous facing: exactly the rule the scene used before.
+  for (const [dx, dy] of [[3, 1], [1, 3], [-3, 1], [-1, -3], [2, -1.9], [-1.9, 2]]) {
+    const old = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+    eq(Locomotion.facingFor(dx, dy, { available: four }), old, `(${dx},${dy})`);
+  }
+  // A path wobbling around 45 degrees used to flip rows every frame; now it holds.
+  let dir = 'right'; let flips = 0;
+  for (let i = 0; i < 200; i += 1) {
+    const wobble = (i % 2 ? 1 : -1) * 0.1;
+    const next = Locomotion.facingFor(1, -(1 + wobble), { previous: dir, available: four });
+    if (next !== dir) flips += 1;
+    dir = next;
+  }
+  eq(flips, 0, 'flips on a wobbly diagonal:');
+  // ...but a real turn past the diagonal band still turns.
+  eq(Locomotion.facingFor(0.2, -1, { previous: 'right', available: four }), 'up');
+  eq(Locomotion.facingFor(1, 0, { previous: 'up', available: four }), 'right');
+  eq(Locomotion.facingFor(0, 0, { previous: 'left', available: four }), null, 'no movement keeps the facing:');
+});
+
+test('an eight-row sheet shows diagonals; a mirrored sheet flips the missing side', () => {
+  const eight = Locomotion.DIRECTIONS;
+  eq(Locomotion.facingFor(1, -1, { previous: 'right', available: eight }), 'up-right');
+  const rightOnly = ['down', 'right', 'up', 'down-right', 'up-right'];
+  const can = Locomotion.showable(rightOnly, true);
+  assert(can.has('left') && can.has('up-left') && can.has('down-left'), 'mirrors are showable');
+  eq(JSON.stringify(Locomotion.rowFor('left', rightOnly, true)), JSON.stringify({ row: 'right', flip: true }));
+  eq(JSON.stringify(Locomotion.rowFor('up-left', rightOnly, true)), JSON.stringify({ row: 'up-right', flip: true }));
+  eq(JSON.stringify(Locomotion.rowFor('left', rightOnly, false)).includes('"flip":false'), true, 'no mirroring unless the sheet allows it');
+  // Today's sheets: a diagonal named in data falls back to a row the sheet really has.
+  const today = ['down', 'left', 'right', 'up'];
+  eq(Locomotion.rowFor('down-left', today).row, 'left');
+  eq(Locomotion.rowFor('up', today).row, 'up');
+  eq(Locomotion.rowFor('nonsense', today).row, 'down');
+});
+
+test('the walk cycle is locked to distance: slower walking, slower legs; a wall, no steps', () => {
+  const frameDist = 33.6 * 0.09;
+  const s = Locomotion.createStride(frameDist);
+  let frames = 0;
+  for (let i = 0; i < 60; i += 1) frames += s.advance(33.6 / 60);        // one second at full speed, 60 fps
+  assert(Math.abs(frames - 1 / 0.09) <= 1, `full speed: ${frames} frames a second`);
+  s.reset(); frames = 0;
+  for (let i = 0; i < 60; i += 1) frames += s.advance(0.35 * 33.6 / 60); // a light stick tilt
+  assert(Math.abs(frames - 0.35 / 0.09) <= 1, `35% speed: ${frames} frames a second`);
+  s.reset();
+  eq(s.advance(0), 0, 'against a wall:');
+});
+
+/* ------------------------------------------------- probabilities (audit) */
+
+test('hint odds: every row is a distribution, and rolls land at the configured rates', () => {
+  for (const row of HINTS.oddsByLevel) {
+    const sum = row.fail + row.green + row.purple + row.gold;
+    assert(Math.abs(sum - 1) < 1e-9, `level ${row.from}: odds sum to ${sum}`);
+    for (const q of ['fail', 'green', 'purple', 'gold']) assert(row[q] >= 0, `level ${row.from}: ${q} < 0`);
+  }
+  const N = 200000;
+  for (const row of HINTS.oddsByLevel) {
+    const rnd = seeded(12345 + row.from);
+    const counts = { fail: 0, green: 0, purple: 0, gold: 0 };
+    for (let i = 0; i < N; i += 1) counts[FocusHints.rollQuality(row.from, rnd)] += 1;
+    for (const q of Object.keys(counts)) {
+      const p = row[q]; const got = counts[q] / N;
+      const sd = Math.sqrt(p * (1 - p) / N);
+      assert(Math.abs(got - p) <= 5 * sd + 1e-4, `level ${row.from} ${q}: ${(got * 100).toFixed(2)}% vs ${(p * 100).toFixed(2)}%`);
+    }
+  }
+  // Better levels never make the good outcomes rarer.
+  const rows = HINTS.oddsByLevel;
+  for (let i = 1; i < rows.length; i += 1) {
+    assert(rows[i].fail <= rows[i - 1].fail && rows[i].gold >= rows[i - 1].gold && rows[i].purple >= rows[i - 1].purple, `odds row ${rows[i].from} is not an improvement`);
+  }
+});
+
+test('a refund never pays back more than the hint cost, whatever the outcome', () => {
+  for (const cost of [2, 10, 37, 100]) {
+    for (const rank of [null, 0, 1, 2, 5]) {
+      const r = FocusHints.refundFor({ cost, rank });
+      assert(r >= 0 && r <= cost, `cost ${cost} rank ${rank}: refund ${r}`);
+    }
+    const blank = FocusHints.refundFor({ cost, shown: false });
+    assert(blank >= 0 && blank <= cost, `blank refund ${blank}`);
+  }
+  // Following the BEST idea refunds nothing; a lesser one some; ignoring the most of the shown cases.
+  eq(FocusHints.refundFor({ cost: 20, rank: 0 }), 0);
+  assert(FocusHints.refundFor({ cost: 20, rank: 2 }) > FocusHints.refundFor({ cost: 20, rank: 1 }));
+});
+
+test('simulated NPC games: odds are a distribution, symmetric, monotone, and played at their rates', () => {
+  let lastWin = -1;
+  for (let gap = -1300; gap <= 1300; gap += 25) {
+    const o = Event.outcomeOdds(1000 + gap, 1000);
+    assert(o.win >= 0 && o.draw >= 0 && o.loss >= 0, `gap ${gap}: negative odds ${JSON.stringify(o)}`);
+    assert(Math.abs(o.win + o.draw + o.loss - 1) < 1e-12, `gap ${gap}: odds sum ${o.win + o.draw + o.loss}`);
+    const mirror = Event.outcomeOdds(1000, 1000 + gap);
+    assert(Math.abs(o.win - mirror.loss) < 1e-12 && Math.abs(o.draw - mirror.draw) < 1e-12, `gap ${gap}: not symmetric`);
+    // Expected score is exactly the logistic the simulation is built on.
+    const expected = 1 / (1 + 10 ** (-gap / SIM.scale));
+    assert(Math.abs(o.win + o.draw / 2 - expected) < 1e-12, `gap ${gap}: expected score drifts`);
+    assert(o.win >= lastWin - 1e-12, `gap ${gap}: a bigger rating edge won less often`);
+    lastWin = o.win;
+  }
+  const N = 100000;
+  for (const [a, b] of [[1000, 1000], [1200, 1000], [800, 1300]]) {
+    const o = Event.outcomeOdds(a, b);
+    const rnd = seeded(99 + a);
+    const c = { 1: 0, 0.5: 0, 0: 0 };
+    for (let i = 0; i < N; i += 1) c[Event.simulateGame(a, b, rnd)] += 1;
+    for (const [k, p] of [[1, o.win], [0.5, o.draw], [0, o.loss]]) {
+      const sd = Math.sqrt(p * (1 - p) / N);
+      assert(Math.abs(c[k] / N - p) <= 5 * sd + 1e-4, `${a} v ${b}, result ${k}: ${(c[k] / N).toFixed(4)} vs ${p.toFixed(4)}`);
+    }
+  }
+});
+
+/* ------------------------------------------------- save safety, history */
+
+test('an unreadable save is kept aside and the previous save is loaded', () => {
+  const mem = Save.createMemoryStorage();
+  Save.useStorage(mem);
+  try {
+    const c = Career.newCareer({ name: 'Ada', avatar: 'girl', startClubId: 'lon', now: 1 });
+    Save.saveCareer(c);
+    c.coins = 777;
+    Save.saveCareer(c);                                   // the first save is now the backup
+    eq(JSON.parse(mem.getItem(Save.KEYS.careerBackup)).coins, Career.newCareer({ name: 'x', avatar: 'boy', startClubId: 'lon' }).coins, 'backup is the previous save:');
+    mem.setItem(Save.KEYS.career, '{"name":"Ada","coi');  // a cut-off write
+    const got = Save.loadCareerSafe(Career.migrateCareer);
+    eq(got.source, 'backup'); assert(got.career && got.career.name === 'Ada', 'the backup career loads');
+    eq(mem.getItem(Save.KEYS.careerUnreadable), '{"name":"Ada","coi', 'the broken slot is kept verbatim:');
+    assert(Save.loadCareer()?.name === 'Ada', 'the backup is written back to the slot');
+    // A second failure does not replace the first kept copy.
+    mem.setItem(Save.KEYS.career, 'garbage');
+    Save.loadCareerSafe(Career.migrateCareer);
+    eq(mem.getItem(Save.KEYS.careerUnreadable), '{"name":"Ada","coi');
+  } finally { Save.useStorage(null); }
+});
+
+test('a career the migration throws on no longer stops the game from starting', () => {
+  const mem = Save.createMemoryStorage();
+  Save.useStorage(mem);
+  try {
+    mem.setItem(Save.KEYS.career, JSON.stringify({ name: 'Broken', openings: null, equipped: ['italian'] }));
+    let threw = false;
+    try { Career.migrateCareer(JSON.parse(mem.getItem(Save.KEYS.career))); } catch { threw = true; }
+    assert(threw, 'precondition: migrateCareer throws on this save');
+    const got = Save.loadCareerSafe(Career.migrateCareer);
+    eq(got.career, null); assert(got.problem, 'the problem is reported');
+    assert(mem.getItem(Save.KEYS.careerUnreadable), 'and the save is kept aside');
+    // No save at all is not a problem.
+    Save.useStorage(Save.createMemoryStorage());
+    const none = Save.loadCareerSafe(Career.migrateCareer);
+    eq(none.career, null); eq(none.problem, null);
+  } finally { Save.useStorage(null); }
+});
+
+test('a save from before this change loads exactly as before', () => {
+  const mem = Save.createMemoryStorage();
+  Save.useStorage(mem);
+  try {
+    const c = Career.newCareer({ name: 'Old', avatar: 'boy', startClubId: 'vie', now: 5 });
+    mem.setItem(Save.KEYS.career, JSON.stringify(c));     // only the v1 slot: no backup, no history
+    const got = Save.loadCareerSafe(Career.migrateCareer);
+    eq(got.source, 'main');
+    eq(JSON.stringify(got.career), JSON.stringify(Career.migrateCareer(JSON.parse(JSON.stringify(c)))));
+    eq(Save.loadHistory().games.length, 0, 'no history key is an empty history:');
+  } finally { Save.useStorage(null); }
+});
+
+test('match history: one entry per game, capped, PGN that replays, bad entries dropped', () => {
+  const career = Career.newCareer({ name: 'Ada', avatar: 'girl', startClubId: 'lon', now: 10 });
+  const rules = createRules(START_FEN);
+  const sans = ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nf6', 'Ng5', 'd5', 'exd5', 'Nxd5'];
+  const moves = sans.map((san) => { const m = rules.move(san); return { san: m.san, color: m.color, grade: m.color === 'w' ? 'GOOD' : null }; });
+  const summary = { score: 1, accuracy: 81, termination: 'resignation', headline: 'Black resigned', matchScore: { letter: 'B', total: 2100 }, hintsUsed: 1, undosUsed: 0 };
+  const entry = History.historyEntry({ career, gameId: 'g1', kind: 'tournament', clubId: 'lon', opponent: { id: 'x', name: 'Sam "Ace" Lee', elo: 600 }, colour: 'w', moves, summary, rewards: { eloDelta: 12, elo: 612 }, now: 1000 });
+  eq(entry.moves, sans.join(' ')); eq(entry.startFen, null); eq(entry.liveGrades.filter(Boolean).length, 5);
+  eq(entry.eloDelta, 12); eq(entry.career, 10);
+  let hist = History.addEntry(History.emptyHistory(), entry);
+  hist = History.addEntry(hist, entry);
+  eq(hist.games.length, 1, 'the same game twice:');
+  for (let i = 0; i < 250; i += 1) hist = History.addEntry(hist, { ...entry, id: `n${i}`, at: 2000 + i });
+  eq(hist.games.length, History.HISTORY_MAX); eq(hist.games[0].id, 'n249', 'newest first:');
+  // The PGN is real chess: chess.js reads it back to the same moves.
+  const pgn = History.entryPgn(entry, { playerName: 'Ada' });
+  assert(pgn.includes('[Result "1-0"]') && pgn.includes(`[Black "Sam 'Ace' Lee"]`) && pgn.includes('[BlackElo "600"]'), pgn);
+  const back = createRules(START_FEN);
+  back.loadPgn(pgn);
+  eq(back.history().join(' '), sans.join(' '), 'PGN replays:');
+  // Migration keeps good entries, drops junk, never throws.
+  const mixed = History.migrateHistory({ version: 1, games: [entry, null, { id: 3 }, { ...entry }, 'x'] });
+  eq(mixed.games.length, 1);
+  eq(History.migrateHistory('not json').games.length, 0);
+  eq(History.gamesOf(mixed, career).length, 1);
+  eq(History.gamesOf(mixed, { createdAt: 99 }).length, 0, 'another career sees none of it:');
+});
+
+test('history round-trips through the save layer under its own key', () => {
+  Save.useStorage(Save.createMemoryStorage());
+  try {
+    const h0 = Save.loadHistory();
+    const e = { id: 'g9', career: 1, at: 5, kind: 'friendly', colour: 'b', score: 0.5, moves: 'e4 c5', liveGrades: [null, 'BEST'], opponent: { name: 'Bo', elo: 500 } };
+    Save.saveHistory(History.addEntry(h0, e));
+    eq(Save.loadHistory().games[0].id, 'g9');
+    eq(Save.KEYS.history.startsWith('PAP_'), true);
+  } finally { Save.useStorage(null); }
 });
 
 /* ---------------------------------------------------------------- report */

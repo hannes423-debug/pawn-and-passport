@@ -449,6 +449,19 @@ img, canvas { image-rendering: pixelated; }
 .pp-lines { list-style: none; margin: 0; padding: 0; font-size: 16px; }
 .pp-lines li { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--paper-3); padding: 2px 0; }
 .pp-lines li b.neg { color: var(--red); }
+/* Match history (journal Games page). Each game is one button, so keys,
+   pads and taps reach it like any other row. */
+.pp-games__list { max-height: min(60vh, 520px); overflow-y: auto; }
+.pp-games__list li { padding: 0; }
+.pp-games__row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; width: 100%; min-height: 40px; padding: 6px 4px;
+  background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pp-games__row:hover, .pp-games__row:focus-visible { background: var(--paper-2); outline: 2px solid var(--gold); outline-offset: -2px; }
+.pp-games__result { min-width: 4.2em; }
+.pp-games__row .pp-games__result.is-win { color: #d99a0b; }
+.pp-games__row .pp-games__result.is-draw { color: var(--ink-soft); }
+.pp-games__row .pp-games__result.is-loss { color: #b3372a; }
+.pp-games__who { flex: 1 1 10em; font-weight: 600; }
+.pp-study__move sup { font-size: 0.7em; font-weight: 700; }
 .pp-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
 .pp-tile { text-align: center; padding: 6px 4px; border-radius: 6px; background: var(--paper-2); border: 2px solid var(--paper-3); }
 .pp-tile b { display: block; font-family: var(--font-pixel); font-size: 16px; }

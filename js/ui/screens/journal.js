@@ -25,6 +25,9 @@ import { OPENINGS } from '../../data/openings.js';
 import { POSTCARDS, BEYOND_THE_TOUR } from '../../data/postcards.js';
 import { starById } from '../../data/starPlayers.js';
 import { GRADE_META } from '../../core/grading.js';
+import { gamesOf } from '../../core/history.js';
+import * as Save from '../../core/save.js';
+import { openGameViewer, resultWord, kindLabel } from '../gameViewer.js';
 import { hasAllPostcards, masteryState, trophyCount, postcardCount, missionProgress, xpProgress, maxFocus, hintPlies, repertoireSlots, equipOpening, unequipOpening, isUnlocked, nextStep, entryFee } from '../../core/career.js';
 import { ownsItem, isEquipped, buyItem, equipItem, itemsOfKind } from '../../core/shop.js';
 import { pieceUrl, BOARD_THEMES } from '../../chess/render/pieceSets.js';
@@ -72,7 +75,7 @@ export function journalScreen(app, params) {
   const secret = hasAllPostcards(career);
   const tabs = [
     ['passport', 'passport', 'Passport'], ['openings', 'pawn', 'Openings & Cities'],
-    ['postcards', 'postcard', `Postcards ${postcardCount(career)}/6`], ['career', 'trophy', 'Career'], ['shop', 'coins', 'Shop'],
+    ['postcards', 'postcard', `Postcards ${postcardCount(career)}/6`], ['career', 'trophy', 'Career'], ['games', 'analysis', 'Games'], ['shop', 'coins', 'Shop'],
     ...(secret ? [['beyond', 'xp', 'Beyond the Tour']] : [])
   ];
   let tab = params.tab && tabs.some(([id]) => id === params.tab) ? params.tab : 'passport';
@@ -99,7 +102,7 @@ export function journalScreen(app, params) {
     paintTabs();
     wasCompact = compact();
     const pages = wasCompact ? { passport: passportList, openings: openingsList } : { passport, openings };
-    body.replaceChildren(({ ...pages, postcards, career: careerTab, shop, beyond })[tab]());
+    body.replaceChildren(({ ...pages, postcards, career: careerTab, games: gamesTab, shop, beyond })[tab]());
     if (tab === 'beyond' && !career.secretRevealSeen) { career.secretRevealSeen = true; app.save(); sfx.trophy(); }
   }
 
@@ -240,6 +243,34 @@ export function journalScreen(app, params) {
     h('div.pp-panel.pp-small', { style: { gridColumn: '1 / -1' } }, secret
       ? 'All six collected. Read the first letter of each message, in order. Then open the new tab.'
       : 'Postcards are optional. Each casual venue gives one for finishing its puzzle challenge. The messages on the back seem to belong together.'));
+
+  /* Match History: this career's finished games, newest first (js/core/history.js). */
+  const gamesTab = () => {
+    const games = gamesOf(Save.loadHistory(), career);
+    const panel = h('div.pp-panel.pp-modal.pp-modal--wide.pp-games', { style: { margin: '10px auto' } },
+      h('h2.pp-h2', { text: 'Match history' }));
+    if (!games.length) {
+      panel.append(h('p', { text: career.stats.games
+        ? 'Games are recorded here from now on: the ones played before this update were not kept move by move.'
+        : 'Every game you finish is recorded here, move by move. Step through it, copy the board as a picture or the game as PGN.' }));
+      return panel;
+    }
+    panel.append(h('p.pp-small.pp-muted', { text: `${games.length} game${games.length > 1 ? 's' : ''}. ${tapWord() === 'tap' ? 'Tap' : 'Click'} one to step through it.` }),
+      h('ul.pp-lines.pp-games__list', null, games.map((g) => {
+        const city = clubById(g.clubId)?.city || (g.clubId === FINALE.id ? FINALE.city : '');
+        const when = new Date(g.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const plies = g.moves ? g.moves.split(' ').length : 0;
+        return h('li', null, h('button.pp-games__row', {
+          type: 'button', onclick: () => { sfx.click(); openGameViewer(app, g); },
+          'aria-label': `${resultWord(g.score)} against ${g.opponent.name}, ${kindLabel(g.kind)}, ${when}`
+        },
+          h(`b.pp-games__result.is-${g.score === 1 ? 'win' : g.score === 0.5 ? 'draw' : 'loss'}`, { text: resultWord(g.score) }),
+          sideIcon(g.colour, { size: 'sm' }),
+          h('span.pp-games__who', { text: `${g.opponent.name}${g.opponent.elo ? ` (${g.opponent.elo})` : ''}` }),
+          h('span.pp-small.pp-muted', { text: [kindLabel(g.kind), city, `${Math.ceil(plies / 2)} moves`, g.accuracy !== null ? `${g.accuracy}%` : null, when].filter(Boolean).join(' · ') })));
+      })));
+    return panel;
+  };
 
   const careerTab = () => {
     const s = career.stats;
