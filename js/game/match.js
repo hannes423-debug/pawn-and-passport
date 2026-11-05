@@ -72,6 +72,9 @@ import { offeredPieces } from '../chess/analysis/brilliance.js';
 import { matchScore } from '../core/scoring.js';
 import { maxFocus, specialtyOpening, equippedMastery, undoUses } from '../core/career.js';
 
+/** A position without its move counters: the same position reached again is the same. */
+const positionKey = (fen) => String(fen || '').split(' ').slice(0, 4).join(' ');
+
 export class PapMatch {
   /**
    * @param {Object} o
@@ -122,6 +125,12 @@ export class PapMatch {
        never takes) must not earn Brilliant/Epic/Clutch every move: only the
        move that first offered it does. */
     this.specialOffers = new Set();
+    /* Every move a hint has SHOWN, by position: position (no move counters)
+       + uci -> the plan's quality. Undo wipes the hint itself, and replaying
+       the shown move afterwards used to grade it as the player's own find
+       (BEST, EPIC...) with the XP, score and Focus that pays - see
+       _revealedPlan. */
+    this.revealed = new Map();
     this.undosUsed = 0;
     this.undoMax = undoUses(career.level);
     this.playerMovesSinceUndo = Infinity;   // no cooldown before the first undo
@@ -173,7 +182,7 @@ export class PapMatch {
     const record = this.game.move(move);
     if (!record) return null;
     this._noteOpening(record);
-    const plan = this._settleHint(record);
+    const plan = this._settleHint(record) || this._revealedPlan(record);
     this.playerMovesSinceUndo += 1;
     this._pending.push(this._grade(record, plan));
     await this.maybePlayBot();
@@ -195,7 +204,11 @@ export class PapMatch {
     let refund = 0;
     if (hint.fresh) refund = plan ? refundFor({ cost: hint.cost, rank: plan.rank }) : showing.length ? refundFor({ cost: hint.cost, rank: null }) : 0;
     hint.fresh = false;
-    if (refund) this.focus = Math.min(this.focusMax, this.focus + refund);
+    if (refund) {
+      const before = this.focus;
+      this.focus = Math.min(this.focusMax, this.focus + refund);
+      record.hintRefund = this.focus - before;      // what Undo gives back (undo())
+    }
     if (plan) {
       plan.step += 1;
       record.hintQuality = plan.quality;
@@ -215,6 +228,19 @@ export class PapMatch {
   }
 
   /** After the opponent's reply: the next move of the plan being followed, drawn automatically. */
+  /** Remember what hint plans show, so Undo cannot turn them into the player's own finds. */
+  _reveal(plans) {
+    for (const p of plans || []) if (p?.uci && p.fen) this.revealed.set(`${positionKey(p.fen)}|${p.uci}`, p.quality);
+  }
+
+  /** A move a hint showed in this very position, played with no hint running (after Undo). */
+  _revealedPlan(record) {
+    const quality = this.revealed.get(`${positionKey(record.fenBefore)}|${record.uci}`);
+    if (!quality) return null;
+    record.hintQuality = quality;
+    return { quality, rank: null, revealedEarlier: true };
+  }
+
   async _continueHint() {
     const hint = this.hint;
     const plan = hint?.plans.find((p) => p.awaiting);
@@ -229,6 +255,7 @@ export class PapMatch {
       plan.san = pvToSan(fen, [uci])[0];
       plan.fen = fen;
       plan.awaiting = false;
+      this._reveal([plan]);
       this.emit('hint', { plans: [plan], rolls: null, continuation: true, quote: null });
     } catch {
       if (this.hint === hint) this.hint = null;
@@ -402,6 +429,7 @@ export class PapMatch {
         this.hint = null;
       } else {
         this.hint = { cost: quote.cost, fresh: true, plans: drawn };
+        this._reveal(drawn);
       }
       const payload = { plans: drawn, rolls, continuation: false, quote, refund };
       this.emit('hint', payload);
@@ -449,7 +477,8 @@ export class PapMatch {
     else if (!left) reason = 'used';
     else if (cooldown) reason = 'cooldown';
     else if (!mine.length) reason = 'nothing';
-    else if (this.focus < UNDO.cost) reason = 'focus';
+    // The Focus the undone move earned (regen, a hint refund) goes back first.
+    else if (this.focus - ((mine.at(-1).focusGain || 0) + (mine.at(-1).hintRefund || 0)) < UNDO.cost) reason = 'focus';
     else if (this.hintBusy) reason = 'busy';
     return { ok: !reason, reason, cost: UNDO.cost, left, max: this.undoMax, cooldown };
   }
@@ -474,6 +503,7 @@ export class PapMatch {
       if (record.color !== this.playerColour) continue;
       if (record.grade && this.grades[record.grade]) this.grades[record.grade] -= 1;
       if (record.focusGain) this.focus = Math.max(0, this.focus - record.focusGain);
+      if (record.hintRefund) this.focus = Math.max(0, this.focus - record.hintRefund);
     }
     this.focus -= UNDO.cost;
     this.undosUsed += 1;
