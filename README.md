@@ -45,7 +45,7 @@ Debug deep links (need an existing save): `?screen=map`, `?scene=nyc-int`,
 ## Test it
 
 ```bash
-node tests/run.js                      # 40 rules/data/campaign/practice tests, no browser
+node tests/run.js                      # 99 rules/data/campaign/practice/save/probability tests, no browser
 node tools/verify-puzzles.mjs          # re-prove every puzzle with Stockfish, regenerate js/data/puzzles.js
 node tools/verify-lessons.mjs          # re-check the practice tree's 337 challenges against the rules
 python3 tools/opening-research/mine-puzzles.py  # club puzzle candidates from real games in each club opening
@@ -202,6 +202,35 @@ and adds hysteresis and a 15s dwell so it does not flicker. A quiet positional
 game never leaves the first track; Morphy's Opera Game reaches the last one
 only for the closing queen sacrifice.
 
+## Match history and board pictures
+
+Every finished game is kept, move by move, under its own save key
+(`PAP_history_v1`, `js/core/history.js`; 200 games, about 1 KB each). The
+Journal's **Games** page lists them; a game opens in a viewer that steps
+through the moves (buttons, arrow keys, the pad), jumps to the next graded
+error, copies the game as PGN and the board as a picture. The marks on your
+moves are the **live feedback** you saw during the game; **Engine check**
+runs Stockfish on the position shown and prints the engine's name and depth,
+so the two are never confused. **Copy board** (also on the result card)
+redraws the position on the board art at 1040x1022 with your pieces and
+board (`js/ui/boardImage.js`), copied where the browser allows pictures on
+the clipboard and saved as a PNG otherwise.
+
+## Saves
+
+`js/core/save.js`: one career slot (`PAP_career_v1`); every save keeps the
+previous one as `PAP_career_v1_backup`. A slot the game cannot read or bring
+up to date is never overwritten: it is copied to `PAP_career_v1_unreadable`,
+the backup is loaded if it can be, and the player is told.
+
+## Characters
+
+Characters are drawn at the screen's own resolution (a phone draws them 3x
+as sharp as before v1.3.0), face eight ways with a steady diagonal, and walk
+with legs locked to the distance covered. The sheets have four directions;
+`js/core/locomotion.js` and the manifest's per-sheet `rows`/`mirror` are ready
+for eight. What new art should look like: `docs/CHARACTER_SPEC.md`.
+
 ## Coin shop
 
 Tap the coins in the status bar (or open the Journal's **Shop** page) to spend
@@ -336,6 +365,8 @@ js/data/                ALL campaign content and every tunable number
   scenes.js             24 walkable scenes: waypoints + hotspots
 js/core/                pure rules, no DOM (Node-tested)
   career.js save.js hints.js grading.js scoring.js openingBook.js dialogue.js
+  history.js            finished games: entries, PGN, migration (its own save key)
+  locomotion.js         eight-way facing and the distance-locked walk cycle
   difficulty.js         a target Elo -> a bot profile
   musicMood.js          which match track plays; reads the BOARD, never the evaluation
   freeWalk.js           the walk grid: solid mask, eroded by the walker's size
@@ -350,6 +381,8 @@ vendor/                 chess.js, Stockfish 18 lite single-threaded WASM
 assets/                 web copies of the art (tools/build_assets.py writes them)
 tools/                  asset builder, puzzle verifier, headless driver, itch packager
 docs/DESIGN.md          what was reused, removed, and how every system works
+docs/CHARACTER_SPEC.md  the character pipeline, measured, and the spec for new character art
+docs/DEV_REPORT_v1.3.md the v1.3.0 audit: architecture, fixes, open decisions
 docs/LICENSES.md        licences and art provenance
 ```
 
