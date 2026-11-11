@@ -1,0 +1,109 @@
+/**
+ * settings.js - the settings notebook.
+ *
+ * Only what the build actually honours: audio, board, assistance display and
+ * accessibility, stored under PAP_settings_v1 - plus the difficulty, which
+ * belongs to the CAREER (it is part of the save, not a preference) and so is
+ * written straight to it.
+ */
+
+import { h, button } from '../dom.js';
+import { sfx } from '../audio.js';
+import * as Save from '../../core/save.js';
+import { GAME, difficultyMode, clockMode } from '../../data/config.js';
+import { difficultyPicker, timePicker } from '../difficultyPicker.js';
+import { pixelIcon } from '../icons.js';
+import { showControls } from '../controlsHelp.js';
+import { shareGame } from '../share.js';
+
+export function settingsScreen(app, params) {
+  const back = params.back || { screen: 'title', params: {} };
+  const s = app.settings;
+  const commit = () => { app.applySettings(); sfx.click(); };
+
+  const row = (label, control, note = null) => h('label.pp-col', { style: { gap: '2px', marginBottom: '10px' } },
+    h('b', { text: label }), control, note ? h('span.pp-small.pp-muted', { text: note }) : null);
+  const toggle = (key) => h('input', { type: 'checkbox', checked: !!s[key], onchange: (e) => { s[key] = e.target.checked; commit(); } });
+  const select = (key, options) => h('select.pp-input', { style: { fontSize: '17px', padding: '4px' }, onchange: (e) => { s[key] = e.target.value; commit(); } },
+    options.map(([value, label]) => h('option', { value, selected: s[key] === value, text: label })));
+
+  const left = h('div.pp-book__page.pp-book__page--left', null,
+    h('h2.pp-h2', { text: 'Sound' }),
+    row('Volume', h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(s.volume), oninput: (e) => { s.volume = Number(e.target.value); app.applySettings(); }, onchange: () => sfx.best() })),
+    row('Sound effects', toggle('sfx')),
+    row('Music', toggle('music'), 'The soundtrack. One theme for travelling, and three that follow how sharp a game has become.'),
+    h('h2.pp-h2', { text: 'Board' }),
+    row('Piece animation', select('pieceAnimation', [['off', 'Off'], ['fast', 'Fast'], ['smooth', 'Smooth'], ['slow', 'Slow']])),
+    row('Coordinates', toggle('coordinates')),
+    h('h2.pp-h2', { text: 'Controls' }),
+    row('Touch controls', select('touchControls', [['auto', 'Auto (on for touch screens)'], ['on', 'Always on'], ['off', 'Off']]), 'Walking joystick, action button and the phone layout.'),
+    row('Scene view', select('sceneZoom', [['zoom', 'Zoomed in (the camera follows you)'], ['fit', 'Whole room']]), 'On a wide screen: a larger room that scrolls as you walk, or all of it at once with dark bands either side.'),
+    row('Gamepad layout', select('padLayout', [['auto', 'Auto (read from the controller)'], ['xbox', 'Xbox: A accepts, B goes back'], ['playstation', 'PlayStation: Cross accepts, Circle goes back'], ['nintendo', 'Nintendo: A (right) accepts, B (bottom) goes back']]),
+      'Only needed if the game shows the wrong buttons for your controller.'),
+    h('div.pp-row', { style: { marginBottom: '10px' } },
+      button('All the controls', () => showControls(app), { cls: 'pp-btn--small pp-btn--blue', icon: pixelIcon('settings', { size: 'sm' }) })));
+
+  /* Difficulty lives on the career, not in the settings file: it is part of
+     the save. Changing it here changes the games AHEAD - the tournament you
+     are in keeps the opponents it was drawn with, and nothing already won,
+     rated or recorded moves. */
+  const career = app.career;
+  const difficultyBlock = career ? [
+    h('h2.pp-h2', { text: 'Difficulty' }),
+    difficultyPicker(career.difficulty, (id) => {
+      career.difficulty = difficultyMode(id).id;
+      app.save();
+      sfx.click();
+      app.toast(`Difficulty: ${difficultyMode(id).label}. This changes the games ahead, not the ones behind.`);
+    }),
+    h('p.pp-small.pp-muted', { text: 'Your trophies, rating and tournament progress are never touched. A tournament already under way keeps the opponents it was drawn with.' }),
+    h('h2.pp-h2', { text: 'Time limit' }),
+    timePicker(career.timeLimit, (id) => {
+      career.timeLimit = clockMode(id).id;
+      app.save();
+      sfx.click();
+      app.toast(`Time limit: ${clockMode(id).label}. From your next game on.`);
+    }),
+    h('p.pp-small.pp-muted', { text: 'Every game uses it, from the next one you start. Hint and Undo take thinking time off your clock.' })
+  ] : [
+    h('h2.pp-h2', { text: 'Difficulty' }),
+    h('p.pp-small.pp-muted', { text: 'Start a career to choose how strong your opponents are.' })
+  ];
+
+  const right = h('div.pp-book__page.pp-book__page--right', null,
+    ...difficultyBlock,
+    h('h2.pp-h2', { text: 'Assistance' }),
+    row('Live move grades', toggle('moveGrades'), 'Colour verdicts and Brilliant / Epic / Clutch effects on your moves.'),
+    row('Opening guide arrows', toggle('guideArrows'), 'Blue arrows from your equipped openings. They never cost Focus.'),
+    h('h2.pp-h2', { text: 'Accessibility' }),
+    row('Reduce motion', toggle('reducedMotion'), 'No particles, flashes or shakes.'),
+    row('Dialogue speed', select('textSpeed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']])),
+    h('div.pp-row', null,
+      button('Done', () => app.go(back.screen, back.params), { cls: 'pp-btn--gold', back: true }),
+      button('Reset settings', async () => {
+        const ok = await app.overlay((close) => h('div.pp-panel.pp-modal', null,
+          h('h2.pp-h2', { text: 'Reset every setting?' }),
+          h('p', { text: 'Sound, board, assistance and accessibility go back to their defaults. Your career is not touched.' }),
+          h('div.pp-row', null, button('Reset', () => close(true), { cls: 'pp-btn--red' }), button('Keep my settings', () => close(false), { cls: 'pp-btn--gold' }))));
+        if (!ok) return;
+        app.settings = { ...Save.DEFAULT_SETTINGS }; app.applySettings(); app.go('settings', params);
+      }, { cls: 'pp-btn--small' })),
+    h('p.pp-small.pp-muted', { text: `Saves use the ${Save.SAVE_PREFIX} prefix.` }));
+
+  // The notebook art has painted sliders; a parchment sheet covers them.
+  for (const page of [left, right]) {
+    page.style.background = 'rgba(243, 227, 191, 0.96)';
+    page.style.borderRadius = '6px';
+    page.style.top = '12%';
+  }
+  const book = h('div.pp-book.pp-book--settings', null, left, right);
+  /* Under the book, never inside its scrolling pages: the version and Share
+     are in view the moment the notebook opens, title screen or mid-game. */
+  const about = h('footer.pp-about', null,
+    h('span.pp-about__name', null, h('b', { text: GAME.title }), ` v${GAME.version}`),
+    button('Share', () => { sfx.click(); shareGame(app); }, { cls: 'pp-btn--small pp-about__share', title: 'Share the game with a friend', icon: pixelIcon('postcard', { size: 'sm' }) }));
+  const el = h('div.pp-screen.pp-journal.pp-settings', null, h('div.pp-settings__wrap', null, book), about);
+  return { el };
+}
+
+export default settingsScreen;

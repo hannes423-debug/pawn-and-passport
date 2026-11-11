@@ -1,0 +1,712 @@
+/**
+ * match.js - one Pawn & Passport game, wired end to end.
+ *
+ * The jam's replacement for Chess: World Tour's MatchSession. It keeps the
+ * same core pieces (ChessGame, ChessBot, GameReview on the shared Stockfish
+ * worker) and drops everything the jam removed: no skills, perks, abilities,
+ * guidance sliders or loadouts. What it adds is small:
+ *
+ *   Focus   a per-game pool, refilled at the start, earned back by strong moves
+ *   Hint    an active ability; cost and depth from js/core/hints.js
+ *   Undo    an active ability: take back your last move and the reply
+ *           (config UNDO: expensive, capped per game, cooldown in moves)
+ *   Grades  every PLAYER move is annotated live and graded (incl. CLUTCH)
+ *   Guide   arrows from the player's own opening knowledge
+ *
+ * Renderer-free: the match screen subscribes to events and draws.
+ */
+
+import { ChessGame } from '../chess/core/chessGame.js';
+import { TIME_CONTROLS, timeControlById } from '../chess/core/timeControl.js';
+import { focusTimeCost, hasTimeFor } from '../core/focusTime.js';
+import { newConduct, conductStep, noteOffer } from '../core/botConduct.js';
+import { phaseOf } from '../chess/core/rules.js';
+import { engineService } from '../chess/engine/engineService.js';
+import { REVIEW_LEVEL } from '../chess/engine/analysisLevels.js';
+import { ChessBot } from '../chess/bots/chessBot.js';
+import { GameReview } from '../chess/analysis/gameReview.js';
+import { accuracyFromWinProbLoss } from '../chess/core/gameResult.js';
+import { pvToSan, applyUci } from '../chess/core/rules.js';
+import { otherColour } from '../chess/core/constants.js';
+import { FOCUS, MASTERY, BOOK, GRADING, UNDO, HINTS, GUIDE, DRAW, TOURNAMENT, CLOCK, clockMode, CONDUCT } from '../data/config.js';
+import { scoreToCp } from '../chess/analysis/moveClassifier.js';
+import { rollHint, refundFor, QUALITY_META } from '../core/focusHints.js';
+import { legalMoves } from '../chess/core/rules.js';
+import { PIECE_VALUE } from '../chess/core/constants.js';
+
+/* Opponent recovery: how long one engine move may take, and how many tries
+   before a safe fallback move is played instead. */
+export const BOT_RECOVERY = { timeoutMs: 30000, attempts: 2 };
+
+const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms);
+  promise.then((v) => { clearTimeout(timer); resolve(v); }, (e) => { clearTimeout(timer); reject(e); });
+});
+const uciOf = (m) => m.from + m.to + (m.promotion || '');
+const legalUcis = (fen) => new Set(legalMoves(fen).map(uciOf));
+
+/**
+ * A sensible move without an engine: mate if there is one, else the most
+ * valuable capture, a check, development toward the centre - never the
+ * engine's strength, but never a softlock either. Deterministic.
+ */
+export function fallbackMove(fen) {
+  const moves = legalMoves(fen);
+  if (!moves.length) return null;
+  const value = (p) => (p ? PIECE_VALUE[p] || 0 : 0);
+  let best = null;
+  for (const m of moves) {
+    let score = 0;
+    if (m.san?.includes('#')) score += 100000;
+    if (m.captured) score += value(m.captured) * 10 - Math.min(value(m.piece), 900);
+    if (m.san?.includes('+')) score += 30;
+    if (m.promotion) score += value(m.promotion);
+    const file = m.to.charCodeAt(0) - 97; const rank = Number(m.to[1]) - 1;
+    score += 6 - (Math.abs(3.5 - file) + Math.abs(3.5 - rank));
+    if (!best || score > best.score) best = { uci: uciOf(m), score };
+  }
+  return best.uci;
+}
+import { profileForOpponent } from '../core/difficulty.js';
+import { fullBook, bookForOpening } from '../core/openingBook.js';
+import { hintQuote } from '../core/hints.js';
+import { gradeMove, emptyGradeCounts, GRADE_META } from '../core/grading.js';
+import { offeredPieces } from '../chess/analysis/brilliance.js';
+import { matchScore } from '../core/scoring.js';
+import { maxFocus, specialtyOpening, equippedMastery, undoUses } from '../core/career.js';
+
+/** A position without its move counters: the same position reached again is the same. */
+const positionKey = (fen) => String(fen || '').split(' ').slice(0, 4).join(' ');
+
+export class PapMatch {
+  /**
+   * @param {Object} o
+   * @param {Object} o.career
+   * @param {'friendly'|'tournament'|'star'|'finale'} o.kind
+   * @param {{id,name,elo,style,openingId}} o.opponent
+   * @param {'w'|'b'} o.playerColour
+   */
+  constructor({ career, kind, opponent, playerColour = 'w', service = engineService, clubId = null, now = undefined, random = Math.random, botRandom = Math.random }) {
+    this.career = career;
+    this.kind = kind;
+    /* Who a DRAW sends through, when it decides something: a Star final or
+       a Grand Finale round is won only by winning, so a draw is the bot's;
+       a knockout round goes to Black on a draw. Null: a draw is half a point. */
+    this.drawWinner = kind === 'star' || kind === 'finale' ? otherColour(playerColour)
+      : kind === 'tournament' && TOURNAMENT.format[clubId] === 'knockout' ? TOURNAMENT.knockoutDrawGoesTo
+      : null;
+    this.opponent = opponent;
+    this.playerColour = playerColour;
+    this.service = service;
+    this.book = fullBook;
+
+    const preference = kind === 'star' || kind === 'finale' ? BOOK.starPreference : BOOK.regularPreference;
+    this.profile = profileForOpponent({ ...opponent, openingPreference: preference });
+    this.bot = new ChessBot(this.profile, {
+      service,
+      random: botRandom,          // the bot's own move choices (tests seed it)
+      openingBook: opponent.openingId ? bookForOpening(opponent.openingId) : null
+    });
+
+    /* The career's time limit (config.CLOCK), for every game it plays. */
+    this.timeControl = timeControlById(clockMode(career.timeLimit ?? CLOCK.legacy).timeControl) || TIME_CONTROLS[0];
+    /* Per-ability multipliers on the clock time Focus takes: the RPG stats'
+       hook (js/core/focusTime.js). Nothing sets them yet. */
+    this.focusTimeModifiers = {};
+    /* The opponent's manners: draw offers and resignation (js/core/botConduct.js). */
+    this.random = random;
+    this.conduct = newConduct();
+    this.botOffer = null;        // { kind: 'bluff'|'fair', ply } while the player has not answered
+    this.game = new ChessGame({
+      timeControl: this.timeControl,
+      ...(now ? { now } : {}),
+      mode: 'career',
+      allowUndo: true,          // gated by the Undo ability below, never free
+      players: {
+        [playerColour]: { name: career.name, kind: 'human', rating: career.elo },
+        [otherColour(playerColour)]: { name: opponent.name, kind: 'bot', rating: opponent.elo }
+      }
+    });
+    const { search, ...thresholds } = GRADING;
+    this.gradingSearch = search;
+    this.reviewer = new GameReview({ service, openingBook: this.book, thresholds, search });
+
+    this.focusMax = maxFocus(career.level);
+    this.focus = this.focusMax;
+    this.hintsUsed = 0;
+    /* Pieces the player had hanging when a special grade was awarded. Leaving
+       the same piece en prise move after move (a fishing-pole trap the bot
+       never takes) must not earn Brilliant/Epic/Clutch every move: only the
+       move that first offered it does. */
+    this.specialOffers = new Set();
+    /* Every move a hint has SHOWN, by position: position (no move counters)
+       + uci -> the plan's quality. Undo wipes the hint itself, and replaying
+       the shown move afterwards used to grade it as the player's own find
+       (BEST, EPIC...) with the XP, score and Focus that pays - see
+       _revealedPlan. */
+    this.revealed = new Map();
+    this.undosUsed = 0;
+    this.undoMax = undoUses(career.level);
+    this.playerMovesSinceUndo = Infinity;   // no cooldown before the first undo
+    this.grades = emptyGradeCounts();
+    this.openingsReached = new Set();
+    /* The Focus hint in play: { cost, fresh, plans:[{rank, quality, total, step, uci, san, fen, awaiting}] }.
+       `fresh` until the player's next move, which settles any refund. */
+    this.hint = null;
+    this.lastGuided = null;   // { openingIds, ply }: the last position the book guide covered
+    this.thinking = false;
+    this.hintBusy = false;
+    this._pending = [];
+    this._listeners = new Set();
+    this._botToken = 0;
+    this.status = 'idle';
+    /* One id per game: career.commitMatchResult pays a game out once only. */
+    this.gameId = `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+    this.game.on(({ type, payload }) => {
+      if (type === 'end') this.status = 'finished';
+      this.emit(type, payload);
+    });
+  }
+
+  on(fn) { this._listeners.add(fn); return () => this._listeners.delete(fn); }
+  emit(type, payload = null) {
+    for (const fn of [...this._listeners]) {
+      try { fn({ type, payload, match: this }); } catch (error) { console.error('[PapMatch]', type, error); }
+    }
+  }
+
+  get fen() { return this.game.fen; }
+  get isPlayersTurn() { return this.game.status === 'active' && this.game.turn === this.playerColour; }
+
+  async start() {
+    if (this.status !== 'idle') return;
+    this.status = 'active';
+    await (this.service.retryIfUnavailable ? this.service.retryIfUnavailable() : this.service.ready()).catch(() => {});
+    await this.service.newGame?.().catch(() => {});
+    this.game.start();
+    this.emit('ready');
+    await this.maybePlayBot();
+  }
+
+  /* --------------------------------------------------------------- moves */
+
+  async playMove(move) {
+    if (!this.isPlayersTurn || this.thinking) return null;
+    const record = this.game.move(move);
+    if (!record) return null;
+    this.botOffer = null;                  // moving on is declining (ChessGame clears its drawOffer too)
+    this._noteOpening(record);
+    const plan = this._settleHint(record) || this._revealedPlan(record);
+    this.playerMovesSinceUndo += 1;
+    this._pending.push(this._grade(record, plan));
+    await this.maybePlayBot();
+    return record;
+  }
+
+  /**
+   * The player moved while a hint was showing. Playing a plan's move follows
+   * that plan (the others end); anything else ends them all. The first move
+   * after buying a hint settles the refund: a lesser plan or no plan at all
+   * gives some Focus back.
+   * @returns {Object|null} the plan followed
+   */
+  _settleHint(record) {
+    const hint = this.hint;
+    if (!hint) return null;
+    const showing = hint.plans.filter((p) => !p.awaiting && p.uci);
+    const plan = showing.find((p) => p.uci === record.uci) || null;
+    let refund = 0;
+    if (hint.fresh) refund = plan ? refundFor({ cost: hint.cost, rank: plan.rank }) : showing.length ? refundFor({ cost: hint.cost, rank: null }) : 0;
+    hint.fresh = false;
+    if (refund) {
+      const before = this.focus;
+      this.focus = Math.min(this.focusMax, this.focus + refund);
+      record.hintRefund = this.focus - before;      // what Undo gives back (undo())
+    }
+    if (plan) {
+      plan.step += 1;
+      record.hintQuality = plan.quality;
+      if (plan.step < plan.total) {
+        plan.awaiting = true;
+        plan.uci = null;
+        hint.plans = [plan];
+      } else {
+        this.hint = null;
+      }
+      this.emit('hint-follow', { plan, refund, done: plan.step >= plan.total });
+    } else {
+      this.hint = null;
+      if (showing.length) this.emit('hint-ignored', { refund });
+    }
+    return plan;
+  }
+
+  /** After the opponent's reply: the next move of the plan being followed, drawn automatically. */
+  /** Remember what hint plans show, so Undo cannot turn them into the player's own finds. */
+  _reveal(plans) {
+    for (const p of plans || []) if (p?.uci && p.fen) this.revealed.set(`${positionKey(p.fen)}|${p.uci}`, p.quality);
+  }
+
+  /** A move a hint showed in this very position, played with no hint running (after Undo). */
+  _revealedPlan(record) {
+    const quality = this.revealed.get(`${positionKey(record.fenBefore)}|${record.uci}`);
+    if (!quality) return null;
+    record.hintQuality = quality;
+    return { quality, rank: null, revealedEarlier: true };
+  }
+
+  async _continueHint() {
+    const hint = this.hint;
+    const plan = hint?.plans.find((p) => p.awaiting);
+    if (!plan || !this.isPlayersTurn) return;
+    const fen = this.game.fen;
+    const ply = this.game.ply;
+    try {
+      const result = await this.service.analyze(fen, { ...HINTS.search, multiPv: 1, useCache: true });
+      const uci = result.lines?.[0]?.pv?.[0];
+      if (this.hint !== hint || this.game.ply !== ply || !uci) return;
+      plan.uci = uci;
+      plan.san = pvToSan(fen, [uci])[0];
+      plan.fen = fen;
+      plan.awaiting = false;
+      this._reveal([plan]);
+      this.emit('hint', { plans: [plan], rolls: null, continuation: true, quote: null });
+    } catch {
+      if (this.hint === hint) this.hint = null;
+    }
+  }
+
+  /**
+   * The opponent's move. It must ALWAYS arrive while the game is on: a
+   * failed or hung engine is retried once, then a safe legal move is played
+   * instead (bot-fallback), so the player can never be left waiting forever.
+   * A call made stale by Undo or a newer call leaves the state to that one.
+   */
+  async maybePlayBot() {
+    if (!this.game.waitingOnBot || this.game.status !== 'active') return null;
+    const token = ++this._botToken;
+    const stale = () => token !== this._botToken || this.game.status !== 'active';
+    this.thinking = true;
+    this.emit('thinking', true);
+    try {
+      const fen = this.game.fen;
+      let uci = null;
+      let picked = null;
+      let lastError = null;
+      for (let attempt = 0; attempt < BOT_RECOVERY.attempts && !uci; attempt += 1) {
+        try {
+          const choice = await withTimeout(this.bot.chooseMove(fen, { ply: this.game.ply }), BOT_RECOVERY.timeoutMs);
+          if (stale()) return null;
+          if (choice?.uci && legalUcis(fen).has(choice.uci)) { uci = choice.uci; picked = choice; }
+          else lastError = new Error(`no legal move from the bot (${choice?.uci ?? 'none'})`);
+        } catch (error) {
+          if (stale()) return null;
+          lastError = error;
+          console.warn('[PapMatch] bot move failed', attempt + 1, error);
+        }
+      }
+      const fallback = !uci;
+      if (fallback) {
+        uci = fallbackMove(fen);
+        if (!uci) return null;                 // no legal moves: the game is already over
+        this.emit('bot-error', lastError);
+        this.emit('bot-fallback', { uci, error: lastError?.message || String(lastError) });
+      } else {
+        // A beat of "thinking" so an instant book reply does not feel robotic.
+        await new Promise((r) => setTimeout(r, 250 + Math.random() * 350));
+      }
+      if (stale() || this.game.fen !== fen) return null;
+      /* Manners: resign instead of moving, or offer a draw with the move. */
+      const bot = otherColour(this.playerColour);
+      const action = fallback ? null : conductStep(this.conduct, {
+        evalCp: this._botView(picked, fen), ply: this.game.ply, phase: phaseOf(fen), drawWinner: this.drawWinner,
+        botColour: bot, botElo: this.opponent.elo, random: this.random,
+        playerClockMs: this.timeControl.isUnlimited ? null : this.game.clock.remaining[this.playerColour]
+      });
+      if (action === 'resign' && await this._confirmConduct(fen, 'resign')) {
+        if (stale() || this.game.fen !== fen) return null;
+        this.game.resign(bot);
+        this.emit('bot-resigns', { name: this.opponent.name });
+        return null;
+      }
+      if (stale() || this.game.fen !== fen) return null;
+      const record = this.game.move(uci);
+      if (record) this._noteOpening(record);
+      if (record && (action === 'bluff' || action === 'fair') && this.game.status === 'active') {
+        const ply = this.game.ply;
+        if (await this._confirmConduct(this.game.fen, action) && this.game.ply === ply && this.game.status === 'active') {
+          noteOffer(this.conduct, action, ply);
+          this.botOffer = { kind: action, ply };
+          this.game.offerDraw(bot);
+          this.emit('bot-draw-offer', { kind: action, drawWinner: this.drawWinner, name: this.opponent.name });
+        }
+      }
+      if (record && this.hint?.plans.some((p) => p.awaiting)) this._continueHint();
+      return record;
+    } catch (error) {
+      console.error('[PapMatch] bot turn failed', error);
+      this.emit('bot-error', error);
+      return null;
+    } finally {
+      if (token === this._botToken) {
+        this.thinking = false;
+        this.emit('thinking', false);
+      }
+    }
+  }
+
+  /** Is the game waiting on an opponent move that nobody is computing? (the screen's watchdog asks) */
+  get botStalled() {
+    return this.status === 'active' && this.game.status === 'active' && this.game.waitingOnBot && !this.thinking;
+  }
+
+  _noteOpening(record) {
+    for (const opening of this.book.reached(record.fenAfter)) {
+      if (this.openingsReached.has(opening.id)) continue;
+      this.openingsReached.add(opening.id);
+      this.emit('opening', { opening, mastery: this.career.openings[opening.id] ?? 0 });
+    }
+  }
+
+  async _grade(record, plan = null) {
+    const followedHint = !!plan;
+    try {
+      await this.reviewer.annotate(record);
+      if (record.undone) return;
+      /* The lines annotate() classified the move with. Only when it had
+         nothing to go on (no engine lines) does grading ask for its own. */
+      const lines = record.reviewLines
+        || (await this.service.review(record.fenBefore, { multiPv: REVIEW_LEVEL.multiPv, ...this.gradingSearch })).lines;
+      let verdict = gradeMove(record, lines);
+      if (!verdict.grade || record.undone) return;
+      verdict = this._noRepeatSpecial(record, verdict);
+      /* A move the hint showed is the hint's, not the player's find: it reads
+         FOCUS in the plan's colour and earns nothing back. */
+      if (followedHint) {
+        record.shownGrade = verdict.grade;
+        verdict = { ...verdict, grade: 'FOCUS', tier: QUALITY_META[plan.quality].tier, meta: GRADE_META.FOCUS, quality: plan.quality };
+      }
+      record.grade = verdict.grade;
+      this.grades[verdict.grade] = (this.grades[verdict.grade] || 0) + 1;
+      let focusGain = 0;
+      if (!followedHint && FOCUS.regen[verdict.grade] && this.status !== 'finished') {
+        focusGain = Math.min(FOCUS.regen[verdict.grade], this.focusMax - this.focus);
+        this.focus += focusGain;
+      }
+      record.focusGain = focusGain;
+      this.emit('graded', { record, ...verdict, focusGain, followedHint });
+    } catch (error) {
+      /* Live grading is best-effort: with no engine the game is still chess. */
+    }
+  }
+
+  /**
+   * A special grade (EPIC, BRILLIANT, CLUTCH) only counts when the move offers
+   * something NEW: if every piece the player has hanging after the move was
+   * already hanging when an earlier special grade was given, it is the same
+   * sacrifice still standing, and the move is graded by its plain quality.
+   */
+  _noRepeatSpecial(record, verdict) {
+    if (!['EPIC', 'BRILLIANT', 'CLUTCH'].includes(verdict.grade)) return verdict;
+    let hanging = [];
+    try {
+      const after = record.fenAfter || applyUci(record.fenBefore, record.uci)?.fen;
+      hanging = offeredPieces(after, this.playerColour).map((p) => `${p.type}@${p.square}`);
+    } catch { hanging = []; }
+    const fresh = hanging.filter((key) => !this.specialOffers.has(key));
+    if (hanging.length && !fresh.length) {
+      const plain = record.mistakeClassification === 'EXCELLENT' ? 'EXCELLENT' : 'BEST';
+      return { grade: plain, tier: GRADE_META[plain].tier, meta: GRADE_META[plain], repeatOffer: true };
+    }
+    for (const key of hanging) this.specialOffers.add(key);
+    return verdict;
+  }
+
+  /* ---------------------------------------------------------------- hints */
+
+  /** The bot's own view of `fen` (its turn) from its search, in cp from its side; null without one. */
+  _botView(choice, fen) {
+    const score = choice?.candidates?.[0]?.score;
+    if (!score) return null;
+    return scoreToCp(score);              // UCI scores are from the side to move: the bot
+  }
+
+  /* A manners decision is acted on only if a real search agrees. */
+  async _confirmConduct(fen, kind) {
+    const bot = otherColour(this.playerColour);
+    try {
+      const r = await this.service.analyze(fen, { ...DRAW.search, useCache: true });
+      const score = r.lines?.[0]?.score || r.score;
+      if (!score) return false;
+      const v = (fen.split(' ')[1] === bot ? 1 : -1) * scoreToCp(score);
+      if (kind === 'resign') return v <= -CONDUCT.resign.cp;
+      if (kind === 'bluff') return v <= -CONDUCT.bluff.cp;
+      return Math.abs(v) <= CONDUCT.fair.cp * 2;
+    } catch { return false; }
+  }
+
+  /** The player answers the opponent's draw offer. @returns {boolean} the game ended in a draw */
+  answerBotOffer(accept) {
+    const offer = this.botOffer;
+    this.botOffer = null;
+    if (!offer || this.game.status !== 'active') return false;
+    if (accept) return !!this.game.acceptDraw();
+    this.game.declineDraw();
+    return false;
+  }
+
+  /** The player's clock, in ms (null with no time limit). */
+  get playerClockMs() {
+    this.game.clock.tick();
+    return this.game.clock.remaining[this.playerColour];
+  }
+
+  /** Clock time an ability takes now (0 with no limit). */
+  focusTime(ability, rolls = 1) {
+    return focusTimeCost(ability, { timeControl: this.timeControl, rolls, modifiers: this.focusTimeModifiers });
+  }
+
+  /* Thinking hard takes time: the clock jumps (ChessClock.spend). */
+  _spendTime(ability, ms) {
+    if (!ms) return 0;
+    const spent = this.game.clock.spend(this.playerColour, ms);
+    this.emit('focus-time', { ability, ms: spent });
+    if (this.game.clock.flagged) this.game.tick();
+    return spent;
+  }
+
+  quoteHint() {
+    const quote = hintQuote({
+      level: this.career.level, fen: this.game.fen, mastery: equippedMastery(this.career),
+      specialty: specialtyOpening(this.career), book: this.book
+    });
+    quote.timeMs = this.focusTime('hint', quote.rolls);
+    return quote;
+  }
+
+  /**
+   * Buy a hint: the engine's playable candidates, one roll each (see
+   * core/focusHints.js). Plans that succeed are drawn at once, one move each;
+   * the rest of a purple or gold plan follows after the opponent replies.
+   */
+  async requestHint(random = Math.random) {
+    if (!this.isPlayersTurn || this.hintBusy) return { ok: false, reason: 'not-now' };
+    const quote = this.quoteHint();
+    if (this.focus < quote.cost) return { ok: false, reason: 'focus', quote };
+    if (!hasTimeFor(quote.timeMs, this.playerClockMs)) return { ok: false, reason: 'time', quote };
+    if (this.service.available === false) return { ok: false, reason: 'engine', quote };
+    this.hintBusy = true;
+    const fen = this.game.fen;
+    const ply = this.game.ply;
+    try {
+      let result;
+      try {
+        result = await this.service.analyze(fen, { ...quote.search, multiPv: HINTS.candidates, useCache: true });
+      } catch (error) {
+        console.warn('[PapMatch] hint search failed', error);
+        return { ok: false, reason: 'engine', quote };      // nothing was spent
+      }
+      if (!result.lines?.[0]?.pv?.length) return { ok: false, reason: this.service.available === false ? 'engine' : 'no-line' };
+      if (this.game.ply !== ply) return { ok: false, reason: 'stale' };
+      const { rolls, plans } = rollHint(result.lines, this.career.level, random);
+      this.focus -= quote.cost;
+      // The thinking happened, whatever the rolls show: no time comes back.
+      this._spendTime('hint', quote.timeMs);
+      this.hintsUsed += 1;
+      const drawn = plans.map((p) => ({ ...p, step: 0, fen, san: pvToSan(fen, [p.uci])[0], awaiting: false }));
+      for (const r of rolls) r.san = pvToSan(fen, [r.uci])[0];
+      // Nothing came to mind: most of the Focus comes straight back.
+      let refund = 0;
+      if (!drawn.length) {
+        refund = refundFor({ cost: quote.cost, shown: false });
+        this.focus = Math.min(this.focusMax, this.focus + refund);
+        this.hint = null;
+      } else {
+        this.hint = { cost: quote.cost, fresh: true, plans: drawn };
+        this._reveal(drawn);
+      }
+      const payload = { plans: drawn, rolls, continuation: false, quote, refund };
+      this.emit('hint', payload);
+      return { ok: true, hint: payload };
+    } finally {
+      this.hintBusy = false;
+    }
+  }
+
+  /**
+   * The guide past the book, for a MASTERED opening only: when the opponent
+   * leaves the prepared lines, the player who knows the opening completely
+   * still knows what to do, until the game passes the opening's longest line.
+   * Free. @returns {Promise<Object[]>} guide entries, like guide()
+   */
+  async masteredGuide() {
+    if (!GUIDE.masteredFillIn || !this.isPlayersTurn) return [];
+    const mastery = equippedMastery(this.career);
+    const ply = this.game.ply;
+    const last = this.lastGuided;
+    if (!last || last.ply < GUIDE.minBookPlies) return [];
+    const opening = last.openingIds.map((id) => this.book.byId.get(id))
+      .find((o) => o && (mastery[o.id] ?? 0) >= GUIDE.masteredAt && ply < Math.max(...o.lines.map((l) => l.length)));
+    if (!opening || this.service.available === false) return [];
+    const fen = this.game.fen;
+    try {
+      const result = await this.service.analyze(fen, { ...HINTS.search, multiPv: 1, useCache: true });
+      const uci = result.lines?.[0]?.pv?.[0];
+      if (!uci || this.game.ply !== ply || !this.isPlayersTurn) return [];
+      return [{ from: uci.slice(0, 2), to: uci.slice(2, 4), uci, san: pvToSan(fen, [uci])[0], openingId: opening.id, main: true, mastered: true }];
+    } catch {
+      return [];
+    }
+  }
+
+  /* ----------------------------------------------------------------- undo */
+
+  /** Can Undo be used right now, and if not, why. */
+  undoState() {
+    const mine = this.game.history.filter((m) => m.color === this.playerColour);
+    const left = Math.max(0, this.undoMax - this.undosUsed);
+    const cooldown = Number.isFinite(this.playerMovesSinceUndo) ? Math.max(0, UNDO.cooldownMoves - this.playerMovesSinceUndo) : 0;
+    let reason = null;
+    if (this.game.status !== 'active') reason = 'over';
+    else if (!left) reason = 'used';
+    else if (cooldown) reason = 'cooldown';
+    else if (!mine.length) reason = 'nothing';
+    // The Focus the undone move earned (regen, a hint refund) goes back first.
+    else if (this.focus - ((mine.at(-1).focusGain || 0) + (mine.at(-1).hintRefund || 0)) < UNDO.cost) reason = 'focus';
+    else if (!hasTimeFor(this.focusTime('undo'), this.playerClockMs)) reason = 'time';
+    else if (this.hintBusy) reason = 'busy';
+    return { ok: !reason, reason, cost: UNDO.cost, timeMs: this.focusTime('undo'), left, max: this.undoMax, cooldown };
+  }
+
+  /** Take back the player's last move (and the bot's reply, or its search). */
+  undo() {
+    const state = this.undoState();
+    if (!state.ok) return { ok: false, ...state };
+    this._botToken += 1;                   // a bot reply in flight is abandoned (its search is not stopped: that could cut a grading search short)
+    /* The clocks as they are NOW: a takeback removes moves, not the time
+       spent on them (ChessGame.undo would rewind both clocks to before the
+       undone move, handing the thinking time back). */
+    this.game.clock.tick();
+    const clocks = { ...this.game.clock.remaining };
+    const undone = [];
+    // Pop until the player's own last move is gone and it is the player's turn.
+    while (this.game.history.length) {
+      const last = this.game.lastMove;
+      const r = this.game.undo();
+      if (!r.ok) break;
+      undone.push(last);
+      if (last.color === this.playerColour) break;
+    }
+    if (!undone.some((m) => m.color === this.playerColour)) return { ok: false, reason: 'nothing' };
+    for (const record of undone) {
+      record.undone = true;
+      if (record.color !== this.playerColour) continue;
+      if (record.grade && this.grades[record.grade]) this.grades[record.grade] -= 1;
+      if (record.focusGain) this.focus = Math.max(0, this.focus - record.focusGain);
+      if (record.hintRefund) this.focus = Math.max(0, this.focus - record.hintRefund);
+    }
+    this.game.clock.restore(clocks, this.playerColour);
+    this.focus -= UNDO.cost;
+    this._spendTime('undo', this.focusTime('undo'));
+    this.undosUsed += 1;
+    this.playerMovesSinceUndo = 0;
+    this.hint = null;
+    this.thinking = false;
+    this.emit('thinking', false);
+    this.emit('undo', { undone, state: this.undoState() });
+    return { ok: true, undone };
+  }
+
+  /** Guide arrows from what the player already knows. Free, never the engine. */
+  guide() {
+    if (!this.isPlayersTurn) return [];
+    const out = this.book.guide(this.game.fen, equippedMastery(this.career), { allBranchesAt: MASTERY.allBranchesAt });
+    if (out.length) this.lastGuided = { openingIds: [...new Set(out.map((g) => g.openingId))], ply: this.game.ply };
+    return out;
+  }
+
+  /* ------------------------------------------------------------- control */
+
+  resign() { this._botToken += 1; return this.game.resign(this.playerColour); }
+
+  /**
+   * The player offers a draw. The bot looks at the board with its own engine
+   * and takes it when it is not better (DRAW.acceptCp); with no engine, when
+   * it is not ahead in material. A draw that would put the player through (a
+   * knockout played as Black) it takes only when clearly worse; one that
+   * wins the bot its round (a final, a knockout played as Black), always.
+   * Never before move 20.
+   *
+   * @returns {Promise<{accepted: boolean, reason: 'agreed'|'early'|'better'|'decides'|'busy'}>}
+   */
+  async offerDraw() {
+    if (this.game.status !== 'active' || this.game.waitingOnBot || this._drawPending) return { accepted: false, reason: 'busy' };
+    if (this.game.ply < DRAW.minPly) return { accepted: false, reason: 'early' };
+    const bot = otherColour(this.playerColour);
+    const ply = this.game.ply;
+    let edge = null;                  // how much better the bot thinks it is, in centipawns
+    if (this.drawWinner !== bot) {
+      this._drawPending = true;
+      try {
+        const r = await this.service.analyze(this.game.fen, DRAW.search);
+        const score = r.lines?.[0]?.score || r.score;
+        if (score) edge = (this.game.fen.split(' ')[1] === bot ? 1 : -1) * scoreToCp(score);
+      } catch { edge = null; } finally { this._drawPending = false; }
+      // The player moved (or the game ended) while it thought: that offer is gone.
+      if (this.game.ply !== ply || this.game.status !== 'active') return { accepted: false, reason: 'busy' };
+      if (edge === null) edge = this._materialFor(bot) - this._materialFor(this.playerColour);
+      const limit = this.drawWinner === this.playerColour ? -DRAW.holdOutCp : DRAW.acceptCp;
+      if (edge > limit) return { accepted: false, reason: this.drawWinner === this.playerColour ? 'decides' : 'better' };
+    }
+    this.game.offerDraw?.(this.playerColour);
+    return { accepted: !!this.game.acceptDraw(), reason: 'agreed' };
+  }
+
+  _materialFor(colour) {
+    const board = this.game.fen.split(' ')[0];
+    const values = { p: 100, n: 300, b: 300, r: 500, q: 900, k: 0 };
+    let sum = 0;
+    for (const ch of board) {
+      const lower = ch.toLowerCase();
+      if (!(lower in values)) continue;
+      if ((ch === lower ? 'b' : 'w') === colour) sum += values[lower];
+    }
+    return sum;
+  }
+
+  /* -------------------------------------------------------------- summary */
+
+  /** Everything the result screen and the career need, once grading settles. */
+  async summary() {
+    // Grading is best-effort: a hung engine must not hold the result screen.
+    await Promise.race([Promise.allSettled(this._pending), new Promise((r) => setTimeout(r, 8000))]);
+    const result = this.game.result;
+    const score = result ? result.scoreFor(this.playerColour) : 0;
+    const mine = this.game.history.filter((m) => m.color === this.playerColour);
+    const losses = mine.map((m) => m.winProbLoss).filter((x) => typeof x === 'number');
+    const accuracy = losses.length ? accuracyFromWinProbLoss(losses) : null;
+    const checkmate = result?.termination === 'checkmate' && result.winner === this.playerColour;
+    const grades = Object.fromEntries(Object.entries(this.grades).filter(([, n]) => n));
+    const ms = matchScore({
+      score, accuracy, grades, checkmate,
+      playerElo: this.career.elo, opponentElo: this.opponent.elo, hintsUsed: this.hintsUsed, undosUsed: this.undosUsed
+    });
+    return {
+      kind: this.kind, score, accuracy, grades, checkmate, hintsUsed: this.hintsUsed,
+      opponentElo: this.opponent.elo, opponentName: this.opponent.name,
+      matchScore: ms, openingsReached: [...this.openingsReached], undosUsed: this.undosUsed,
+      headline: result?.headline || 'Game over', termination: result?.termination || null,
+      plies: this.game.ply, pgn: result?.pgn || ''
+    };
+  }
+
+  dispose() {
+    this._botToken += 1;
+    this.status = 'disposed';
+    this.reviewer.cancel();
+    this._listeners.clear();
+  }
+}
+
+export default PapMatch;

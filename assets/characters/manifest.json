@@ -1,0 +1,178 @@
+{
+  "cell": [
+    72,
+    108
+  ],
+  "baseline": 102,
+  "columns": {
+    "idle": [
+      0,
+      4
+    ],
+    "walk": [
+      4,
+      12
+    ]
+  },
+  "rows": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "sprites": {
+    "boy": {
+      "src": "assets/characters/boy.png",
+      "portrait": "assets/characters/portraits/boy.png",
+      "portraitSize": [
+        135,
+        320
+      ],
+      "from": "boy-spritesheet.png"
+    },
+    "girl": {
+      "src": "assets/characters/girl.png",
+      "portrait": "assets/characters/portraits/girl.png",
+      "portraitSize": [
+        154,
+        320
+      ],
+      "from": "girl-spritesheet.png"
+    },
+    "young-blue": {
+      "src": "assets/characters/young-blue.png",
+      "portrait": "assets/characters/portraits/young-blue.png",
+      "portraitSize": [
+        134,
+        320
+      ],
+      "from": "young-blue-spritesheet.png"
+    },
+    "young-red": {
+      "src": "assets/characters/young-red.png",
+      "portrait": "assets/characters/portraits/young-red.png",
+      "portraitSize": [
+        134,
+        320
+      ],
+      "from": "young-red-spritesheet.png"
+    },
+    "old-green": {
+      "src": "assets/characters/old-green.png",
+      "portrait": "assets/characters/portraits/old-green.png",
+      "portraitSize": [
+        136,
+        320
+      ],
+      "from": "old-green-spritesheet.png"
+    },
+    "old-scarf": {
+      "src": "assets/characters/old-scarf.png",
+      "portrait": "assets/characters/portraits/old-scarf.png",
+      "portraitSize": [
+        139,
+        320
+      ],
+      "from": "old-scarf-spritesheet.png"
+    },
+    "woman": {
+      "src": "assets/characters/woman.png",
+      "portrait": "assets/characters/portraits/woman.png",
+      "portraitSize": [
+        124,
+        320
+      ],
+      "from": "woman-spritesheet.png"
+    },
+    "woman-coat": {
+      "src": "assets/characters/woman-coat.png",
+      "portrait": "assets/characters/portraits/woman-coat.png",
+      "portraitSize": [
+        130,
+        320
+      ],
+      "from": "woman-coat-spritesheet.png"
+    },
+    "bug-catcher": {
+      "src": "assets/characters/bug-catcher.png",
+      "portrait": "assets/characters/portraits/bug-catcher.png",
+      "portraitSize": [
+        180,
+        320
+      ],
+      "from": "bug-catcher-spritesheet.png"
+    },
+    "cs-student": {
+      "src": "assets/characters/cs-student.png",
+      "portrait": "assets/characters/portraits/cs-student.png",
+      "portraitSize": [
+        213,
+        320
+      ],
+      "from": "cs-student-spritesheet.png"
+    },
+    "cn-student": {
+      "src": "assets/characters/cn-student.png",
+      "portrait": "assets/characters/portraits/cn-student.png",
+      "portraitSize": [
+        152,
+        320
+      ],
+      "from": "cn-student-spritesheet.png"
+    },
+    "in-student": {
+      "src": "assets/characters/in-student.png",
+      "portrait": "assets/characters/portraits/in-student.png",
+      "portraitSize": [
+        151,
+        320
+      ],
+      "from": "in-student-spritesheet.png"
+    },
+    "tr-student": {
+      "src": "assets/characters/tr-student.png",
+      "portrait": "assets/characters/portraits/tr-student.png",
+      "portraitSize": [
+        151,
+        320
+      ],
+      "from": "tr-student-spritesheet.png"
+    },
+    "nyc-student": {
+      "src": "assets/characters/nyc-student.png",
+      "portrait": "assets/characters/portraits/nyc-student.png",
+      "portraitSize": [
+        184,
+        320
+      ],
+      "from": "nyc-student-spritesheet.png"
+    },
+    "lon-boy": {
+      "src": "assets/characters/lon-boy.png",
+      "portrait": "assets/characters/portraits/lon-boy.png",
+      "portraitSize": [
+        159,
+        320
+      ],
+      "from": "lon-boy-spritesheet.png"
+    },
+    "lon-girl": {
+      "src": "assets/characters/lon-girl.png",
+      "portrait": "assets/characters/portraits/lon-girl.png",
+      "portraitSize": [
+        168,
+        320
+      ],
+      "from": "lon-girl-spritesheet.png"
+    },
+    "vie-student": {
+      "src": "assets/characters/vie-student.png",
+      "portrait": "assets/characters/portraits/vie-student.png",
+      "portraitSize": [
+        130,
+        320
+      ],
+      "from": "vie-student-spritesheet.png"
+    }
+  }
+}

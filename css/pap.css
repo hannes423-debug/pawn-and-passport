@@ -1,0 +1,936 @@
+/* ==========================================================================
+   pap.css - Pawn & Passport: travel journal, parchment and brass.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Jersey 15';
+  src: url('../assets/fonts/jersey-15.woff2') format('woff2');
+  /* Body text. Pixelify Sans was tried first and dropped: at UI sizes it draws
+     5 like S and closes C and G ("650 Elo" read "6S0", "Chess" read "Ohess"). */
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('../assets/fonts/press-start-2p.woff2') format('woff2');
+  font-display: swap;
+}
+
+:root {
+  --font-pixel: 'Press Start 2P', 'Courier New', monospace;
+  --font-body: 'Jersey 15', 'Trebuchet MS', system-ui, sans-serif;
+  --ink: #3b2716;
+  --ink-soft: #6b5038;
+  --paper: #f3e3bf;
+  --paper-2: #e9d3a4;
+  --paper-3: #d9bd83;
+  --wood: #5b3620;
+  --wood-dark: #331d10;
+  --gold: #e8b04a;
+  --gold-hi: #ffd87a;
+  --navy: #182440;
+  --navy-2: #22335a;
+  --blue: #3d7fd9;
+  --red: #c9483d;
+  --green: #4f9a55;
+  --fb-good: #5ad17a;
+  --fb-best: #36d6d6;
+  --fb-clutch: #ff4fa3;
+  --fb-brilliant: #b46cff;
+  --fb-epic: #ffc341;
+  --fb-mistake: #ff8f3a;
+  --fb-blunder: #ff3b30;
+  --shadow: 0 4px 0 rgba(20, 10, 5, 0.45);
+  --px: 3px;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: #1a1110;
+  color: var(--ink);
+  font: 20px/1.3 var(--font-body);
+  letter-spacing: 0.3px;
+  overflow: hidden;
+  -webkit-font-smoothing: none;
+  font-synthesis: none;
+}
+.pp-panel:not(.pp-panel--dark) b { color: #1f140b; }
+button { font: inherit; color: inherit; }
+img, canvas { image-rendering: pixelated; }
+
+#app { position: fixed; inset: 0; overflow: hidden; }
+.pp-screen { position: absolute; inset: 0; overflow: hidden; }
+
+/* ------------------------------------------------------------ primitives -- */
+
+.pp-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 6px 16px;
+  background: linear-gradient(#f6e6c0, #e4c98e);
+  border: var(--px) solid var(--wood-dark);
+  border-radius: 6px;
+  box-shadow: inset 0 -3px 0 rgba(120, 80, 30, 0.35), var(--shadow);
+  color: var(--ink); font-weight: 700; cursor: pointer;
+  transition: transform 80ms ease, filter 80ms ease;
+}
+.pp-btn:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.pp-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 -1px 0 rgba(120, 80, 30, 0.35), 0 1px 0 rgba(20, 10, 5, 0.45); }
+.pp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pp-btn:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.pp-btn--gold { background: linear-gradient(#ffd87a, #e8a93a); }
+.pp-btn--blue { background: linear-gradient(#6aa6f0, #3d7fd9); color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
+.pp-btn--red { background: linear-gradient(#ea7a6e, #c9483d); color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
+.pp-btn--small { min-height: 30px; padding: 3px 10px; font-size: 15px; }
+.pp-btn--ghost { background: rgba(243, 227, 191, 0.12); color: var(--paper); border-color: rgba(243, 227, 191, 0.5); box-shadow: none; }
+.pp-btn__icon { font-size: 1.05em; display: inline-flex; align-items: center; }
+
+/* ----------------------------------------------------------------- icons --
+   The pixel-art UI set (js/ui/icons.js, assets/ui/icons/*.png at 32x32
+   native). Nearest-neighbour everywhere: the art is pixels, and the browser's
+   smoothing turns a 32px icon into a smudge the moment it is not shown at 1:1.
+   Sizes are fixed on purpose - five of them, so a row of icons from three
+   different screens still lines up. */
+.pp-ico {
+  display: inline-block; flex: none; vertical-align: -0.16em;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  -webkit-user-select: none; user-select: none; -webkit-user-drag: none;
+}
+.pp-ico--sm { width: 16px; height: 16px; }
+.pp-ico--md { width: 24px; height: 24px; }
+.pp-ico--lg { width: 32px; height: 32px; }
+.pp-ico--xl { width: 48px; height: 48px; }
+.pp-ico--hero { width: 64px; height: 64px; }
+/* Scales with the text around it: the journal's book pages are laid out in
+   container-query units, so a fixed pixel size drifts as the book resizes. */
+.pp-ico--em { width: 1.4em; height: 1.4em; }
+/* An icon that is the whole control still needs a finger-sized target. */
+.pp-btn.pp-btn--icon { min-width: 44px; min-height: 44px; padding: 4px 8px; }
+.pp-btn--icon.pp-btn--small { min-width: 44px; min-height: 36px; }
+.pp-icotext { display: inline-flex; align-items: center; gap: 5px; }
+
+.pp-panel {
+  background: var(--paper);
+  border: var(--px) solid var(--wood-dark);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 3px var(--paper-2), 0 8px 0 rgba(20, 10, 5, 0.45);
+  padding: 16px 18px;
+}
+.pp-panel--dark { background: var(--navy); color: var(--paper); box-shadow: inset 0 0 0 3px var(--navy-2), 0 8px 0 rgba(0, 0, 0, 0.5); }
+.pp-h1, .pp-h2, .pp-h3 { font-family: var(--font-pixel); margin: 0 0 10px; line-height: 1.35; letter-spacing: 0.5px; }
+.pp-h1 { font-size: 22px; }
+.pp-h2 { font-size: 15px; }
+.pp-h3 { font-size: 11px; text-transform: uppercase; color: var(--ink-soft); }
+.pp-muted { color: var(--ink-soft); }
+.pp-small { font-size: 15px; }
+.pp-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pp-col { display: flex; flex-direction: column; gap: 10px; }
+.pp-spacer { flex: 1; }
+
+.pp-meter { height: 12px; background: var(--wood-dark); border-radius: 3px; padding: 2px; overflow: hidden; }
+.pp-meter__fill { height: 100%; background: linear-gradient(#7ee0ff, #36a6d6); border-radius: 2px; transition: width 300ms ease; }
+.pp-meter--xp .pp-meter__fill { background: linear-gradient(#ffe08a, #e8a93a); }
+.pp-meter--focus .pp-meter__fill { background: linear-gradient(#b9a6ff, #7a5cf0); }
+.pp-meter--mastery .pp-meter__fill { background: linear-gradient(#9be08a, #4f9a55); }
+
+.pp-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 1px 8px; border-radius: 999px;
+  background: var(--wood-dark); color: var(--paper);
+  font-size: 14px; font-weight: 700;
+}
+
+/* --------------------------------------------------------------- curtain -- */
+
+.pp-curtain {
+  position: fixed; inset: 0; z-index: 100;
+  display: grid; place-items: center;
+  background: #1a1110; color: var(--paper);
+  transition: opacity 400ms ease;
+}
+.pp-curtain.is-gone { opacity: 0; pointer-events: none; }
+.pp-curtain img { width: min(520px, 80vw); animation: pp-bob 2.4s ease-in-out infinite; }
+.pp-curtain__sub { font-family: var(--font-pixel); font-size: 12px; margin-top: 16px; text-align: center; opacity: 0.8; }
+@keyframes pp-bob { 50% { transform: translateY(-8px); } }
+
+/* ----------------------------------------------------------------- title -- */
+
+.pp-title { background: #1a1110; display: grid; place-items: center; }
+.pp-title__stage {
+  position: relative;
+  width: min(100vw, calc(100vh * 1672 / 941));
+  aspect-ratio: 1672 / 941;
+  background: url('../assets/ui/title-bg.webp') center / cover no-repeat;
+}
+/* 16:9 and squarer windows: the travellers (title-bg: logo painted, no menu),
+   and the menu a row of real buttons along the bottom, over the table map.
+   As wide as a phone on its side, the travel desk with four painted slots
+   takes over (css/layout.css, min-aspect-ratio 197/100). */
+.pp-title__menu { position: absolute; left: 50%; bottom: 11%; transform: translateX(-50%); width: 74%; height: 8.5%; display: flex; gap: 1.4%; }
+.pp-title__item {
+  position: relative; flex: 1 1 0; min-width: 0; height: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 0.45em;
+  padding: 0 0.6em;
+  background: linear-gradient(#f7e7c3, #ead3a0);
+  border: 2px solid #8a6437; border-radius: 6px; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+  font-family: var(--font-body); font-weight: 700; color: #3b2716;
+  font-size: clamp(11px, 1.55vw, 26px);
+  cursor: pointer; text-align: left;
+}
+.pp-title__item:hover:not(:disabled), .pp-title__item:focus-visible { background: linear-gradient(#ffd46a, #f0a93a); outline: none; }
+.pp-title__item:disabled { color: rgba(59, 39, 22, 0.45); cursor: not-allowed; }
+.pp-title__item span:first-child { flex: none; width: 1.2em; line-height: 0; text-align: center; }
+/* The icons grow and shrink with the words. */
+.pp-title__item img { width: 1.2em; height: 1.2em; }
+/* Share and the version, together in the bottom-right corner of the art. */
+.pp-title__footer { position: absolute; right: max(1.2%, env(safe-area-inset-right)); bottom: max(1.6%, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 0.7em; font-size: clamp(11px, 1.1vw, 17px); }
+.pp-title__share {
+  display: inline-flex; align-items: center; gap: 0.4em; min-height: 2.1em; padding: 0.15em 0.8em;
+  background: linear-gradient(#f7e7c3, #ead3a0); border: 2px solid #8a6437; border-radius: 4px; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+  font: inherit; font-weight: 700; color: #3b2716; cursor: pointer;
+}
+.pp-title__share:hover, .pp-title__share:focus-visible { background: linear-gradient(#ffd46a, #f0a93a); outline: none; }
+.pp-title__version { color: #fff6dc; font-weight: 700; text-shadow: 0 1px 0 #000, 0 0 4px #000; white-space: nowrap; }
+.pp-title__continue-note {
+  position: absolute; left: 50%; bottom: 21.5%; transform: translateX(-50%); white-space: nowrap;
+  padding: 2px 10px; border-radius: 6px; background: rgba(20, 12, 6, 0.6);
+  font-size: clamp(11px, 1.1vw, 17px); color: #fff6dc; text-shadow: 0 2px 0 #000;
+}
+
+/* ---------------------------------------------------------------- create -- */
+
+.pp-create { background: radial-gradient(circle at 50% 20%, #3a2618, #120b08); overflow-y: auto; }
+.pp-create__wrap { width: min(1100px, 100%); margin: 0 auto; padding: 24px 16px 40px; }
+.pp-create__logo { display: block; width: min(420px, 70vw); margin: 0 auto 4px; }
+.pp-create__sub { display: block; width: min(360px, 60vw); margin: 0 auto 18px; }
+/* One page at a time: css/layout.css owns the grid that holds them. */
+.pp-create__grid { display: grid; gap: 18px; }
+.pp-avatar-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pp-avatar {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px; border: var(--px) solid var(--paper-3); border-radius: 8px; background: var(--paper-2); cursor: pointer;
+}
+.pp-avatar canvas { width: 96px; height: 144px; }
+.pp-avatar.is-picked { border-color: var(--blue); background: #fff4d8; box-shadow: 0 0 0 3px rgba(61, 127, 217, 0.35); }
+.pp-input {
+  width: 100%; padding: 10px 12px; font: 700 20px var(--font-body); color: var(--ink);
+  background: #fff8e6; border: var(--px) solid var(--wood-dark); border-radius: 6px;
+}
+.pp-input:focus { outline: 3px solid var(--blue); }
+.pp-cities { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.pp-city {
+  position: relative; display: flex; flex-direction: column; text-align: left;
+  padding: 0; overflow: hidden; cursor: pointer;
+  background: var(--paper-2); border: var(--px) solid var(--wood-dark); border-radius: 8px;
+}
+/* The direct child ONLY: this is the city photograph. `.pp-city img` also
+   caught the pixel icon inside the White/Black badge and stretched it to the
+   badge's full width at 16:9. A descendant selector written when the card
+   held exactly one image. */
+.pp-city > img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; image-rendering: auto; }
+.pp-city__body { padding: 8px 10px 10px; }
+.pp-city__name { font-family: var(--font-pixel); font-size: 12px; }
+.pp-city.is-picked { outline: 4px solid var(--gold); box-shadow: 0 0 22px rgba(232, 176, 74, 0.6); }
+.pp-city__side { position: absolute; top: 8px; right: 8px; }
+
+/* ------------------------------------------------------------------- hud -- */
+
+.pp-hud {
+  position: absolute; left: 0; right: 0; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 6px 12px;
+  background: linear-gradient(rgba(24, 14, 8, 0.92), rgba(24, 14, 8, 0.75));
+  border-bottom: 3px solid var(--wood);
+  color: var(--paper);
+}
+/* Over a zoomed scene or the map: no bar, the icons and numbers float on the
+   art, outlined so they read over any picture. */
+/* A 2 px outline all round (every offset up to 2 px: a 1 px stroke of the pixel
+   font would leave a gap at 1 px with the 2 px copies alone), then a soft shadow. */
+.pp-hud.pp-hud--float {
+  background: none; border-bottom: 0;
+  --ol: #1a0f08;
+  text-shadow:
+    -1px -1px 0 var(--ol), 0 -1px 0 var(--ol), 1px -1px 0 var(--ol), -1px 0 0 var(--ol), 1px 0 0 var(--ol), -1px 1px 0 var(--ol), 0 1px 0 var(--ol), 1px 1px 0 var(--ol),
+    -2px -2px 0 var(--ol), -1px -2px 0 var(--ol), 0 -2px 0 var(--ol), 1px -2px 0 var(--ol), 2px -2px 0 var(--ol),
+    -2px -1px 0 var(--ol), 2px -1px 0 var(--ol), -2px 0 0 var(--ol), 2px 0 0 var(--ol), -2px 1px 0 var(--ol), 2px 1px 0 var(--ol),
+    -2px 2px 0 var(--ol), -1px 2px 0 var(--ol), 0 2px 0 var(--ol), 1px 2px 0 var(--ol), 2px 2px 0 var(--ol),
+    0 3px 4px rgba(0, 0, 0, 0.6);
+}
+.pp-hud--float .pp-btn--ghost { background: rgba(24, 14, 8, 0.62); border-color: rgba(243, 227, 191, 0.7); }
+.pp-hud--float .pp-ico, .pp-hud--float .pp-hud__who img { filter: drop-shadow(0 0 1px #1a0f08) drop-shadow(0 0 1px #1a0f08) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
+.pp-hud__who { display: flex; align-items: center; gap: 8px; }
+.pp-hud__who img { width: 40px; height: 40px; }
+.pp-hud__name { font-family: var(--font-pixel); font-size: 11px; }
+.pp-hud__lvl { width: 150px; }
+.pp-hud__lvl .pp-small { display: flex; justify-content: space-between; }
+.pp-hud__stat { display: flex; align-items: center; gap: 5px; font-weight: 700; }
+.pp-hud__stat b { color: var(--gold-hi); }
+.pp-hud__where { font-family: var(--font-pixel); font-size: 10px; color: var(--gold-hi); }
+@media (max-width: 760px) { .pp-hud__lvl { width: 90px; } .pp-hud__where { display: none; } }
+
+/* ------------------------------------------------------------------- map -- */
+
+.pp-map { background: #0b3a73; }
+.pp-map__stage {
+  position: absolute; left: 50%; top: calc(50% + 26px); transform: translate(-50%, -50%);
+  width: min(100vw, calc((100vh - 60px) * 1672 / 941));
+  aspect-ratio: 1672 / 941;
+  background: url('../assets/ui/world-map.webp') center / cover no-repeat;
+}
+.pp-map__routes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.pp-map__routes path { fill: none; stroke: #fff6dc; stroke-width: 0.35; stroke-dasharray: 1 1; opacity: 0.8; }
+.pp-pin {
+  position: absolute; transform: translate(-50%, -100%);
+  display: flex; flex-direction: column; align-items: center;
+  background: none; border: 0; padding: 0; cursor: pointer;
+}
+.pp-pin__flag {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 6px;
+  background: var(--paper); border: 2px solid var(--wood-dark); box-shadow: var(--shadow);
+  font: 700 clamp(11px, 1.1vw, 16px) var(--font-body); white-space: nowrap;
+}
+.pp-pin__marker { margin-top: -2px; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.45)); }
+.pp-pin.is-here .pp-pin__marker { animation: pp-pin-bob 1.4s ease-in-out infinite; }
+.pp-pin.is-here .pp-pin__flag { border-color: var(--blue); }
+@keyframes pp-pin-bob { 50% { transform: translateY(-4px); } }
+.pp-pin.is-locked .pp-pin__flag { background: #9a8c78; color: #3a3228; }
+.pp-pin.is-finale .pp-pin__flag { background: linear-gradient(#ffd87a, #e8a93a); }
+.pp-pin:hover .pp-pin__flag, .pp-pin:focus-visible .pp-pin__flag { transform: translateY(-3px); outline: 3px solid var(--blue); }
+.pp-map__card { position: absolute; right: 14px; bottom: 14px; width: min(380px, calc(100vw - 28px)); z-index: 5; }
+.pp-map__legend { position: absolute; left: 14px; bottom: 14px; z-index: 5; }
+
+/* --------------------------------------------------------------- arrival -- */
+
+.pp-arrival { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(10, 6, 4, 0.85); cursor: pointer; }
+.pp-arrival img {
+  width: min(92vw, calc(88vh * 1672 / 941)); border: 6px solid #fff6dc; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  image-rendering: auto; animation: pp-arrive 700ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.pp-arrival__tap { position: absolute; bottom: 4vh; font-family: var(--font-pixel); font-size: 11px; color: var(--paper); animation: pp-blink 1.2s steps(2) infinite; }
+@keyframes pp-arrive { from { transform: scale(0.6) rotate(-6deg); opacity: 0; } }
+@keyframes pp-blink { 50% { opacity: 0.2; } }
+
+/* ----------------------------------------------------------------- scene -- */
+
+.pp-scene { background: #120b08; }
+.pp-scene__viewport { position: absolute; left: 0; right: 0; top: 56px; bottom: 0; display: grid; place-items: center; }
+.pp-scene__stage { position: relative; image-rendering: auto; }
+.pp-scene__stage > img.pp-scene__bg { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: auto; user-select: none; -webkit-user-drag: none; }
+.pp-scene__actors { position: absolute; inset: 0; pointer-events: none; }
+.pp-actor { position: absolute; transform: translate(-50%, -92%); image-rendering: pixelated; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.35)); }
+.pp-xray { position: absolute; transform: translate(-50%, -92%); image-rendering: auto; pointer-events: none; }
+.pp-actor__shadow { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; background: rgba(0, 0, 0, 0.3); }
+.pp-hotspot {
+  position: absolute; transform: translate(-50%, -100%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: none; border: 0; cursor: pointer; pointer-events: auto; padding: 0;
+}
+.pp-hotspot__label {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 2px 8px; border-radius: 5px; white-space: nowrap;
+  background: rgba(24, 14, 8, 0.85); color: #fff6dc; border: 2px solid var(--gold);
+  font: 700 clamp(11px, 1.05vw, 16px) var(--font-body);
+}
+.pp-hotspot__arrow { color: var(--gold-hi); font-size: clamp(14px, 1.4vw, 22px); line-height: 1; text-shadow: 0 2px 0 #000; animation: pp-bounce 900ms ease-in-out infinite; }
+.pp-hotspot:hover .pp-hotspot__label, .pp-hotspot:focus-visible .pp-hotspot__label { background: var(--gold); color: var(--ink); outline: none; }
+.pp-hotspot.is-done .pp-hotspot__label { border-color: #9be08a; }
+.pp-hotspot.is-locked .pp-hotspot__label { border-color: #777; color: #bbb; }
+@keyframes pp-bounce { 50% { transform: translateY(5px); } }
+.pp-scene__dock { position: absolute; left: 12px; bottom: 12px; z-index: 10; max-width: calc(100vw - 24px); }
+.pp-scene__dock .pp-panel { padding: 10px 12px; }
+.pp-scene__title { font-family: var(--font-pixel); font-size: 11px; margin-bottom: 6px; }
+.pp-scene__dock { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.pp-scene__toggle { padding: 2px 8px; opacity: 0.9; }
+.pp-scene__dock.is-collapsed .pp-panel { display: none; }
+/* Open, with a side gutter wide enough: a column beside the stage (scene.js reserveDock). */
+.pp-scene__dock.is-side { top: calc(var(--hud-h, 56px) + 8px); bottom: auto; max-width: 200px; }
+.pp-scene__dock.is-side .pp-row { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 4px; }
+/* Open, with no gutter to spare: it floats over the full-size stage, see-through
+   so the room shows behind it; solid again while pointed at or in use. */
+.pp-scene__dock.is-over .pp-panel { background: rgba(243, 227, 191, 0.55); box-shadow: inset 0 0 0 3px rgba(233, 211, 164, 0.5), 0 4px 0 rgba(20, 10, 5, 0.25); transition: background 150ms; }
+.pp-scene__dock.is-over .pp-btn { opacity: 0.88; }
+@media (hover: hover) {
+  .pp-scene__dock.is-over:hover .pp-panel, .pp-scene__dock.is-over:focus-within .pp-panel { background: rgba(243, 227, 191, 0.92); }
+  .pp-scene__dock.is-over:hover .pp-btn, .pp-scene__dock.is-over:focus-within .pp-btn { opacity: 1; }
+}
+
+/* -------------------------------------------------------------- overlays -- */
+
+.pp-overlay { position: fixed; inset: 0; z-index: 70; display: flex; overflow-y: auto; padding: 16px; background: rgba(10, 6, 4, 0.72); }
+.pp-overlay > .pp-panel, .pp-overlay > .pp-modal { margin: auto; }
+.pp-modal { width: min(620px, 100%); }
+.pp-modal--wide { width: min(980px, 100%); }
+.pp-share__url { width: 100%; font-size: 16px; padding: 6px 8px; }
+.pp-toasts { position: fixed; top: 64px; right: 12px; z-index: 90; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.pp-toast { background: var(--navy); color: var(--paper); border: 3px solid var(--gold); border-radius: 8px; padding: 8px 12px; font-weight: 700; box-shadow: var(--shadow); animation: pp-toast 300ms ease-out; max-width: 320px; }
+@keyframes pp-toast { from { transform: translateX(40px); opacity: 0; } }
+
+/* -------------------------------------------------------------- dialogue -- */
+
+.pp-dialogue { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 80; width: min(860px, calc(100vw - 32px)); cursor: pointer; }
+.pp-dialogue .pp-panel { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: start; }
+.pp-dialogue img { width: 96px; height: 96px; }
+.pp-dialogue__name { font-family: var(--font-pixel); font-size: 11px; color: var(--red); margin-bottom: 4px; }
+.pp-dialogue__role { font-size: 14px; color: var(--ink-soft); margin-left: 6px; font-family: var(--font-body); }
+.pp-dialogue__text { font-size: 21px; min-height: 3em; }
+.pp-dialogue__next { text-align: right; font-size: 13px; color: var(--ink-soft); animation: pp-blink 1s steps(2) infinite; }
+.pp-dialogue__actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 8px; }
+@media (max-width: 600px) { .pp-dialogue .pp-panel { grid-template-columns: 56px 1fr; } .pp-dialogue img { width: 56px; height: 56px; } .pp-dialogue__text { font-size: 18px; } }
+
+/* ----------------------------------------------------------------- match -- */
+
+.pp-match {
+  background: radial-gradient(circle at 50% 35%, #4a2e1c, #150c08 75%);
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center;
+  padding: 12px 16px;
+}
+.pp-match__board { --frame-w: min(calc(100vh - 40px), calc(100vw - 660px)); display: grid; place-items: center; position: relative; }
+.pp-match__left, .pp-match__right { align-self: stretch; display: flex; flex-direction: column; gap: 12px; min-width: 0; overflow-y: auto; }
+.pp-match__right { max-width: 320px; }
+.pp-match__left { max-width: 300px; justify-self: end; width: 100%; }
+/* Layouts for smaller screens live in css/layout.css. Every one keeps the
+   board in a fixed-size cell: nothing that changes during a game (the
+   thinking label, the opening banner, a hint card, the move list) may sit in
+   a row or column that sizes the board, or the board jumps after moves. */
+.pp-match__left, .pp-match__right { overscroll-behavior: contain; }
+.pp-match__right { justify-self: start; width: 100%; }
+.pp-engine { font-size: 14px; color: var(--ink-soft); margin-top: 4px; }
+.pp-engine[data-status="loading"] { color: #8a5a00; font-weight: 700; }
+.pp-engine[data-status="unavailable"] { color: var(--red); font-weight: 700; }
+.pp-player { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; }
+.pp-player > img { width: 56px; height: 56px; }
+.pp-player__name { font-family: var(--font-pixel); font-size: 10px; line-height: 1.5; }
+.pp-player.is-turn { outline: 3px solid var(--gold); outline-offset: 4px; border-radius: 6px; }
+/* Match clocks (config.CLOCK): in the card's corner, never part of its flow,
+   so the card's height (and the board) never moves. */
+.pp-player { position: relative; }
+.pp-clock { position: absolute; top: 6px; right: 8px; padding: 3px 6px; border-radius: 4px; font-family: var(--font-pixel); font-size: 12px; line-height: 1;
+  color: var(--ink); background: rgba(31, 20, 11, 0.08); border: 2px solid rgba(31, 20, 11, 0.25); font-variant-numeric: tabular-nums; }
+.pp-clock[hidden] { display: none; }
+.pp-clock.is-running { background: #fff3c9; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(253, 186, 1, 0.25); }
+.pp-clock.is-low { color: #b3372a; border-color: #b3372a; }
+.pp-clock.is-low.is-running { background: #ffe1dc; animation: pp-clock-low 1s steps(2, start) infinite; }
+@keyframes pp-clock-low { 50% { border-color: transparent; } }
+.pp-player:has(.pp-clock:not([hidden])) .pp-player__name { padding-right: 76px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* "-9 s" beside the clock, on its left: below it would cover the card's text. */
+.pp-clock__skip { position: absolute; right: 100%; top: 50%; margin-right: 6px; padding: 2px 4px; border-radius: 3px; background: #ffe1dc;
+  font-size: 10px; color: #b3372a; white-space: nowrap; pointer-events: none; animation: pp-clock-skip 1.6s ease-out forwards; }
+@keyframes pp-clock-skip { 0% { opacity: 0; transform: translate(6px, -50%); } 15% { opacity: 1; transform: translate(0, -50%); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(0, -50%); } }
+[data-reduced-motion="true"] .pp-clock__skip, [data-reduced-motion="true"] .pp-clock.is-low.is-running { animation: none; }
+.pp-thinking { font-size: 14px; color: var(--ink-soft); animation: pp-blink 1s steps(2) infinite; }
+.pp-focus__row { display: flex; justify-content: space-between; font-weight: 700; }
+.pp-hintbtn { width: 100%; min-height: 54px; font-size: 19px; }
+.pp-hintbtn small { display: block; font-size: 13px; font-weight: 600; opacity: 0.85; }
+.pp-hint-card { margin-top: 8px; padding: 8px; background: #102238; color: #d8f4ff; border-radius: 6px; font-size: 16px; }
+.pp-cost { font-size: 13px; color: var(--ink-soft); }
+.pp-moves { max-height: 34vh; overflow-y: auto; display: grid; grid-template-columns: 34px 1fr 1fr; gap: 2px 6px; font-size: 16px; }
+.pp-moves span { padding: 1px 4px; border-radius: 3px; }
+.pp-moves .num { color: var(--ink-soft); text-align: right; }
+.pp-grade { font-weight: 700; margin-left: 4px; }
+.pp-grade--epic { color: #b07a00; } .pp-grade--brilliant { color: #7a3fd0; } .pp-grade--clutch { color: #d0226f; }
+.pp-grade--best { color: #0d8a8a; } .pp-grade--good { color: #2f8a45; } .pp-grade--mistake { color: #c2560f; } .pp-grade--blunder { color: #c21f16; }
+.pp-opening-banner { font-family: var(--font-pixel); font-size: 10px; color: var(--gold-hi); text-align: center; min-height: 14px; }
+
+/* move-grade effects on the board */
+.pp-fx { position: absolute; inset: 0; pointer-events: none; z-index: 8; overflow: visible; }
+.pp-fx canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pp-fx__word {
+  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  font-family: var(--font-pixel); font-size: clamp(22px, 4.2vw, 54px); white-space: nowrap;
+  color: #fff; -webkit-text-stroke: 2px #1b1420; text-shadow: 0 5px 0 #1b1420, 0 0 24px var(--c);
+  animation: pp-word 1500ms cubic-bezier(0.2, 1.5, 0.4, 1) forwards;
+}
+.pp-fx__sub { position: absolute; left: 50%; top: 54%; transform: translateX(-50%); font: 700 clamp(14px, 1.6vw, 22px) var(--font-body); color: #fff6dc; text-shadow: 0 2px 0 #000; animation: pp-word 1500ms ease-out forwards; white-space: nowrap; }
+.pp-fx__flash { position: absolute; inset: 0; background: var(--c); mix-blend-mode: screen; animation: pp-flash 500ms ease-out forwards; }
+.pp-fx__ring { position: absolute; border: 6px solid var(--c); border-radius: 50%; transform: translate(-50%, -50%); animation: pp-ring 700ms ease-out forwards; }
+.pp-fx__chip { position: absolute; transform: translate(-50%, -120%); padding: 1px 6px; border-radius: 4px; font: 700 14px var(--font-body); color: #fff; background: var(--c); border: 2px solid #1b1420; animation: pp-chip 1400ms ease-out forwards; white-space: nowrap; }
+.is-shaking { animation: pp-shake 380ms linear; }
+@keyframes pp-word { 0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; } 15% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; } 75% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -70%) scale(1); opacity: 0; } }
+@keyframes pp-flash { from { opacity: 0.55; } to { opacity: 0; } }
+@keyframes pp-ring { from { width: 0; height: 0; opacity: 1; } to { width: 38%; height: 38%; opacity: 0; } }
+@keyframes pp-chip { 0% { opacity: 0; transform: translate(-50%, -60%); } 15% { opacity: 1; transform: translate(-50%, -130%); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -190%); } }
+@keyframes pp-shake { 20% { transform: translate(-6px, 2px); } 40% { transform: translate(5px, -3px); } 60% { transform: translate(-4px, 3px); } 80% { transform: translate(3px, -1px); } }
+
+/* ---------------------------------------------------------------- result -- */
+
+.pp-result__head { text-align: center; }
+.pp-result__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .pp-result__grid { grid-template-columns: 1fr; } }
+.pp-lines { list-style: none; margin: 0; padding: 0; font-size: 16px; }
+.pp-lines li { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--paper-3); padding: 2px 0; }
+.pp-lines li b.neg { color: var(--red); }
+/* Match history (journal Games page). Each game is one button, so keys,
+   pads and taps reach it like any other row. */
+.pp-games__list { max-height: min(60vh, 520px); overflow-y: auto; }
+.pp-games__list li { padding: 0; }
+.pp-games__row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; width: 100%; min-height: 40px; padding: 6px 4px;
+  background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pp-games__row:hover, .pp-games__row:focus-visible { background: var(--paper-2); outline: 2px solid var(--gold); outline-offset: -2px; }
+.pp-games__result { min-width: 4.2em; }
+.pp-games__row .pp-games__result.is-win { color: #d99a0b; }
+.pp-games__row .pp-games__result.is-draw { color: var(--ink-soft); }
+.pp-games__row .pp-games__result.is-loss { color: #b3372a; }
+.pp-games__who { flex: 1 1 10em; font-weight: 600; }
+.pp-study__move sup { font-size: 0.7em; font-weight: 700; }
+/* Picture / Animated GIF pop-up (js/ui/gameExport.js): the file itself, then what to do with it. */
+.pp-export { width: min(560px, calc(100vw - 24px)); }
+.pp-export__preview { display: flex; justify-content: center; align-items: center; min-height: 120px; max-height: min(62vh, 620px); background: #1a1110; border-radius: 6px; overflow: hidden; }
+.pp-export__preview img { display: block; max-width: 100%; max-height: min(62vh, 620px); object-fit: contain; image-rendering: auto; }
+.pp-export__actions { flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0; }
+.pp-copybox { width: 100%; min-height: 10em; font: 13px/1.4 ui-monospace, 'Courier New', monospace; color: var(--ink); background: #fffaf0; border: 2px solid var(--paper-3); border-radius: 6px; padding: 6px; resize: vertical; }
+.pp-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+.pp-tile { text-align: center; padding: 6px 4px; border-radius: 6px; background: var(--paper-2); border: 2px solid var(--paper-3); }
+.pp-tile b { display: block; font-family: var(--font-pixel); font-size: 16px; }
+.pp-tile span { font-size: 13px; }
+.pp-tile--epic { border-color: var(--fb-epic); } .pp-tile--brilliant { border-color: var(--fb-brilliant); } .pp-tile--clutch { border-color: var(--fb-clutch); }
+
+/* --------------------------------------------------------------- journal -- */
+
+.pp-book { container-type: inline-size; position: relative; width: min(100vw - 24px, calc((100vh - 90px) * 1536 / 1024)); aspect-ratio: 1536 / 1024; margin: 0 auto; background: center / 100% 100% no-repeat; }
+.pp-book--openings { background-image: url('../assets/ui/book-openings.webp'); }
+.pp-book--album { background-image: url('../assets/ui/book-album.webp'); }
+.pp-book--settings { background-image: url('../assets/ui/book-settings.webp'); }
+.pp-book__page { position: absolute; top: 8%; bottom: 9%; overflow-y: auto; padding: 1%; font-size: max(11px, 1.35cqw); }
+.pp-book__page--left { left: 7%; width: 40%; }
+.pp-book__page--right { left: 53%; width: 40%; }
+.pp-journal { background: radial-gradient(circle at 50% 40%, #3a2618, #0d0806); }
+.pp-journal__tabs { position: absolute; top: 60px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; z-index: 3; padding: 0 12px; }
+.pp-journal__tabs .pp-btn.is-active { background: linear-gradient(#ffd87a, #e8a93a); }
+.pp-journal__body { position: absolute; top: 108px; left: 0; right: 0; bottom: 8px; overflow-y: auto; }
+.pp-slot { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+.pp-slot__name { font-weight: 700; line-height: 1.1; }
+.pp-slot--known { background: rgba(255, 248, 230, 0.92); border-radius: 4px; }
+.pp-trophy { font-size: max(16px, 3cqw); line-height: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); }
+.pp-trophy.is-empty { filter: grayscale(1) opacity(0.25); }
+.pp-postcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; padding: 12px; width: min(1100px, 100%); margin: 0 auto; }
+.pp-postcard { display: block; width: 100%; min-width: min(460px, 80vw); perspective: 900px; cursor: pointer; background: none; border: 0; padding: 0; margin: 8px auto; }
+.pp-postcards .pp-postcard { min-width: 0; margin: 0; }
+.pp-postcard__inner { position: relative; aspect-ratio: 3 / 2; transition: transform 600ms ease; transform-style: preserve-3d; }
+.pp-postcard.is-flipped .pp-postcard__inner { transform: rotateY(180deg); }
+.pp-postcard__face { position: absolute; inset: 0; backface-visibility: hidden; border: 6px solid #fff6dc; box-shadow: 0 8px 0 rgba(0, 0, 0, 0.4); border-radius: 4px; overflow: hidden; }
+.pp-postcard__face img { width: 100%; height: 100%; object-fit: cover; image-rendering: auto; }
+.pp-postcard__caption { position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; background: rgba(255, 246, 220, 0.9); font: 700 15px var(--font-body); border-radius: 3px; }
+.pp-postcard__back { transform: rotateY(180deg); background: #fbf1da; display: grid; grid-template-columns: 1fr 34%; gap: 8px; padding: 10px; text-align: left; }
+.pp-postcard__msg { font: 600 16px/1.3 var(--font-body); color: #2c3a66; border-right: 2px dashed #c9b387; padding-right: 8px; overflow: auto; }
+.pp-postcard__msg b { font-family: var(--font-pixel); font-size: 20px; color: var(--red); }
+.pp-postcard__stamp { justify-self: end; width: 64px; height: 76px; border: 3px dotted #c9483d; display: grid; place-items: center; font-family: var(--font-pixel); font-size: 10px; color: #c9483d; transform: rotate(6deg); }
+.pp-postcard.is-locked .pp-postcard__face { filter: grayscale(1) brightness(0.45); }
+.pp-postcard.is-locked .pp-postcard__caption::after { content: ' (locked)'; }
+
+.pp-beyond { width: min(980px, 100%); margin: 0 auto; padding: 16px; color: var(--paper); text-align: center; }
+.pp-beyond__word { display: flex; justify-content: center; gap: 10px; margin: 10px 0 18px; }
+.pp-beyond__word span { width: 58px; height: 70px; display: grid; place-items: center; font-family: var(--font-pixel); font-size: 28px; color: var(--ink); background: var(--paper); border: 3px solid var(--gold); border-radius: 6px; box-shadow: var(--shadow); animation: pp-arrive 600ms both; }
+.pp-beyond__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 18px 0; }
+.pp-beyond__card { aspect-ratio: 3 / 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: repeating-linear-gradient(45deg, #1c2a4a, #1c2a4a 10px, #22335a 10px, #22335a 20px); border: 3px solid var(--gold); border-radius: 10px; box-shadow: 0 0 22px rgba(232, 176, 74, 0.25); }
+.pp-beyond__card b { line-height: 0; filter: blur(1.5px); }
+.pp-beyond__card span { font-weight: 700; padding: 0 8px; }
+
+/* ---------------------------------------------------------------- ending -- */
+
+.pp-ending { background: #0d0806; color: var(--paper); text-align: center; overflow-y: auto; }
+.pp-ending__hero { padding: 40px 16px 10px; }
+.pp-ending__big { font-family: var(--font-pixel); font-size: clamp(18px, 3.6vw, 40px); color: var(--gold-hi); text-shadow: 0 5px 0 #5b3620; margin: 16px 0; }
+.pp-credits { width: min(640px, 100%); margin: 0 auto; padding: 16px 16px 80px; line-height: 1.6; }
+.pp-credits h3 { font-family: var(--font-pixel); font-size: 12px; color: var(--gold); margin: 24px 0 6px; }
+
+/* ----------------------------------------------------------------- puzzle -- */
+
+.pp-dots { display: flex; gap: 6px; }
+.pp-dot { width: 18px; height: 18px; border-radius: 50%; background: var(--paper-3); border: 2px solid var(--wood-dark); }
+.pp-dot.is-current { background: var(--gold); }
+.pp-dot.is-done { background: var(--green); }
+.pp-dot.is-current.is-done { box-shadow: 0 0 0 3px var(--gold); }
+
+.pp-confetti { position: fixed; inset: 0; pointer-events: none; z-index: 95; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
+/* The in-game setting does what the OS setting does: no looping pulses, no
+   slides, no bounces (the shake/burst/flash effects check it in fx.js). */
+:root[data-reduced-motion="true"] *, :root[data-reduced-motion="true"] *::before, :root[data-reduced-motion="true"] *::after {
+  animation-duration: 1ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important; transition-duration: 1ms !important; transition-delay: 0ms !important;
+}
+
+/* hover card on suggested squares */
+.pp-tip {
+  position: fixed; z-index: 60; width: min(340px, calc(100vw - 16px)); pointer-events: none;
+  background: #fff6dc; color: var(--ink); border: 3px solid var(--wood-dark); border-radius: 8px;
+  box-shadow: 0 8px 0 rgba(20, 10, 5, 0.4); padding: 8px 10px; font-size: 16px; line-height: 1.25;
+}
+.pp-tip__title { font-family: var(--font-pixel); font-size: 10px; color: var(--red); margin: 2px 0 6px; }
+.pp-tip__title:not(:first-child) { margin-top: 10px; padding-top: 8px; border-top: 2px dashed var(--paper-3); }
+.pp-tip__entry { margin-bottom: 6px; }
+.pp-tip__name { font-weight: 700; color: #1f140b; }
+
+/* ===================================================== practice tree ===== */
+/* The club practice tree (js/ui/screens/practice.js): tiers of lessons by
+   rating band. Only the list scrolls; the page never does. */
+.pp-tree { background: radial-gradient(circle at 50% 30%, #3f2a19, #120a06 75%); display: flex; flex-direction: column; padding-top: var(--hud-h, 56px); }
+.pp-tree__wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px 14px max(10px, env(safe-area-inset-bottom)); }
+.pp-tree__top { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; flex: none; }
+.pp-tree__top p { margin: 2px 0 0; max-width: 70ch; }
+.pp-tree__filters { flex: none; gap: 6px; }
+.pp-tree__filter {
+  font: inherit; font-size: 12px; cursor: pointer; padding: 3px 9px; border-radius: 999px;
+  background: rgba(255, 233, 196, 0.08); color: var(--paper); border: 1.5px solid rgba(255, 233, 196, 0.22);
+}
+.pp-tree__filter.is-active { background: var(--gold); color: #1f140b; border-color: var(--gold-hi); font-weight: 700; }
+.pp-tree__list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+.pp-tree__tier { background: rgba(20, 12, 7, 0.55); border: 2px solid rgba(255, 233, 196, 0.16); border-radius: 10px; padding: 8px 10px; }
+.pp-tree__tier.is-locked { opacity: 0.62; border-style: dashed; }
+.pp-tree__tier p { margin: 2px 0 6px; }
+.pp-tree__tierhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.pp-tree__tiername { font-family: var(--font-pixel); font-size: 12px; color: var(--gold-hi); }
+.pp-pill--locked { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.35); border: 1.5px solid rgba(255, 233, 196, 0.25); }
+.pp-tree__band { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; align-items: start; margin-top: 6px; }
+.pp-tree__bandlabel { font-family: var(--font-pixel); font-size: 11px; color: var(--gold-hi); text-align: right; padding-top: 8px; }
+.pp-tree__lessons { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
+.pp-tree__lesson {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 8px; align-items: center;
+  text-align: left; font: inherit; cursor: pointer; padding: 6px 8px; border-radius: 8px;
+  background: rgba(255, 233, 196, 0.06); color: var(--paper); border: 1.5px solid rgba(255, 233, 196, 0.18);
+}
+.pp-tree__lesson:hover, .pp-tree__lesson:focus-visible { background: rgba(255, 233, 196, 0.14); border-color: var(--gold); outline: none; }
+.pp-tree__lesson.is-started { border-color: rgba(54, 214, 214, 0.5); }
+.pp-tree__lesson.is-done { border-color: rgba(120, 220, 120, 0.55); background: rgba(120, 220, 120, 0.08); }
+.pp-tree__lesson.is-focus { box-shadow: 0 0 0 2px var(--gold-hi); }
+.pp-tree__icon { line-height: 0; text-align: center; }
+.pp-tree__name { display: flex; flex-direction: column; min-width: 0; }
+.pp-tree__name b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-tree__marks { display: flex; gap: 4px; align-items: center; font-size: 11px; opacity: 0.45; }
+.pp-tree__marks .is-on { opacity: 1; }
+.pp-tree__count { font-variant-numeric: tabular-nums; }
+.pp-tree__tick { color: #8ce08c; font-weight: 700; }
+
+/* ========================================================= one lesson ==== */
+.pp-lesson { background: radial-gradient(circle at 50% 35%, #4a2e1c, #150c08 75%); display: flex; flex-direction: column; padding-top: var(--hud-h, 56px); }
+.pp-lesson > .pp-match { flex: 1; min-height: 0; }
+.pp-lesson .pp-match__board { --frame-w: min(calc(100vh - var(--hud-h, 56px) - 30px), calc(100vw - 660px)); }
+.pp-lesson__panel { gap: 8px; overflow-y: auto; overscroll-behavior: contain; }
+.pp-lesson__tabs { gap: 4px; }
+.pp-lesson__tab {
+  font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 1px; padding: 4px 7px;
+  border-radius: 8px; background: rgba(0, 0, 0, 0.18); border: 1.5px solid rgba(31, 20, 11, 0.25); color: inherit;
+}
+.pp-lesson__tab b { font-size: 11px; }
+.pp-lesson__tab.is-active { background: var(--gold); border-color: var(--gold-hi); }
+.pp-lesson__tab.is-done b::after { content: ' done'; font-size: 0.75em; color: #2e7d32; }
+.pp-lesson__text { margin: 0; line-height: 1.5; }
+.pp-lesson__frame { min-height: 4.5em; }
+.pp-lesson__verdict { margin: 2px 0 0; font-weight: 700; min-height: 1.2em; }
+.pp-lesson__verdict.is-good { color: #1b6b2a; }
+.pp-lesson__verdict.is-bad { color: #9c3a12; }
+.pp-lesson__actions { gap: 6px; }
+
+/* ===================================================== club members ===== */
+/* Members stand around every club and venue (js/data/members.js). A club floor
+   holds twelve of them, so a name over every head hides the room: a member
+   shows only the speech-bubble icon, and the NAME appears when the player
+   walks up to them (.is-near, set by the scene from the walk), hovers them or
+   focuses them with the keyboard. The bubble itself never moves, so the name
+   fading in cannot shift the scene. */
+.pp-hotspot.is-member { gap: 1px; }
+.pp-hotspot__bubble {
+  display: inline-flex; padding: 2px; border-radius: 6px;
+  background: rgba(20, 12, 6, 0.72); border: 2px solid rgba(232, 176, 74, 0.55);
+}
+/* The name takes the bubble's place (the bubble steps aside while it shows):
+   stacked above the bubble it stood a whole row higher, over the body of the
+   member standing behind (user, che-int, 2026-11-01: Hiro's name over Rahul). */
+.pp-hotspot.is-member .pp-hotspot__label {
+  font-size: clamp(10px, 0.95vw, 14px); padding: 1px 6px;
+  background: rgba(20, 12, 6, 0.82); border-width: 2px; border-color: rgba(232, 176, 74, 0.55);
+  position: absolute; top: 0; left: 50%; transform: translate(calc(-50% + var(--name-dx, 0px)), var(--name-dy, 0px));
+  opacity: 0; visibility: hidden; transition: opacity 140ms ease;
+}
+.pp-hotspot.is-member.is-near .pp-hotspot__label,
+.pp-hotspot.is-member:hover .pp-hotspot__label,
+.pp-hotspot.is-member:focus-visible .pp-hotspot__label { opacity: 1; visibility: visible; }
+.pp-hotspot.is-member.is-near .pp-hotspot__bubble,
+.pp-hotspot.is-member:hover .pp-hotspot__bubble,
+.pp-hotspot.is-member:focus-visible .pp-hotspot__bubble { visibility: hidden; }
+.pp-hotspot.is-member.is-near .pp-hotspot__bubble { border-color: var(--gold); background: rgba(50, 30, 8, 0.9); }
+.pp-hotspot.is-member .pp-hotspot__arrow { animation: none; opacity: 0.55; font-size: clamp(10px, 1vw, 14px); }
+/* Distance decides how much a hotspot shows (scene.js CUE_RADIUS): out of
+   reach nothing, nearer only its icon, and the words only on the spot A would
+   use now (.is-near), under the mouse or with keyboard focus. */
+.pp-hotspot { transition: opacity 160ms ease, visibility 160ms; }
+.pp-hotspot.is-far { opacity: 0; visibility: hidden; pointer-events: none; }
+.pp-hotspot.is-goal-far { opacity: 0.6; }
+.pp-hotspot:not(.is-near):not(:hover):not(:focus-visible) .pp-hotspot__text,
+.pp-hotspot:not(.is-near):not(:hover):not(:focus-visible) .pp-hotspot__key { display: none; }
+.pp-hotspot:not(.is-near):not(:hover):not(:focus-visible) .pp-hotspot__label:not(.pp-hotspot__name) { padding: 2px 4px; }
+.pp-hotspot.is-out .pp-hotspot__arrow { animation: none; opacity: 0.8; }
+.pp-hotspot.is-tight .pp-hotspot__text, .pp-hotspot.is-tight .pp-hotspot__key { display: none; }
+.pp-scene__people { gap: 4px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+.pp-scene__people .pp-btn { padding: 2px 8px; }
+
+/* ================================================== tournament views ===== */
+.pp-event { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+.pp-event__scroll { max-height: min(38vh, 320px); overflow-y: auto; overscroll-behavior: contain; border: 2px solid var(--paper-3, #c9b48a); border-radius: 6px; }
+.pp-standings { width: 100%; border-collapse: collapse; font-size: 15px; }
+.pp-standings th, .pp-standings td { padding: 2px 6px; text-align: left; }
+.pp-standings th { position: sticky; top: 0; background: #2a1a10; color: #f3d69a; font-weight: 700; }
+.pp-standings td:nth-child(n+3), .pp-standings th:nth-child(n+3) { text-align: right; }
+.pp-standings tbody tr:nth-child(even) { background: rgba(0, 0, 0, 0.06); }
+.pp-standings tr.is-you, .pp-results li.is-you { background: rgba(232, 176, 74, 0.35); font-weight: 700; }
+.pp-results { list-style: none; margin: 0; padding: 0; font-size: 15px; }
+.pp-results li { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; padding: 2px 6px; align-items: baseline; }
+.pp-results li:nth-child(even) { background: rgba(0, 0, 0, 0.06); }
+.pp-results li > span:last-child { text-align: right; }
+.pp-results b { font-variant-numeric: tabular-nums; }
+.pp-results small { opacity: 0.6; }
+.pp-results .is-through { text-decoration: underline; text-decoration-thickness: 2px; text-decoration-color: var(--gold, #e8b04a); }
+
+/* ======================================== the opening card, minimisable ===== */
+.pp-match__toggles { gap: 6px; flex-wrap: wrap; }
+.pp-notesbtn[aria-pressed="false"] { opacity: 0.75; }
+.pp-tip__hide { display: none; float: right; margin: -2px -4px 4px 8px; pointer-events: auto; font: inherit; font-size: 14px;
+  background: var(--wood-dark, #5a3a22); color: #fff6dc; border: 0; border-radius: 4px; padding: 3px 8px; cursor: pointer; }
+.pp-tip.is-pinned .pp-tip__hide { display: inline-block; }
+/* Short landscape phones: the dock must stay clear of the joystick, and the
+   name tags on the scene are tappable anyway. */
+@media (max-height: 500px) { .pp-scene__people { display: none; } }
+
+/* Focus hint rolls, one line per candidate (match screen hint card). */
+.pp-hintroll { line-height: 1.3; }
+.pp-hintroll.is-fail { opacity: 0.6; }
+
+/* Storage unavailable: one persistent strip, above everything, out of the way of the HUD. */
+.pp-savewarn {
+  position: fixed; left: 50%; bottom: max(6px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 200;
+  width: min(560px, calc(100vw - 16px)); padding: 6px 10px; border-radius: 6px; font-size: 14px; line-height: 1.25;
+  background: #5a1712; color: #fff2dd; border: 2px solid #f0a36a; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4); pointer-events: none;
+}
+
+/* A scene whose picture did not load: a readable room, not a black hole. */
+.pp-scene__stage.is-missing { background: repeating-linear-gradient(45deg, #3a2a1c 0 22px, #33251a 22px 44px); outline: 3px dashed rgba(232, 176, 74, 0.5); outline-offset: -8px; }
+.pp-scene__missing { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 5; display: flex; flex-direction: column; gap: 8px; align-items: center;
+  width: min(420px, 80%); padding: 12px 14px; text-align: center; background: rgba(243, 227, 191, 0.95); color: var(--ink); border: 3px solid var(--wood-dark, #5a3a22); border-radius: 8px; }
+
+/* ============================================ onboarding: next + tips ===== */
+.pp-hud__next { flex-basis: 100%; order: 99; min-width: 0; font-size: 15px; line-height: 1.2; color: #ffe9b8;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -2px; }
+.pp-hud__next b { color: var(--gold-hi); }
+.pp-coach {
+  position: fixed; z-index: 70; right: max(10px, env(safe-area-inset-right)); top: calc(var(--coach-top, 0px) + max(10px, env(safe-area-inset-top)));
+  width: min(320px, calc(100vw - 20px)); display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+  padding: 10px 12px; border-radius: 8px; background: #fff6dc; color: var(--ink); border: 3px solid var(--gold);
+  box-shadow: 0 6px 0 rgba(20, 10, 5, 0.45); font-size: 16px; line-height: 1.25;
+  /* A landscape phone is about 390px tall and the tip hangs from the top, so
+     a long one has to be told where to stop - otherwise "Got it" ends up
+     under the home indicator. */
+  max-height: calc(100vh - var(--coach-top, 0px) - max(10px, env(safe-area-inset-top)) - max(10px, env(safe-area-inset-bottom)) - 10px);
+}
+/* The TEXT scrolls, never the card: "Got it" has to stay visible, and a card
+   that scrolled would also read as "reachable by scrolling" to
+   tools/cdp_layout.py and quietly excuse a button that really was off. */
+.pp-coach > div { min-height: 0; overflow-y: auto; }
+.pp-coach > .pp-btn { flex: none; }
+.pp-coach__title { font-family: var(--font-pixel); font-size: 10px; color: var(--red, #b3372a); }
+:root:not([data-reduced-motion="true"]) .pp-coach { animation: pp-coach-in 260ms ease-out; }
+@keyframes pp-coach-in { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Match: the options panel is folded; the board and the Focus panel lead. */
+.pp-match__more { cursor: pointer; font: inherit; font-weight: 700; font-size: 15px; text-align: left; background: none; border: 0; padding: 4px 0; color: inherit; min-height: 32px; }
+.pp-match__morebody { gap: 6px; }
+.pp-match__morebody[hidden] { display: none; }
+.pp-engine[hidden] { display: none; }
+
+/* ============================================ result sequence + ceremony ===== */
+.pp-result__word { font-family: var(--font-pixel); font-size: clamp(22px, 4vw, 38px); margin: 4px 0 2px; text-shadow: 0 4px 0 rgba(60, 30, 10, 0.35); }
+.pp-result__word.is-win { color: #d99a0b; }
+.pp-result__word.is-draw { color: #3a78b8; }
+.pp-result__word.is-loss { color: #b3372a; }
+.pp-rewards { list-style: none; margin: 10px 0 6px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pp-reward { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.06); font-size: 18px; }
+.pp-reward b { font-variant-numeric: tabular-nums; }
+.pp-reward.is-neg b { color: #b3372a; }
+.pp-reward__icon { text-align: center; line-height: 0; }
+.pp-levelup { margin: 6px 0; padding: 8px 12px; border-radius: 8px; background: linear-gradient(#fff2c4, #f6d77c); border: 2px solid #d99a0b; }
+.pp-levelup b { font-family: var(--font-pixel); font-size: 13px; }
+.pp-levelup ul { margin: 6px 0 0; padding-left: 20px; }
+.pp-result__next { margin: 8px 0; padding: 8px 12px; border-left: 5px solid var(--gold); background: rgba(232, 176, 74, 0.18); border-radius: 4px; font-size: 18px; }
+.pp-result__details > summary { cursor: pointer; font-weight: 700; margin: 6px 0; }
+.pp-ceremony { text-align: center; }
+.pp-ceremony__cup { line-height: 0; filter: drop-shadow(0 6px 0 rgba(90, 50, 10, 0.35)); }
+.pp-stamp { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; margin: 6px auto; padding: 10px 18px; border: 4px double #a3271f; border-radius: 50%; color: #a3271f; transform: rotate(-8deg); font-family: var(--font-pixel); background: rgba(163, 39, 31, 0.06); }
+.pp-stamp__city { font-size: 12px; letter-spacing: 1px; }
+.pp-stamp__cup { line-height: 0; filter: sepia(1) hue-rotate(-30deg) saturate(3); }
+.pp-stamp__date { font-size: 8px; }
+.pp-ceremony__shelf { display: flex; gap: 6px; justify-content: center; align-items: center; margin: 8px 0; font-size: 26px; }
+.pp-ceremony__shelf span { filter: grayscale(1) opacity(0.3); }
+.pp-ceremony__shelf span.is-won { filter: none; }
+.pp-ceremony__shelf b { font-family: var(--font-pixel); font-size: 14px; margin-left: 6px; }
+.pp-ceremony__madrid { padding: 8px; border-radius: 6px; background: linear-gradient(#ffe9a8, #f3c34a); }
+:root:not([data-reduced-motion="true"]) .pp-stamp { animation: pp-stamp-in 520ms cubic-bezier(.2, 1.6, .4, 1) 350ms both; }
+:root:not([data-reduced-motion="true"]) .pp-ceremony__shelf span.is-new { animation: pp-shelf-pop 900ms ease-out 700ms both; }
+@keyframes pp-stamp-in { from { transform: rotate(-8deg) scale(2.4); opacity: 0; } to { transform: rotate(-8deg) scale(1); opacity: 1; } }
+@keyframes pp-shelf-pop { 0% { transform: scale(0.4); filter: grayscale(1) opacity(0.3); } 60% { transform: scale(1.5); } 100% { transform: scale(1); filter: none; } }
+.pp-event__status { font-family: var(--font-pixel); font-size: clamp(11px, 1.6vw, 15px); line-height: 1.4; padding: 8px 12px; border-radius: 6px; background: rgba(0, 0, 0, 0.07); }
+.pp-event__status.is-good { background: #d8f0c8; color: #1f5a12; }
+.pp-event__status.is-out { background: #f6d6cc; color: #7a1f14; }
+.pp-event__status.is-final, .pp-event__status.is-win { background: linear-gradient(#ffe9a8, #f3c34a); color: #4a2a05; border: 2px solid #d99a0b; font-size: clamp(13px, 2vw, 18px); }
+/* Tournament desk: the next game first. */
+.pp-desk { display: flex; flex-direction: column; gap: 8px; }
+.pp-desk__next { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 8px; background: rgba(0, 0, 0, 0.06); border: 2px solid var(--paper-3, #d9bd83); }
+.pp-desk__next.is-final { background: linear-gradient(#fff2c4, #f6d77c); border-color: #d99a0b; }
+.pp-desk__round { font-family: var(--font-pixel); font-size: 13px; color: var(--red, #b3372a); }
+.pp-desk__opp { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.pp-desk__opp img { width: 56px; height: 56px; object-fit: contain; }
+.pp-desk__name { font-family: var(--font-pixel); font-size: 13px; margin-bottom: 4px; }
+.pp-desk__more > summary { cursor: pointer; font-weight: 700; }
+/* Postcard reward: bigger than any puzzle, and a hint of the hidden message. */
+.pp-postcard-reward__count { font-family: var(--font-pixel); font-size: 12px; color: var(--red, #b3372a); }
+.pp-letters { display: flex; gap: 6px; justify-content: center; margin: 10px 0 2px; }
+.pp-letters span { width: 30px; height: 36px; display: grid; place-items: center; font-family: var(--font-pixel); font-size: 16px; border: 2px dashed #b89a62; border-radius: 4px; color: #b89a62; }
+.pp-letters span.is-got { border-style: solid; border-color: #6b4a1f; background: #fff2c4; color: #3b2716; }
+:root:not([data-reduced-motion="true"]) .pp-letters span.is-new { animation: pp-shelf-pop 900ms ease-out 400ms both; }
+/* Map card: city, club, trophy, travel first. */
+/* City preview (map.js): the artist's frame, assets/ui/city-popup.png, with the
+   game's content in its slots. Every box below is a percentage of that image,
+   as tools/build_city_popup.py prints them: move a slot there, move it here. */
+.pp-citypop {
+  position: relative; margin: auto; flex: none;
+  width: min(480px, calc(100vw - 36px), calc((100dvh - 36px) / 1.2496));
+  aspect-ratio: 1122 / 1402; container-type: inline-size;
+  font-family: var(--font-body); color: #3b2414;
+}
+.pp-citypop > * { position: absolute; }
+.pp-citypop__frame { inset: 0; width: 100%; height: 100%; pointer-events: none; user-select: none; }
+.pp-citypop__pic { left: 17.83%; top: 27.46%; width: 63.46%; height: 26.18%; object-fit: cover; background: #d9c7a5; }
+.pp-citypop__title { left: 22.28%; top: 15.12%; width: 55.97%; height: 7.85%; display: flex; align-items: center; justify-content: center; }
+.pp-citypop__title span { font-size: 8cqw; line-height: 1; color: #1d3f7a; text-shadow: 0 1px 0 #fff6dc; white-space: nowrap; }
+.pp-citypop__tile { top: 56.92%; width: 15.15%; height: 9.27%; display: flex; align-items: center; justify-content: center; }
+.pp-citypop__tile--1 { left: 13.19%; } .pp-citypop__tile--2 { left: 32.62%; }
+.pp-citypop__tile--3 { left: 52.23%; } .pp-citypop__tile--4 { left: 71.84%; }
+.pp-citypop__tile .pp-ico { width: 8.5cqw; height: 8.5cqw; filter: grayscale(1) sepia(0.4); opacity: 0.35; }
+.pp-citypop__tile.is-lit .pp-ico { filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35)); opacity: 1; }
+.pp-citypop__portrait { left: 17.83%; top: 69.33%; width: 9.98%; height: 11.13%; object-fit: contain; display: flex; align-items: center; justify-content: center; }
+.pp-citypop__portrait .pp-ico { width: 8cqw; height: 8cqw; }
+.pp-citypop__info { left: 36.01%; top: 69.04%; width: 50.27%; height: 11.27%; display: flex; flex-direction: column; justify-content: center; gap: 0.2cqw; overflow: hidden; }
+.pp-citypop__info > * { font-size: 3.5cqw; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-citypop__info > b { font-size: 4.2cqw; }
+.pp-citypop__fly, .pp-citypop__close { top: 83.45%; height: 9.84%; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 3cqw; display: flex; align-items: center; justify-content: center; }
+.pp-citypop__fly { left: 12.30%; width: 36.01%; }
+.pp-citypop__close { left: 51.87%; width: 36.19%; }
+.pp-citypop__fly:hover, .pp-citypop__close:hover { background: rgba(255, 255, 255, 0.14); }
+.pp-citypop__fly:focus-visible, .pp-citypop__close:focus-visible { outline: 3px solid #fff6dc; outline-offset: -4px; }
+.pp-citypop__fly:active, .pp-citypop__close:active { transform: translateY(1px); }
+.pp-citypop__fly[disabled] { cursor: not-allowed; background: rgba(40, 30, 20, 0.55); }
+.pp-citypop__fly[disabled] .pp-ico { width: 9cqw; height: 9cqw; }
+.pp-map__drag { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 6; pointer-events: none;
+  padding: 4px 12px; border-radius: 999px; background: rgba(20, 12, 6, 0.8); color: #fff2dd; font-size: 15px; white-space: nowrap; }
+:root:not([data-reduced-motion="true"]) .pp-map__drag { animation: pp-drag-hint 2.4s ease-in-out 3, pp-fade-out 600ms ease 7.2s forwards; }
+@keyframes pp-drag-hint { 0%, 100% { transform: translateX(-50%); } 25% { transform: translateX(-58%); } 75% { transform: translateX(-42%); } }
+@keyframes pp-fade-out { to { opacity: 0; } }
+.pp-invite { text-align: center; background: linear-gradient(#fff6dc, #f3e3bf); border-color: #d99a0b; }
+.pp-invite__seal { line-height: 0; }
+/* Scene labels by purpose: the goal loudest, the people quietest. */
+.pp-hotspot__key { font-size: 0.75em; opacity: 0.7; margin-right: 4px; }
+:root[data-touch="true"] .pp-hotspot__key { display: none; }
+.pp-hotspot.is-goal .pp-hotspot__label { border-color: #ffd87a; background: rgba(90, 55, 5, 0.92); box-shadow: 0 0 0 2px rgba(253, 186, 1, 0.35); }
+.pp-hotspot.is-star .pp-hotspot__label { border-color: #c98bff; background: rgba(50, 18, 70, 0.9); }
+.pp-hotspot.is-practice .pp-hotspot__label { border-color: #8fd477; background: rgba(18, 50, 16, 0.88); }
+.pp-hotspot.is-puzzle .pp-hotspot__label { border-color: #6fd8ff; background: rgba(8, 40, 60, 0.9); }
+.pp-hotspot.is-exit .pp-hotspot__label { border-color: #b9b3aa; background: rgba(30, 28, 26, 0.82); font-weight: 600; }
+.pp-hotspot.is-exit .pp-hotspot__arrow, .pp-hotspot.is-info .pp-hotspot__arrow { animation: none; opacity: 0.6; }
+.pp-hotspot.is-goal .pp-hotspot__arrow { color: #ffd87a; }
+/* Ending recap */
+.pp-ending__shelf { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; max-width: 760px; margin: 14px auto; }
+.pp-ending__trophy { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 8px; background: rgba(243, 227, 191, 0.08); border: 1px solid rgba(232, 176, 74, 0.4); }
+.pp-ending__trophy span { line-height: 0; }
+.pp-ending__trophy b { font-size: 14px; color: var(--gold-hi); }
+.pp-ending__trophy small { opacity: 0.7; }
+.pp-ending__rivals { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.pp-ending__rivals figure { margin: 0; display: flex; flex-direction: column; align-items: center; }
+.pp-ending__rivals img { width: 64px; height: 64px; }
+.pp-ending__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; max-width: 640px; margin: 10px auto; }
+.pp-ending__stats div { display: flex; flex-direction: column; padding: 6px; border-radius: 6px; background: rgba(243, 227, 191, 0.08); }
+.pp-ending__stats b { font-size: 22px; color: var(--gold-hi); }
+.pp-ending__secret { max-width: 560px; margin: 14px auto; padding: 12px 16px; border-radius: 10px; background: linear-gradient(#3a2208, #1c1004); border: 2px solid var(--gold); box-shadow: 0 0 24px rgba(253, 186, 1, 0.35); }
+.pp-ending__secretword { display: flex; justify-content: center; gap: 10px; }
+/* Tips never cover what they point at: on narrow screens they sit low, above
+   the joystick; in a match they are inline in the side panel (.pp-coach--inline). */
+@media (max-width: 700px) {
+  .pp-coach:not(.pp-coach--inline) { top: auto; left: 10px; right: 10px; width: auto; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 150px); }
+}
+.pp-coach.pp-coach--inline { position: static; width: auto; flex: none; box-shadow: 0 3px 0 rgba(20, 10, 5, 0.35); font-size: 15px; padding: 8px 10px; }
+
+/* ---------------------------------------------------------- difficulty -- */
+/* The Easy / Normal / Hard picker (js/ui/difficultyPicker.js), used by the
+   new-game screen and Settings. */
+.pp-difficulty-pick { display: flex; flex-direction: column; gap: 6px; }
+.pp-difficulty {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 8px;
+  text-align: left; padding: 7px 10px; cursor: pointer;
+  border: 2px solid var(--pp-ink-soft, #6b5844); border-radius: 6px;
+  background: rgba(255, 246, 224, 0.55); color: inherit; font: inherit;
+}
+.pp-difficulty:hover { background: rgba(255, 246, 224, 0.85); }
+.pp-difficulty.is-picked { border-color: var(--pp-gold, #e8b04a); background: rgba(255, 236, 186, 0.95); }
+.pp-difficulty__name { font-size: 1.05em; }
+.pp-difficulty__tagline { font-style: italic; opacity: 0.8; align-self: center; }
+.pp-difficulty__blurb { grid-column: 1 / -1; opacity: 0.85; }
+/* Compact: only the chosen mode explains itself (new-game screen). */
+.pp-difficulty-pick.is-compact .pp-difficulty { padding: 5px 10px; }
+.pp-difficulty-pick.is-compact .pp-difficulty:not(.is-picked) .pp-difficulty__blurb { display: none; }
+@media (max-width: 560px) {
+  .pp-difficulty { grid-template-columns: 1fr; }
+  .pp-difficulty__tagline { align-self: start; }
+}
+/* One card at a time: a tip already up steps aside while a dialogue or pop-up
+   is open, and while the match's opening card shows (app.js holds new tips back). */
+body:has(.pp-dialogue) .pp-coach, body:has(.pp-overlay) .pp-coach, body:has(.pp-tip:not([hidden])) .pp-coach { display: none; }
+/* Money owed to the sponsor (career.debt), beside the coins. */
+.pp-hud__debt { color: #ff9b8a; font-weight: 700; }
+.pp-desk__fee .pp-ico { vertical-align: -2px; }
+.pp-citypop__fare { display: inline-flex; align-items: center; gap: 3px; }
+.pp-hotspot__record { color: var(--gold-hi); font-weight: 700; }
+/* A member already met: a faded bubble, full again when the player walks up. */
+.pp-hotspot.is-member.is-met:not(.is-near) .pp-hotspot__bubble { opacity: 0.45; }
+
+/* ================================================================= shop == */
+/* The Journal's Shop page (journal.js shop()): a card per item, preview first. */
+.pp-shop__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pp-shop__head .pp-h2 { margin: 0; }
+.pp-shop__purse { display: inline-flex; align-items: center; gap: 4px; font-size: 18px; }
+.pp-shop__purse b { color: #8a5a0b; }
+.pp-shop__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 10px; margin-bottom: 14px; }
+.pp-shop__item {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: auto auto; gap: 4px 10px; align-items: center;
+  padding: 8px; border-radius: 8px; background: var(--paper-2); border: 2px solid var(--paper-3);
+}
+.pp-shop__item.is-inuse { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232, 176, 74, 0.35) inset; }
+.pp-shop__item > :first-child { grid-row: 1 / span 2; }
+.pp-shop__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pp-shop__text .pp-small { line-height: 1.2; }
+.pp-shop__action { justify-self: start; }
+.pp-shop__inuse { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: #8a5a0b; }
+.pp-shop__pieces {
+  width: 96px; height: 96px; display: grid; grid-template-columns: 1fr 1fr; place-items: center;
+  border-radius: 6px; background: #e9d8b4; border: 2px solid var(--wood-dark);
+}
+.pp-shop__pieces img { width: 44px; height: 44px; object-fit: contain; }
+.pp-shop__pieces[data-pieces="chessnut"] img { width: 38px; height: 38px; }
+.pp-shop__board {
+  width: 96px; height: 48px; display: grid; grid-template-columns: repeat(4, 1fr); overflow: hidden;
+  border-radius: 4px; border: 3px solid var(--wood-dark);
+}
+/* The painted board: its top-left four by two squares, cut from the art. */
+.pp-shop__board--marble { display: block; position: relative; }
+.pp-shop__board--marble img { position: absolute; width: 260%; left: -30%; top: -54.5%; max-width: none; }
+/* The coins are a button (tap: the shop): browsers reset a button's text-shadow and
+   letter-spacing, and a 'font: inherit' here beat .pp-hud__stat's size and weight, so
+   the number came out bigger, thinner and without the outline the other stats have. */
+button.pp-hud__coins { color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 4px;
+  text-shadow: inherit; letter-spacing: inherit; }
+button.pp-hud__coins:focus-visible b { text-decoration: underline; }
+@media (hover: hover) { button.pp-hud__coins:hover b { text-decoration: underline; } }

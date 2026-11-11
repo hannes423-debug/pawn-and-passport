@@ -1,0 +1,106 @@
+/**
+ * grading.js - one verdict per player move, in the game's own vocabulary.
+ *
+ * The classifier (analysis/moveClassifier.js, unchanged from Chess: World
+ * Tour) decides BRILLIANT ... BLUNDER. feedback.js turns BRILLIANT into EPIC
+ * when it was also the engine's move. Pawn & Passport adds one tier on top:
+ *
+ *   CLUTCH  the only good move under pressure. The played move is the
+ *           engine's choice (BEST/EXCELLENT), the runner-up was at least
+ *           config.CLUTCH.minGapWinProb worse, the mover was not already
+ *           cruising, and the move holds the position.
+ *
+ * EPIC and BRILLIANT outrank CLUTCH: a sound sacrifice is rarer still.
+ *
+ * MISS ("missed win") is never shown during a game: it would tell the player
+ * that a winning line is on the board. It is reported as the generic mistake
+ * its size deserves (Inaccuracy, Mistake or Blunder, by the same bands).
+ */
+
+import { CLUTCH } from '../data/config.js';
+import { tierFor } from '../chess/render/feedback.js';
+import { winProbability, scoreToCp } from '../chess/analysis/moveClassifier.js';
+
+/**
+ * Display metadata for the grade keys, best first.
+ *
+ * The glyphs are deliberately NOT pixel icons. They are chess move
+ * ANNOTATION - the same family as !!, !?, ?! and ?? - and they are drawn two
+ * ways the icon set cannot serve: as a superscript beside a move in the move
+ * list ("e4 B"), and as text painted into a canvas chip on the board by
+ * js/ui/fx.js. A star and a tick belong in that family; an emoji did not, and
+ * the two that were here (a book and a ring) are now letters.
+ */
+export const GRADE_META = Object.freeze({
+  EPIC:       { label: 'Epic',       glyph: '!!!', tier: 'epic' },
+  BRILLIANT:  { label: 'Brilliant',  glyph: '!!',  tier: 'brilliant' },
+  CLUTCH:     { label: 'Clutch',     glyph: '!★',  tier: 'clutch' },
+  BEST:       { label: 'Best',       glyph: '★',   tier: 'best' },
+  EXCELLENT:  { label: 'Excellent',  glyph: '!',   tier: 'best' },
+  GOOD:       { label: 'Good',       glyph: '✓',   tier: 'good' },
+  BOOK:       { label: 'Book',       glyph: 'B',  tier: 'playable' },
+  /* A move the player was SHOWN (a Focus hint) is not graded as their own
+     find: it reads FOCUS, earns no Focus back and no grade bonus. */
+  FOCUS:      { label: 'Focus',      glyph: 'F',   tier: 'playable' },
+  FORCED:     { label: 'Forced',     glyph: '=',   tier: 'neutral' },
+  INACCURACY: { label: 'Inaccuracy', glyph: '?!',  tier: 'mistake' },
+  MISS:       { label: 'Missed win', glyph: '×',   tier: 'mistake' },
+  MISTAKE:    { label: 'Mistake',    glyph: '?',   tier: 'mistake' },
+  BLUNDER:    { label: 'Blunder',    glyph: '??',  tier: 'blunder' }
+});
+
+export const GRADE_ORDER = ['EPIC', 'BRILLIANT', 'CLUTCH', 'BEST', 'EXCELLENT', 'GOOD', 'BOOK', 'FOCUS', 'INACCURACY', 'MISS', 'MISTAKE', 'BLUNDER'];
+
+/**
+ * Is this annotated move CLUTCH?
+ * @param {Object} record   a MoveRecord after GameReview.annotate
+ * @param {Object[]} lines  the MultiPV lines for record.fenBefore (mover's POV)
+ */
+export function isClutch(record, lines) {
+  const c = record.mistakeClassification;
+  if (c !== 'BEST' && c !== 'EXCELLENT') return false;
+  if (!lines || lines.length < 2) return false;
+  const best = winProbability(scoreToCp(lines[0].score));
+  const second = winProbability(scoreToCp(lines[1].score));
+  const played = typeof record.engineEvaluation?.cp === 'number' || typeof record.engineEvaluation?.mate === 'number'
+    ? winProbability(scoreToCp(record.engineEvaluation))
+    : best;
+  return best - second >= CLUTCH.minGapWinProb &&
+         best <= CLUTCH.maxWinProbBefore &&
+         played >= CLUTCH.minWinProbAfter;
+}
+
+/**
+ * @returns {{grade:string, tier:string, meta:Object}}
+ */
+/** A missed win, shown as a plain mistake of the same size. */
+export function genericMistake(record) {
+  const loss = record.winProbLoss ?? 0;
+  const bands = record.classificationBands || {};
+  if (loss <= (bands.inaccuracy ?? 11)) return 'INACCURACY';
+  if (loss <= (bands.mistake ?? 20)) return 'MISTAKE';
+  return 'BLUNDER';
+}
+
+export function gradeMove(record, lines = null) {
+  const c = record.mistakeClassification;
+  if (!c) return { grade: null, tier: 'neutral', meta: null };
+  if (c === 'MISS') {
+    const grade = genericMistake(record);
+    return { grade, tier: GRADE_META[grade].tier, meta: GRADE_META[grade] };
+  }
+  let grade = c;
+  if (c === 'BRILLIANT') {
+    grade = tierFor(c, { isBest: record.bestMove === record.uci, loss: record.evaluationDelta }) === 'epic' ? 'EPIC' : 'BRILLIANT';
+  } else if (isClutch(record, lines)) {
+    grade = 'CLUTCH';
+  }
+  const meta = GRADE_META[grade] || GRADE_META.GOOD;
+  return { grade, tier: meta.tier, meta };
+}
+
+export function emptyGradeCounts() {
+  return Object.fromEntries(GRADE_ORDER.map((g) => [g, 0]));
+}
+
+export default { GRADE_META, GRADE_ORDER, isClutch, gradeMove, genericMistake, emptyGradeCounts };

@@ -1,0 +1,565 @@
+/**
+ * config.js - EVERY tunable number in Pawn & Passport.
+ *
+ * Rebalancing the jam is editing this file. Nothing below is repeated in the
+ * rules modules; they read it.
+ */
+
+export const GAME = Object.freeze({
+  title: 'Pawn & Passport',
+  subtitle: 'A Chess Career RPG',
+  version: '1.4.2',
+  // What "Share" sends (js/ui/share.js): the public build, wherever this one runs.
+  url: 'https://hannes423-debug.github.io/pawn-and-passport/',
+  saveVersion: 3
+});
+
+/* ================================================================ levels === */
+export const LEVELS = Object.freeze({
+  cap: 15,
+  /* Cumulative XP needed to BE each level (index = level). Level 1 is free.
+     Paced so the main path (six clubs + finale, no side content) lands around
+     level 13, and the side missions carry a completionist to 15. */
+  xpToReach: [0, 0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3250, 3850, 4500, 5200, 6000]
+});
+
+/* ======================================================================= xp === */
+export const XP = Object.freeze({
+  game: { base: 30, win: 60, draw: 30, loss: 10 },
+  perGrade: { EPIC: 60, BRILLIANT: 40, CLUTCH: 30, BEST: 4, EXCELLENT: 2 },
+  kindMultiplier: { friendly: 0.8, challenge: 1, tournament: 1.25, star: 1.5, finale: 1.75 },
+  trophy: 250,
+  finaleWin: 600,
+  puzzleSolved: 25,        // first solve only
+  clubPuzzleSolved: 15,    // a practice-room puzzle, first solve only
+  missionComplete: 120
+});
+
+/* ================================================================ practice === */
+/* The club practice tree. Tiers open with campaign progress: the beginner tier
+   is open from the first visit, and every Club Trophy (one per tournament
+   completed) opens the next one, up to 1500 - the game's ceiling. A player is
+   never required to finish a tier: any unlocked lesson can be opened, in any
+   order, and earlier ones stay open forever. */
+export const PRACTICE = Object.freeze({
+  tiers: [
+    { id: 'beginner', label: 'Beginner', bands: [0, 100, 200, 300, 400, 500, 600], trophies: 0,
+      blurb: 'The board, the pieces, the rules and your first tactics.' },
+    { id: 'club', label: 'Club player', bands: [700, 800], trophies: 1,
+      blurb: 'Opening principles and how to calculate a short line.' },
+    { id: 'endgames', label: 'Endgames and plans', bands: [900, 1000], trophies: 2,
+      blurb: 'Basic mates, pawn endings, and your first strategic vocabulary.' },
+    { id: 'tactics', label: 'Sharper tactics', bands: [1100, 1200], trophies: 3,
+      blurb: 'The tactics behind sacrifices, and what pawn structures mean.' },
+    { id: 'planning', label: 'Planning', bands: [1300], trophies: 4,
+      blurb: 'Turning a position into a plan, and stopping theirs.' },
+    { id: 'depth', label: 'Exact calculation', bands: [1400], trophies: 5,
+      blurb: 'Candidate trees, quiet moves, only moves, visualisation.' },
+    { id: 'practical', label: 'Practical play', bands: [1500], trophies: 6,
+      blurb: 'Initiative, compensation, conversion, defending worse positions.' }
+  ],
+  xpChallenge: 6,   // first solve of one challenge
+  xpLesson: 40      // first time a lesson is fully complete
+});
+
+/* ====================================================================== elo ===
+ *
+ * TWO ratings live here and they are not the same number.
+ *
+ * ELO is the PLAYER's: where a career starts, how far it can fall, and the K
+ * factor each kind of game is rated at. It has no ceiling, because the player
+ * is allowed to outgrow the tour.
+ *
+ * BOT_ELO is the range of OPPONENT strength this game knows how to build. 250
+ * is the weakest opponent BOT_STRENGTH can describe; 1500 is the strongest the
+ * campaign is designed around (the Madrid final), and no campaign opponent may
+ * be asked for above it. They used to be one `ELO.cap`, which meant a change
+ * to the opponent ceiling silently moved the player's rating rules too.
+ */
+export const ELO = Object.freeze({
+  start: 600,
+  floor: 100,
+  /* Friendlies are practice: unrated (K = 0). */
+  k: { friendly: 0, challenge: 16, tournament: 32, star: 32, finale: 32 }
+});
+
+export const BOT_ELO = Object.freeze({
+  min: 250,
+  max: 1500
+});
+
+/* ================================================================ difficulty ===
+ *
+ * ONE place decides how hard the campaign is. A mode owns the whole ladder -
+ * the regular opponents' band per campaign TIER (trophies already won, 0..5,
+ * not per club: the player picks the order, so the sixth club VISITED is the
+ * hard one), the Star Player who guards each trophy, and the three finale
+ * rounds. Nothing else in the game branches on the difficulty; everything
+ * asks difficultyMode() for the curve and goes through the same
+ * js/core/difficulty.js pipeline into a bot profile.
+ *
+ * THE RULE: Elo is absolute. A mode's numbers are literal opponent Elo and
+ * nothing else. Difficulty decides WHICH Elos a player meets, never how an
+ * opponent of a given Elo plays - a 900 in Easy, a 900 in Normal and a 900 in
+ * Hard are the same bot, because all three go through the one
+ * `strengthForElo(elo)` and it is not told which mode asked. Style
+ * (aggressive, positional, ...) chooses between REASONABLE moves and is a
+ * character trait, not a strength knob. tests/run.js asserts both halves.
+ *
+ * These numbers are PLAYING STRENGTH, checked with tools/dev/calibrate_bots.mjs
+ * (average centipawn loss against a depth-12 reference), not labels. The
+ * BOT_STRENGTH table below is what turns one into an opponent.
+ */
+export const DIFFICULTY = Object.freeze({
+  default: 'normal',
+  modes: Object.freeze([
+    Object.freeze({
+      id: 'easy',
+      label: 'Easy',
+      tagline: 'Learning the ropes',
+      blurb: 'For complete beginners. Your opponents still get stronger as you travel, but they miss much more and leave you room to come back.',
+      /* Easy starts where somebody who has just learned how the pieces move
+         actually starts. A 250-400 opponent develops badly, hangs pieces and
+         misses what you are threatening - but it still takes what you leave
+         hanging, because a beginner who refuses a free queen is not a
+         beginner, it is a random move generator. See BOT_STRENGTH. */
+      regularBands: Object.freeze([[250, 400], [400, 500], [500, 600], [600, 700], [700, 800], [800, 900]]),
+      starByTier: Object.freeze([400, 500, 600, 700, 800, 900]),
+      finaleRounds: Object.freeze([900, 950, 1000])
+    }),
+    Object.freeze({
+      id: 'normal',
+      label: 'Normal',
+      tagline: 'Chess career',
+      blurb: 'The intended Pawn & Passport progression. A club player should finish it, and the last cities should still make them work.',
+      regularBands: Object.freeze([[500, 650], [650, 800], [800, 900], [900, 1000], [1000, 1100], [1100, 1200]]),
+      starByTier: Object.freeze([650, 800, 900, 1000, 1100, 1250]),
+      finaleRounds: Object.freeze([1300, 1375, 1450])
+    }),
+    Object.freeze({
+      id: 'hard',
+      label: 'Hard',
+      tagline: 'Club challenge',
+      blurb: 'For experienced club players who want the opposition to punish them. Every city is a step up from Normal.',
+      regularBands: Object.freeze([[700, 800], [800, 900], [900, 1000], [1000, 1100], [1100, 1250], [1250, 1400]]),
+      starByTier: Object.freeze([850, 950, 1050, 1150, 1300, 1400]),
+      finaleRounds: Object.freeze([1400, 1450, 1500])
+    })
+  ])
+});
+
+/** A mode by id, falling back to the default rather than throwing on an old save. */
+export function difficultyMode(id) {
+  return DIFFICULTY.modes.find((m) => m.id === id)
+    || DIFFICULTY.modes.find((m) => m.id === DIFFICULTY.default);
+}
+
+/* ================================================================= clock === */
+/* The time limit is the player's choice, made at New Game and changeable in
+   Settings, and like the difficulty it lives on the CAREER: every game played
+   from then on uses it (friendlies, challenges, tournaments, the finale).
+   `timeControl` is an id from js/chess/core/timeControl.js TIME_CONTROLS.
+   A career saved before the choice existed keeps playing without a clock. */
+export const CLOCK = Object.freeze({
+  default: '10m',
+  legacy: 'unlimited',
+  modes: Object.freeze([
+    Object.freeze({ id: '5m', timeControl: '5m', label: '5 minutes', tagline: 'Quick games',
+      blurb: 'Five minutes each for the whole game. Run out and you lose, unless your opponent cannot mate.' }),
+    Object.freeze({ id: '10m', timeControl: '10m', label: '10 minutes', tagline: 'Time to think',
+      blurb: 'Ten minutes each for the whole game: room for a plan, and still a clock to watch.' }),
+    Object.freeze({ id: 'unlimited', timeControl: 'unlimited', label: 'No limit', tagline: 'Take your time',
+      blurb: 'No clock at all. Focus abilities cost Focus only.' })
+  ]),
+  /* Using Focus is thinking harder, and thinking takes time: Hint and Undo
+     take this share of the game's starting time off your clock, every time
+     they are used, whatever the rolls show (a failed roll was thought about
+     too). A hint's share grows with its rolls (HINTS.rollsMultiplier). With
+     no limit they cost no time. Later RPG stats multiply these per ability
+     (js/core/focusTime.js `modifiers`). */
+  focusTime: Object.freeze({ hint: 0.03, undo: 0.05 }),
+  /* An ability is refused when it would leave less than this on the clock:
+     Focus never flags you by itself. */
+  focusReserveMs: 5000
+});
+
+export function clockMode(id) {
+  return CLOCK.modes.find((m) => m.id === id) || CLOCK.modes.find((m) => m.id === CLOCK.default);
+}
+
+/* ==================================================================== focus === */
+export const FOCUS = Object.freeze({
+  base: 30,
+  perLevel: 6,             // max = base + perLevel * (level - 1): 30 at L1, 114 at L15 (full again every game)
+  /* Earned back mid-game by finding strong moves YOURSELF (not the hinted one). */
+  regen: { BEST: 2, EXCELLENT: 1, BRILLIANT: 5, EPIC: 6, CLUTCH: 5 }
+});
+
+/* ==================================================================== hints === */
+export const HINTS = Object.freeze({
+  baseCost: 10,
+  minCost: 2,
+  /* A hint is a handful of ROLLS, one per candidate move. The engine ranks
+     the playable moves (MultiPV); roll 1 is for the best one, roll 2 for the
+     runner-up, roll 3 for the third. Each roll succeeds or fails on its own:
+     a failed roll shows nothing for that move, a successful one shows it in
+     the quality it rolled, and the quality is how far the idea reaches:
+       green   the move                                  (1 of your moves)
+       purple  the move, then the next one               (2)
+       gold    the move and two more                     (3)
+     Later moves are not shown in advance: after the opponent replies, the
+     engine draws the next move of the plan you followed, like the opening guide. */
+  rollsByLevel: [
+    { from: 1, rolls: 1, label: '1 roll' },
+    { from: 5, rolls: 2, label: '2 rolls' },
+    { from: 10, rolls: 3, label: '3 rolls' }
+  ],
+  /* Chances per roll, by level. Each row sums to 1. */
+  oddsByLevel: [
+    { from: 1, fail: 0.30, green: 0.55, purple: 0.12, gold: 0.03 },
+    { from: 5, fail: 0.25, green: 0.50, purple: 0.18, gold: 0.07 },
+    { from: 10, fail: 0.20, green: 0.42, purple: 0.26, gold: 0.12 },
+    { from: 15, fail: 0.10, green: 0.35, purple: 0.35, gold: 0.20 }
+  ],
+  movesByQuality: { green: 1, purple: 2, gold: 3 },
+  /* A candidate only gets a roll if it is playable: at most this many
+     win-probability points (0..100) worse than the engine's best. With one
+     playable move there is one roll, whatever the level. */
+  playableLoss: 8,
+  candidates: 3,
+  rollsMultiplier: { 1: 1.0, 2: 1.3, 3: 1.6 },
+  /* Focus given back, as a share of what the hint cost. Paid on your NEXT
+     move only (a plan's later, free moves pay nothing):
+       lesser   playing the 2nd or 3rd suggestion instead of the best
+       ignored  playing none of the suggestions: you trusted yourself
+       blank    every roll failed and nothing was shown */
+  refund: { lesser: [0, 0.3, 0.5], ignored: 0.75, blank: 0.75 },
+  /* Inside a known opening line: 1 - familiarityDiscount * mastery (0..1). */
+  familiarityDiscount: 0.6,
+  specialtyMultiplier: 0.9,          // extra for your starting club's opening
+  phaseMultiplier: { opening: 1.0, middlegame: 1.2, endgame: 1.4 },
+  complexityThreshold: 0.55,
+  complexityMultiplier: 1.15,
+  /* Hints use the same strong engine as grading. Level changes how many rolls
+     and how good they are, never the engine's strength. */
+  search: { depth: 14, movetime: 1500, nodes: 1500000 }
+});
+
+/* ================================================================ guide === */
+/* The opening guide is the player's own preparation, drawn from the book.
+   A MASTERED opening (100%) is known well enough that an opponent leaving the
+   book does not leave the player lost: until the game passes the opening's
+   longest prepared line, the guide keeps going with the engine's move. */
+export const GUIDE = Object.freeze({
+  masteredFillIn: true,
+  masteredAt: 100,
+  /* Only once the game has really been in the opening: the guide was showing
+     it at this ply or later (1.e4 c5 against an Italian player is simply a
+     different opening, not a deviation from the Italian). */
+  minBookPlies: 2
+});
+
+/* ================================================================= undo === */
+/* The second Focus ability: take back your last move (and the reply to it).
+   It costs a level-1 player's ENTIRE Focus pool, is capped per game even at
+   max level, and has a cooldown counted in your own moves. */
+export const UNDO = Object.freeze({
+  cost: 30,                          // = FOCUS.base: a beginner's whole pool
+  usesByLevel: [                     // hard cap per game, whatever Focus you have
+    { from: 1, uses: 1 },
+    { from: 6, uses: 2 },
+    { from: 12, uses: 3 }
+  ],
+  cooldownMoves: 5                   // your moves before it can be used again
+  // (what an undo costs the Match Score is SCORE.undoPenalty, below)
+});
+
+/* ================================================================= draws === */
+/* When a bot takes the draw the player offers (js/game/match.js offerDraw).
+   It asks its own engine whether it is better, the way a player would look
+   at the board, instead of counting material: a bot a rook down used to
+   refuse a draw because the material was "not level". */
+export const DRAW = Object.freeze({
+  minPly: 40,              // no draws before move 20: a draw is not a way to skip a game
+  acceptCp: 50,            // takes it unless it thinks it is better by more than this
+  holdOutCp: 150,          // when a draw would put the PLAYER through (a knockout as Black): only when this much worse
+  search: { depth: 12, movetime: 700, nodes: 400000, multiPv: 1 }
+});
+
+/* Opponents' manners (js/core/botConduct.js): a hopeful draw offer when
+   clearly lost, resignation when hopeless, a genuine offer in a dead-level
+   endgame. Evaluations are the bot's own, in centipawns from its side; each
+   decision is checked with a real search (DRAW.search) before it is acted on. */
+export const CONDUCT = Object.freeze({
+  bluff: { cp: 500, turns: 3, chance: 0.4, max: 1, minPly: 30 },
+  resign: { cp: 900, turns: 3, minPly: 40, minElo: 600, playOnIfPlayerUnderMs: 60000 },
+  fair: { cp: 30, turns: 4, max: 1, minPly: 60 },
+  offerGapPlies: 12          // no second offer within six moves of the last
+});
+
+/* ======================================================= opening mastery === */
+export const MASTERY = Object.freeze({
+  starting: 40,
+  perGameReached: 4,       // playing the line teaches a little...
+  playCap: 90,             // ...but only a trophy makes it 100
+  trophy: 100,
+  allBranchesAt: 100,      // mastered: every prepared branch, not just the current line
+  /* The practice room. The tutorial unlocks an opening you have never met;
+     a passed drill set teaches like a game does, under the same playCap. */
+  tutorialGrant: 25,       // the tutorial raises mastery to at least this
+  drillSetSize: 8,         // positions per drill set
+  drillPassShare: 0.75,    // share of first-try answers that passes a set
+  drillGain: 3,            // mastery per passed set, never past playCap
+  states: [
+    { from: 0, id: 'unknown', label: 'Unknown' },
+    { from: 1, id: 'glimpsed', label: 'Glimpsed' },
+    { from: 25, id: 'partial', label: 'Partially known' },
+    { from: 40, id: 'studied', label: 'Studied' },
+    { from: 100, id: 'mastered', label: 'Mastered' }
+  ]
+});
+
+/* ============================================================ repertoire === */
+/* Openings the player has EQUIPPED. Only equipped openings draw guide arrows
+   and discount hints. Any opening known at all (mastery > 0) can be equipped;
+   mastery decides how many plies of it the guide arrows know. */
+export const REPERTOIRE = Object.freeze({
+  slotsByLevel: [
+    { from: 1, slots: 1 }, { from: 3, slots: 2 }, { from: 5, slots: 3 },
+    { from: 8, slots: 4 }, { from: 11, slots: 5 }, { from: 13, slots: 6 }
+  ]
+});
+
+/* ============================================================ tournament === */
+export const TOURNAMENT = Object.freeze({
+  /* Each club runs one format. Swiss: 16 players, everyone plays all 5 rounds,
+     and the leader after round 5 (tiebreak Buchholz, then rating) meets the
+     Star Player in the final. Knockout: 32 players, lose once and you are out;
+     the bracket winner meets the Star. Either way the TROPHY needs a win in
+     the final. Anyone who falls short enters a fresh event next time. */
+  format: { nyc: 'swiss', lon: 'knockout', vie: 'swiss', ist: 'knockout', che: 'swiss', wen: 'knockout' },
+  rounds: 5,
+  field: { swiss: 16, knockout: 32 },
+  /* A knockout game cannot end level: a draw goes to Black (Armageddon rule). */
+  knockoutDrawGoesTo: 'b',
+  /* Mastery of the club opening per tournament game played (the final too),
+     never past failedRunCap: only the trophy makes it 100. */
+  masteryPerGame: { win: 6, draw: 4, loss: 3 },
+  masteryCap: 60
+});
+
+/* ============================================================== members === */
+/* A member's Elo: its club strength `rel` (0..1) laid over the tier's regular
+   band, widened so a field has real underdogs and real favourites. Visitors
+   (the rest of a tournament field) sit in the lower part of the same range. */
+export const MEMBERS = Object.freeze({
+  belowBand: 100,          // weakest member = band low - this
+  aboveBand: 60,           // strongest member = band high + this
+  visitorRel: [0, 0.7]
+});
+
+/* ============================================================ simulation === */
+/* NPC games are played out on Elo: expected score on a logistic with this
+   SCALE (steeper than the usual 400, so a 400-point gap is a real mismatch:
+   the underdog wins ~4%, but 100 points apart it is roughly 1 in 4), and a
+   draw rate that falls as the gap grows. */
+export const SIM = Object.freeze({
+  scale: 300,
+  drawAtEqual: 0.16,
+  drawFalloff: 250         // draw share = drawAtEqual * exp(-|gap| / drawFalloff)
+});
+
+/* ================================================================= coins === */
+export const COINS = Object.freeze({
+  start: 150,
+  /* A challenge stake by the opponent's Elo: stakeMin at stakeFromElo[0],
+     stakeMax at stakeFromElo[1], rounded to 5. A draw returns the stake. */
+  stakeMin: 10,
+  stakeMax: 40,
+  stakeFromElo: [450, 1350],
+  /* Travel and tournaments cost money (2026-10-01). The user's rules: not
+     grindy, a loss should matter, winning the candidate rounds covers the
+     entry fee, and beating the Star Player is a paycheck that funds the next
+     flight and tournament with room to spare. In entry fees:
+       per point scored  perPointShare      (5 wins = 0.6 fee)
+       reaching the final finalistShare     (runner-up: 1.2 fees back)
+       winning the final  championShare fee + championBonus
+     Out early: a few points back, most of the fee lost. */
+  entryFee: [40, 50, 60, 70, 80, 90],     // by Club Trophies held when entering
+  perPointShare: 0.12,
+  finalistShare: 0.6,
+  championShare: 2.5,
+  championBonus: 100,
+  flight: 50,                // to another city; Madrid is an invitation (free); club <-> venue is free
+  /* Never stuck: a fee or a flight you cannot pay is covered by a sponsor,
+     and the shortfall comes out of your next tournament prize money. */
+  puzzle: 5,               // first solve of any puzzle
+  missionComplete: 25
+});
+
+/* ================================================================== shop === */
+/* What coins buy (js/core/shop.js, the Journal's Shop page): looks only, never
+   strength. A Club Trophy's profit (the champion's prize less the fee and the
+   next flight) is 134 coins at the first club and 239 at the last: the first
+   trophy buys any board, the first two the dearest piece set, and the six
+   together everything (860 in all), before stakes and puzzles add more. */
+export const SHOP = Object.freeze({
+  pieces: { tokens: 250, chessnut: 150 },
+  boards: { green: 120, walnut: 80, ocean: 100, slate: 100, mono: 60 }
+});
+
+/* ============================================================== grading === */
+/* Bands in win-probability points lost (0..100), on the 0.00368208 logistic.
+   BEST now means the engine's own move (or a move it scores within 0.3). */
+export const GRADING = Object.freeze({
+  best: 0.3,
+  excellent: 2,
+  good: 5,
+  inaccuracy: 10,
+  mistake: 20,
+  complexityTolerance: 0.1,
+  brilliantMinWinProb: 45,
+  brilliantMinSacrifice: 180,
+  missAdvantage: 250,
+  /* The gentle centipawn floor under win probability (see moveClassifier):
+     loss = max(winProbLoss, min(cpLoss, cpLossCap) / cpLossDivisor). */
+  cpLossDivisor: 20,
+  cpLossCap: 800,
+  /* The grading search: depth 14 is far above 2000 strength; movetime is a
+     ceiling so a slow machine still answers. */
+  search: { depth: 14, movetime: 1500, nodes: 1500000, multiPv: 3 }
+});
+
+export const CLUTCH = Object.freeze({
+  /* An only-move under pressure: the played move is the engine's choice (or
+     within the BEST band), the runner-up was at least this much worse in win
+     probability, the mover was not already cruising, and the move holds. */
+  minGapWinProb: 15,
+  maxWinProbBefore: 62,
+  minWinProbAfter: 30
+});
+
+/* ============================================================ match score === */
+export const SCORE = Object.freeze({
+  result: { win: 1000, draw: 500, loss: 150 },
+  accuracyPoints: 15,                // per accuracy percent
+  grade: { EPIC: 450, BRILLIANT: 300, CLUTCH: 250, BEST: 40, EXCELLENT: 25, GOOD: 10, BOOK: 5,
+           INACCURACY: -20, MISTAKE: -60, MISS: -60, BLUNDER: -120 },
+  checkmateBonus: 150,
+  upsetPerElo: 1,                    // a win against a stronger opponent
+  upsetCap: 300,
+  hintPenalty: 40,
+  undoPenalty: 150,
+  letters: [
+    { from: 3200, letter: 'S' }, { from: 2600, letter: 'A' }, { from: 2000, letter: 'B' },
+    { from: 1400, letter: 'C' }, { from: 0, letter: 'D' }
+  ]
+});
+
+/* ======================================================= bot strength map === */
+/* Stockfish's own UCI_Elo stops at 1320, so amateur strength is made the way
+   the World Tour bots already make it: a noisy pick from a wide candidate pool
+   plus an unforced-error roll. Interpolated between these anchors. */
+/* A target Elo, as an opponent. js/core/difficulty.js interpolates this table
+ * and hands the result to the bot; nothing else decides how strong anyone is.
+ *
+ * MEASURED AGAINST REAL PLAYERS. tools/dev/human_strength.mjs takes 509
+ * positions from rated Lichess games (five cohorts, ~1160 to ~1940), scores
+ * every legal move once at depth 12, and compares the move each bot picks
+ * with the move the human really played there. The human curve it fits is
+ * ACPL 56 at 1528, 5.7 cp more per 100 Elo less. [History: v1.1.19 tuned the
+ * rungs to that curve READ AS IF LICHESS = FIDE; the v1.4.1 section below
+ * supersedes it from 1000 up.] Since v1.1.19 the rungs from
+ * 850 up are tuned to that curve (below ~1160, where there are no human games,
+ * it is continued smoothly down to the 700 rung, which is unchanged):
+ *
+ *   label    850  1000  1150  1250  1300  1400  1500
+ *   ACPL     135   101    81    74    64    55    51     (v1.1.18: 1000 151,
+ *   curve    138   105    82    72    68    61    56      1250 109, 1500 73)
+ *
+ * The lever is how often a bot makes an unforced error (`blunderChance`):
+ * the old table erred on 20-50% of its moves from 1000 up, far more than
+ * real players of those ratings. The top rungs stay on the novice engine with
+ * rare errors: the beginner engine's shallow search alone already measured
+ * ~10 ACPL stronger, which the monotone error rate could not pay back. At
+ * 1500 `seesFreeMaterialCp` is 110, not 100: at exactly a pawn the greedy
+ * grab fired on a quarter of all moves (a free-looking pawn taken while its
+ * own queen hung), which only the 1500 rung did. tools/dev/calibrate_bots.mjs
+ * still checks the ladder on self-play positions.
+ *
+ * v1.4.1 - ELO MEANS FIDE. Players read "1400" as a FIDE (or chess.com)
+ * 1400, and the table above was tuned to LICHESS blitz/rapid players, who
+ * are rated 250-270 points higher than FIDE at club level, so every opponent
+ * from 1000 up played well below its label. The rows from 1000 up are now
+ * tuned to the FIDE scale: a label L plays like the Lichess players that
+ * RATING_SCALE (below: ChessGoals survey data) puts at FIDE L, measured the
+ * same way (tools/dev/calibrate_fide.mjs: 509 positions from real rated
+ * Lichess games, depth-12 reference, 3 samples; the human trend is the one
+ * tools/dev/human_strength.mjs fits):
+ *
+ *   label (FIDE)        1000   1150   1300   1400   1500
+ *   target (Lichess)   ~1175  ~1380   1565   1660   1750
+ *   bot ACPL            93.1   64.6   53.9   49.3   42.0   (target ~95 / 64 / 54 / 48.5 / 43)
+ *
+ * 1400 and 1500 search on the 'club' preset (depth 8): the novice engine
+ * could not get under ~50 ACPL however rarely it erred. At 1000 the target
+ * is the Lichess 1000 cohort itself (mean rating 1161, ACPL 95, 10.7%
+ * blunders; the bot: 93, 10.4%). FIDE does not rate below ~1000 and no site's
+ * players there can be compared, so the beginner rows (850 and below) are
+ * unchanged. Measurement noise is about +-4 ACPL (+-70 points).
+ *
+
+ * strength does not come from the engine at all. It comes from `blunderChance`
+ * (how often an unforced error happens) and `blunderSeverityCp` (how much that
+ * error may hand over - a hung queen at the bottom, a dropped pawn near the
+ * top). That pair is what makes a beginner opponent feel like a beginner
+ * rather than like a strong engine playing quickly.
+ *
+ * Two of the columns exist to keep a weak bot BAD rather than RANDOM:
+ *
+ *   seesFreeMaterialCp  how much material has to be hanging, in centipawns,
+ *                       before this opponent notices. At 250 it takes a loose
+ *                       knight or better; at 1500 a loose pawn is enough.
+ *   greed               how often it takes what it noticed. Weak players are
+ *                       greedy: they grab the piece first and find out
+ *                       afterwards that the capture walked into a fork. That
+ *                       is a far more believable 300 than one that leaves a
+ *                       queen standing because a dice roll said so.
+ *
+ * Together they mean the unforced-error roll can never skip an obviously free
+ * capture, which is what "human-like, not random" comes down to in practice.
+ * Stockfish itself is never asked to play below UCI_Elo 1320 (it refuses):
+ * every rung under that is this table and the bot layer on top of it.
+ */
+export const BOT_STRENGTH = Object.freeze([
+  /* elo   strength  blunder  severity  wild  pool  maxLoss  seesFree  greed  level   measured (v1.4.1, Lichess-equivalent by ACPL / by win% loss) */
+  { elo: 250,  strength: 0.020, blunderChance: 0.850, blunderSeverityCp: 1100, wildness: 0.620, candidatePool: 6, maxEvalLossCp: 2000, seesFreeMaterialCp: 320, greed: 0.72, level: 'novice' },
+  { elo: 400,  strength: 0.035, blunderChance: 0.780, blunderSeverityCp: 980,  wildness: 0.530, candidatePool: 6, maxEvalLossCp: 1800, seesFreeMaterialCp: 300, greed: 0.76, level: 'novice' },
+  { elo: 550,  strength: 0.055, blunderChance: 0.715, blunderSeverityCp: 860,  wildness: 0.450, candidatePool: 6, maxEvalLossCp: 1560, seesFreeMaterialCp: 280, greed: 0.79, level: 'novice' },
+  { elo: 700,  strength: 0.082, blunderChance: 0.650, blunderSeverityCp: 740,  wildness: 0.375, candidatePool: 5, maxEvalLossCp: 1300, seesFreeMaterialCp: 250, greed: 0.82, level: 'novice' },
+  { elo: 850,  strength: 0.115, blunderChance: 0.400, blunderSeverityCp: 640,  wildness: 0.305, candidatePool: 5, maxEvalLossCp: 1100, seesFreeMaterialCp: 220, greed: 0.85, level: 'novice' },
+  { elo: 1000, strength: 0.190, blunderChance: 0.180, blunderSeverityCp: 500,  wildness: 0.210, candidatePool: 5, maxEvalLossCp: 840,  seesFreeMaterialCp: 175, greed: 0.88, level: 'novice', measured: { acpl: 93.1, blunders: 0.104 } },
+  { elo: 1150, strength: 0.330, blunderChance: 0.070, blunderSeverityCp: 330,  wildness: 0.100, candidatePool: 5, maxEvalLossCp: 600,  seesFreeMaterialCp: 125, greed: 0.915, level: 'novice', measured: { acpl: 64.6, lichess: [1377, 1389] } },
+  { elo: 1300, strength: 0.380, blunderChance: 0.060, blunderSeverityCp: 290,  wildness: 0.075, candidatePool: 4, maxEvalLossCp: 520,  seesFreeMaterialCp: 114, greed: 0.935, level: 'novice', measured: { acpl: 53.9, lichess: [1565, 1576] } },
+  { elo: 1400, strength: 0.480, blunderChance: 0.050, blunderSeverityCp: 250,  wildness: 0.050, candidatePool: 4, maxEvalLossCp: 420,  seesFreeMaterialCp: 100, greed: 0.95, level: 'club', measured: { acpl: 49.3, lichess: [1646, 1708] } },
+  { elo: 1500, strength: 0.560, blunderChance: 0.028, blunderSeverityCp: 200,  wildness: 0.030, candidatePool: 3, maxEvalLossCp: 340,  seesFreeMaterialCp: 90,  greed: 0.96, level: 'club', measured: { acpl: 42.0, lichess: [1774, 1843] } }
+]);
+
+/* FIDE -> Lichess blitz, from the ChessGoals rating-comparison survey
+   (chessgoals.com/rating-comparison; the spreadsheet copy used is marked by
+   its author as older than the live page). What BOT_STRENGTH is tuned
+   against; the game's Elo is the FIDE column. No rows below FIDE 1260 exist:
+   there the targets in the BOT_STRENGTH comment taper the 270-point gap
+   down to the beginner rows. js/core/ratingScale.js reads it. */
+export const RATING_SCALE = Object.freeze({
+  source: 'ChessGoals rating comparison (chessgoals.com/rating-comparison), FIDE vs Lichess blitz',
+  fideToLichessBlitz: Object.freeze([[1260, 1530], [1310, 1570], [1350, 1610], [1390, 1650], [1430, 1690], [1480, 1730], [1520, 1770], [1560, 1810], [1610, 1850], [1650, 1890], [1690, 1930], [1730, 1970], [1780, 2010]])
+});
+
+export const BOOK = Object.freeze({
+  /* How often a club regular reaches for the club opening when the line allows. */
+  regularPreference: 0.9,
+  starPreference: 1.0
+});
+
+export default { GAME, LEVELS, XP, ELO, BOT_ELO, DIFFICULTY, difficultyMode, FOCUS, HINTS, GUIDE, UNDO, MASTERY, REPERTOIRE, TOURNAMENT, MEMBERS, SIM, COINS, SHOP, GRADING, CLUTCH, SCORE, BOT_STRENGTH, BOOK, PRACTICE };
